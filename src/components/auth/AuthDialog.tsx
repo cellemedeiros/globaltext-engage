@@ -75,6 +75,7 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
           providers={["google"]}
           redirectTo={window.location.origin}
           view="sign_in"
+          showLinks={true}
           localization={{
             variables: {
               sign_in: {
