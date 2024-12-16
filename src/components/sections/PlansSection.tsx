@@ -6,7 +6,7 @@ const PlansSection = () => {
   const plans = [
     {
       name: "Standard",
-      price: "R$50",
+      price: "R$400",
       period: "/month",
       features: [
         "Up to 5,000 words per month",
@@ -19,7 +19,7 @@ const PlansSection = () => {
     },
     {
       name: "Premium",
-      price: "R$100",
+      price: "R$1200",
       period: "/month",
       popular: true,
       features: [
@@ -63,15 +63,15 @@ const PlansSection = () => {
           {plans.map((plan, index) => (
             <Card 
               key={index}
-              className={`relative ${
+              className={`relative hover:scale-105 transition-all duration-300 ${
                 plan.popular 
                   ? 'border-primary shadow-lg scale-105' 
                   : 'hover:shadow-md'
-              } transition-all duration-300`}
+              }`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary text-white px-4 py-1 rounded-full text-sm">
+                  <span className="bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">
                     Most Popular
                   </span>
                 </div>
@@ -88,7 +88,7 @@ const PlansSection = () => {
               <CardContent className="pt-4">
                 <ul className="space-y-4 mb-8">
                   {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2">
+                    <li key={i} className="flex items-start gap-2 text-gray-700">
                       <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                       <span>{feature}</span>
                     </li>
@@ -96,7 +96,7 @@ const PlansSection = () => {
                 </ul>
 
                 <Button 
-                  className={`w-full ${
+                  className={`w-full hover:scale-105 transition-transform ${
                     plan.name === "Business" 
                       ? 'bg-secondary-dark hover:bg-secondary-dark/90' 
                       : ''

@@ -8,7 +8,7 @@ const DocumentTranslationSection = () => {
       <div className="container mx-auto px-4">
         <h2 className="text-4xl font-bold mb-4 text-center">Single Document Translation</h2>
         <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-          Upload your document and get an instant estimate. Our professional translators ensure quality at R$0,40 per word.
+          Upload your document and get an instant estimate. Our professional translators ensure quality at R$0,40 per word, with a maximum delivery time of 48 hours.
         </p>
         
         <Card className="max-w-2xl mx-auto glass">
@@ -18,24 +18,24 @@ const DocumentTranslationSection = () => {
               <ol className="text-left space-y-4">
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">1.</span>
-                  <span>Upload your document (.txt, .doc, .docx, or .pdf)</span>
+                  <span className="text-gray-700">Upload your document (.txt, .doc, .docx, or .pdf)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">2.</span>
-                  <span>Get an instant word count and price estimate</span>
+                  <span className="text-gray-700">Get an instant word count and price estimate</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">3.</span>
-                  <span>Choose your target language and delivery timeline</span>
+                  <span className="text-gray-700">Choose your target language and delivery timeline (max 48 hours)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">4.</span>
-                  <span>Receive your professionally translated document</span>
+                  <span className="text-gray-700">Receive your professionally translated document</span>
                 </li>
               </ol>
             </div>
             
-            <Button className="w-full md:w-auto mx-auto flex gap-2">
+            <Button className="w-full md:w-auto mx-auto flex gap-2 hover:scale-105 transition-transform">
               <FileUp className="w-5 h-5" />
               Upload Document
             </Button>

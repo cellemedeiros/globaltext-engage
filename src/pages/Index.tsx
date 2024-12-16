@@ -75,20 +75,20 @@ const Index = () => {
               More than just{" "}
               <span className="text-primary">translations</span>...
             </h1>
-            <p className="text-lg md:text-xl text-secondary-dark max-w-2xl mx-auto mb-8">
+            <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto mb-8">
               Empowering businesses and individuals with precise, culturally relevant communication.
             </p>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               <Button
                 onClick={scrollToFeatures}
-                className="px-8 py-6 text-lg"
+                className="px-8 py-6 text-lg hover:scale-105 transition-transform"
               >
                 Explore Features
                 <ChevronRight className="w-5 h-5" />
               </Button>
               <Button
                 variant="outline"
-                className="px-8 py-6 text-lg"
+                className="px-8 py-6 text-lg hover:scale-105 transition-transform"
               >
                 Contact Us
               </Button>
@@ -102,7 +102,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">A Fully Integrated Platform</h2>
-            <p className="text-secondary max-w-2xl mx-auto">
+            <p className="text-gray-700 max-w-2xl mx-auto">
               We simplify translation and localization, making it seamless and effective.
             </p>
           </div>
@@ -132,7 +132,7 @@ const Index = () => {
                 <CardContent className="p-0">
                   <feature.icon className="w-12 h-12 text-primary mb-4" />
                   <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-secondary">{feature.description}</p>
+                  <p className="text-gray-700">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -144,7 +144,7 @@ const Index = () => {
       <section id="languages" className="py-24 scroll-section">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">Our Supported Languages</h2>
-          <p className="text-secondary max-w-2xl mx-auto mb-12">
+          <p className="text-gray-700 max-w-2xl mx-auto mb-12">
             We provide high-quality translations in the most widely spoken languages to connect you with the world.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
@@ -169,7 +169,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* New Sections */}
+      {/* Other Sections */}
       <TestimonialsSection />
       <DocumentTranslationSection />
       <PlansSection />
@@ -179,14 +179,14 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-4xl font-bold mb-4">Get in Touch</h2>
-            <p className="text-secondary mb-8">
+            <p className="text-gray-700 mb-8">
               Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
             </p>
             <div className="space-y-4">
-              <Input placeholder="Your Name" />
-              <Input type="email" placeholder="Your Email" />
-              <Textarea placeholder="Your Message" className="min-h-[150px]" />
-              <Button className="w-full md:w-auto">
+              <Input placeholder="Your Name" className="bg-white" />
+              <Input type="email" placeholder="Your Email" className="bg-white" />
+              <Textarea placeholder="Your Message" className="min-h-[150px] bg-white" />
+              <Button className="w-full md:w-auto hover:scale-105 transition-transform">
                 Send Message
                 <Mail className="ml-2" />
               </Button>
