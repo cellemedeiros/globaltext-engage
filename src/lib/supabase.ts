@@ -1,11 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// These values will be replaced with actual values from your Supabase project
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = "https://qriwrblyyrxpzzwrnmto.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyaXdyYmx5eXJ4cHp6d3JubXRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMTcxMjgsImV4cCI6MjA0OTg5MzEyOH0.T6MSrs11uOzNBE_v55vZQ7uXA-Bn_aGqMxyfHOREAug";
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase URL or Anon Key. Please connect to Supabase from the Lovable interface.');
+  console.error('Missing Supabase URL or Anon Key');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
