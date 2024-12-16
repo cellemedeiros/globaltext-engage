@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PendingApplicationMessage from "./PendingApplicationMessage";
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 interface TranslatorAccessControlProps {
   children: React.ReactNode;
@@ -68,7 +69,14 @@ const TranslatorAccessControl = ({ children }: TranslatorAccessControlProps) => 
   }, [profile, profileLoading, toast]);
 
   if (profileLoading || applicationLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!profile || profile.role !== 'translator') {
