@@ -8,9 +8,11 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
 
 const NavigationSection = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const { t } = useTranslation();
@@ -51,21 +53,38 @@ const NavigationSection = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
-      if (!session) {
-        navigate('/');
-      }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error('Error signing out:', error);
+        toast({
+          title: "Error",
+          description: "There was a problem signing out. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Only navigate after successful logout
       navigate("/");
+      
+      toast({
+        title: "Success",
+        description: "You have been signed out successfully.",
+      });
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error in logout process:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem signing out. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -78,7 +97,7 @@ const NavigationSection = () => {
   };
 
   if (isAuthenticated === null) {
-    return null; // or a loading spinner
+    return null;
   }
 
   return (
