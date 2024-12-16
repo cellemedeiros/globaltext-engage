@@ -46,7 +46,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           <p className="text-muted-foreground">No active subscription</p>
           <Button 
             className="w-full" 
-            onClick={() => navigate('/payment')}
+            onClick={() => navigate('/#pricing')}
           >
             Get Started
           </Button>
