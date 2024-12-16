@@ -2,16 +2,20 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import AuthSection from "./AuthSection";
+import AuthDialog, { AuthButton } from "../auth/AuthDialog";
 import { useEffect, useState } from "react";
 
 const NavigationSection = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
+      if (session) {
+        setShowAuthDialog(false);
+      }
     });
   }, []);
 
@@ -43,10 +47,15 @@ const NavigationSection = () => {
               Logout
             </Button>
           ) : (
-            <AuthSection />
+            <AuthButton onClick={() => setShowAuthDialog(true)} />
           )}
         </div>
       </nav>
+
+      <AuthDialog 
+        isOpen={showAuthDialog} 
+        onOpenChange={setShowAuthDialog}
+      />
     </header>
   );
 };
