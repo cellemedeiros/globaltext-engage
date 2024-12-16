@@ -3,22 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Database } from "@/integrations/supabase/types";
 
-interface Subscription {
-  plan_name: string;
-  words_remaining: number | null;
-}
+type Profile = Database['public']['Tables']['profiles']['Row'] & {
+  subscriptions?: Database['public']['Tables']['subscriptions']['Row'] | null;
+};
 
-interface Profile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  country: string | null;
-  phone: string | null;
-  role: 'client' | 'translator';
-  is_approved_translator: boolean | null;
-  subscriptions?: Subscription | null;
-}
+type FreelancerApplication = Database['public']['Tables']['freelancer_applications']['Row'];
 
 const ProfileSection = () => {
   const navigate = useNavigate();
@@ -31,7 +22,15 @@ const ProfileSection = () => {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, subscriptions!subscriptions_user_id_fkey(*)')
+        .select(`
+          *,
+          subscriptions!subscriptions_user_id_fkey (
+            plan_name,
+            words_remaining,
+            expires_at,
+            status
+          )
+        `)
         .eq('id', session.user.id)
         .single();
 
@@ -40,7 +39,7 @@ const ProfileSection = () => {
     },
   });
 
-  const { data: application } = useQuery({
+  const { data: application } = useQuery<FreelancerApplication | null>({
     queryKey: ['translator-application'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
