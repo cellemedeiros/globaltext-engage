@@ -97,7 +97,7 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
 };
 
 export const AuthButton = ({ onClick }: { onClick: () => void }) => (
-  <Button variant="outline" size="sm" onClick={onClick} className="flex items-center gap-2">
+  <Button variant="outline" size="sm" onClick={onClick} className="flex items-center gap-2 bg-primary text-white hover:bg-primary-light">
     <LogIn className="w-4 h-4" />
     Sign In / Sign Up
   </Button>
