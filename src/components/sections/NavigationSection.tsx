@@ -30,11 +30,24 @@ const NavigationSection = () => {
         <div className="text-2xl font-bold text-primary">GlobalText</div>
         <div className="flex items-center gap-6">
           <div className="hidden md:flex items-center gap-6 text-sm">
-            <a href="#features" className="hover:text-primary transition-colors">Features</a>
-            <a href="#languages" className="hover:text-primary transition-colors">Languages</a>
-            <a href="#testimonials" className="hover:text-primary transition-colors">Testimonials</a>
-            <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
-            <a href="#contact" className="hover:text-primary transition-colors">Contact</a>
+            {!isAuthenticated && (
+              <>
+                <a href="#features" className="hover:text-primary transition-colors">Features</a>
+                <a href="#languages" className="hover:text-primary transition-colors">Languages</a>
+                <a href="#testimonials" className="hover:text-primary transition-colors">Testimonials</a>
+                <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
+                <a href="#contact" className="hover:text-primary transition-colors">Contact</a>
+              </>
+            )}
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/dashboard")}
+                className="hover:text-primary transition-colors"
+              >
+                Dashboard
+              </Button>
+            )}
           </div>
           {isAuthenticated ? (
             <Button
