@@ -42,9 +42,20 @@ const NavigationSection = () => {
   });
 
   useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setIsAuthenticated(!!session);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        if (mounted) {
+          setIsAuthenticated(false);
+        }
+      }
     };
 
     checkSession();
@@ -52,29 +63,38 @@ const NavigationSection = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+      if (mounted) {
+        setIsAuthenticated(!!session);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
     try {
-      // First check if we have a valid session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
+      if (sessionError) {
+        console.error('Error getting session:', sessionError);
+        setIsAuthenticated(false);
+        navigate("/");
+        return;
+      }
+
       if (!session) {
-        // If no session exists, just redirect and show success message
         setIsAuthenticated(false);
         navigate("/");
         toast({
-          title: "Success",
-          description: "You have been signed out successfully.",
+          title: "Already signed out",
+          description: "You were already signed out of your account.",
         });
         return;
       }
 
-      // If we have a session, attempt to sign out
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
@@ -85,10 +105,11 @@ const NavigationSection = () => {
         });
         return;
       }
-      
-      // Only navigate after successful logout
+
       setIsAuthenticated(false);
-      navigate("/");
+      
+      // Clear any cached data
+      window.location.href = "/";
       
       toast({
         title: "Success",
