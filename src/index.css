@@ -35,14 +35,19 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-dark;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary-light to-primary-dark animate-gradient;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 8s ease infinite;
   }
 }
 
 .scroll-section {
   opacity: 0;
   transform: translateY(20px);
-  transition: all 0.6s ease-out;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .scroll-section.visible {
@@ -51,6 +56,18 @@
 }
 
 /* Enhanced animations */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @keyframes float {
   0% {
     transform: translateY(0px);
@@ -88,4 +105,83 @@
 /* Enhanced focus styles */
 *:focus-visible {
   @apply outline-none ring-2 ring-primary/50 ring-offset-2;
+}
+
+/* Smooth transitions */
+.smooth-transition {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Enhanced button styles */
+.btn-gradient {
+  @apply bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white transition-all duration-300;
+}
+
+/* Glass morphism effects */
+.glass-morphism {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-lg;
+}
+
+/* Text gradient animation */
+.animated-gradient-text {
+  background: linear-gradient(
+    to right,
+    var(--primary) 20%,
+    var(--primary-light) 30%,
+    var(--primary-dark) 70%,
+    var(--primary) 80%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  text-fill-color: transparent;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 4s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Loading animation */
+.loading-dots {
+  @apply flex items-center justify-center space-x-1;
+}
+
+.loading-dots > div {
+  @apply w-2 h-2 bg-primary rounded-full;
+  animation: bounce 0.5s infinite alternate;
+}
+
+.loading-dots > div:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.loading-dots > div:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+@keyframes bounce {
+  to {
+    transform: translateY(-4px);
+  }
+}
+
+/* Enhanced scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary;
 }
