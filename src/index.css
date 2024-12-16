@@ -11,6 +11,10 @@
     --radius: 1rem;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     font-family: 'Inter', sans-serif;
     @apply bg-background text-foreground;
