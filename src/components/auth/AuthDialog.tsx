@@ -17,12 +17,12 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
     variables: {
       default: {
         colors: {
-          brand: 'hsl(var(--primary))',
-          brandAccent: 'hsl(var(--primary))',
+          brand: '#1EAEDB',
+          brandAccent: '#33C3F0',
           inputBackground: 'white',
           inputBorder: 'hsl(var(--border))',
-          inputBorderFocus: 'hsl(var(--primary))',
-          inputBorderHover: 'hsl(var(--primary))',
+          inputBorderFocus: '#1EAEDB',
+          inputBorderHover: '#1EAEDB',
           inputPlaceholder: 'hsl(var(--muted-foreground))',
         },
         space: {
@@ -39,23 +39,23 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
           inputBorderRadius: '0.5rem',
         },
         fonts: {
-          bodyFontFamily: `var(--font-sans)`,
-          buttonFontFamily: `var(--font-sans)`,
-          inputFontFamily: `var(--font-sans)`,
-          labelFontFamily: `var(--font-sans)`,
+          bodyFontFamily: 'Inter, sans-serif',
+          buttonFontFamily: 'Inter, sans-serif',
+          inputFontFamily: 'Inter, sans-serif',
+          labelFontFamily: 'Inter, sans-serif',
         },
       },
     },
     className: {
-      container: 'w-full',
-      button: 'w-full rounded-lg font-medium transition-colors bg-primary text-white hover:bg-primary/90 py-2 px-4 mb-2',
-      label: 'text-sm font-medium text-foreground',
-      input: 'rounded-lg border bg-background px-4 py-3 text-sm ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      container: 'flex flex-col gap-4',
+      button: 'w-full bg-primary hover:bg-primary-light text-white font-medium py-3 px-4 rounded-lg transition-colors',
+      label: 'block text-sm font-medium text-foreground mb-1.5',
+      input: 'w-full rounded-lg border bg-background px-4 py-3 text-sm ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
       divider: 'my-4 text-xs text-muted-foreground',
       message: 'text-sm text-foreground/80 mb-4',
-      anchor: 'text-primary hover:text-primary/80 transition-colors',
-      auth_button: 'w-full rounded-lg font-medium transition-colors bg-primary text-white hover:bg-primary/90 py-2 px-4 mb-2',
-      auth_button_container: 'flex flex-col gap-2',
+      anchor: 'text-primary hover:text-primary-light transition-colors',
+      auth_button: 'w-full bg-primary hover:bg-primary-light text-white font-medium py-3 px-4 rounded-lg transition-colors',
+      auth_button_container: 'flex flex-col gap-3',
     },
   };
 
