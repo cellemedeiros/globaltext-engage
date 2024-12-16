@@ -28,9 +28,12 @@ const NavigationSection = () => {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Globe className="w-5 h-5 text-primary" />
-          <span className="text-lg font-bold text-primary">GT</span>
+        <div className="flex items-center gap-2 group">
+          <Globe className="w-6 h-6 text-primary group-hover:rotate-12 transition-transform duration-300" />
+          <div className="flex items-center">
+            <span className="text-xl font-bold text-primary">GlobalText</span>
+            <span className="text-xs text-gray-500 ml-1 hidden sm:inline">AI</span>
+          </div>
         </div>
         <div className="flex items-center gap-6">
           <div className="hidden md:flex items-center gap-4 text-sm">
