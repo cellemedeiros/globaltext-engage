@@ -33,6 +33,89 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          amount_paid: number
+          expires_at: string
+          id: string
+          plan_name: string
+          started_at: string | null
+          status: string
+          user_id: string
+          words_remaining: number | null
+        }
+        Insert: {
+          amount_paid: number
+          expires_at: string
+          id?: string
+          plan_name: string
+          started_at?: string | null
+          status?: string
+          user_id: string
+          words_remaining?: number | null
+        }
+        Update: {
+          amount_paid?: number
+          expires_at?: string
+          id?: string
+          plan_name?: string
+          started_at?: string | null
+          status?: string
+          user_id?: string
+          words_remaining?: number | null
+        }
+        Relationships: []
+      }
+      translations: {
+        Row: {
+          amount_paid: number
+          completed_at: string | null
+          created_at: string | null
+          document_name: string
+          id: string
+          source_language: string
+          status: string
+          subscription_id: string | null
+          target_language: string
+          user_id: string
+          word_count: number
+        }
+        Insert: {
+          amount_paid: number
+          completed_at?: string | null
+          created_at?: string | null
+          document_name: string
+          id?: string
+          source_language: string
+          status?: string
+          subscription_id?: string | null
+          target_language: string
+          user_id: string
+          word_count: number
+        }
+        Update: {
+          amount_paid?: number
+          completed_at?: string | null
+          created_at?: string | null
+          document_name?: string
+          id?: string
+          source_language?: string
+          status?: string
+          subscription_id?: string | null
+          target_language?: string
+          user_id?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translations_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
