@@ -48,7 +48,7 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
     },
     className: {
       container: 'w-full',
-      button: 'w-full rounded-lg font-medium transition-colors',
+      button: 'w-full rounded-lg font-medium transition-colors bg-primary text-white hover:bg-primary/90 py-2 px-4 mb-2',
       label: 'text-sm font-medium text-foreground',
       input: 'rounded-lg border bg-background px-4 py-3 text-sm ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
       divider: 'my-4 text-xs text-muted-foreground',
