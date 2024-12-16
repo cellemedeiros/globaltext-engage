@@ -54,6 +54,7 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
       divider: 'my-4 text-xs text-muted-foreground',
       message: 'text-sm text-foreground/80 mb-4',
       anchor: 'text-primary hover:text-primary/80 transition-colors',
+      auth_button: 'w-full rounded-lg font-medium transition-colors bg-primary text-white hover:bg-primary/90 py-2 px-4 mb-2',
     },
   };
 
@@ -72,7 +73,7 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
           theme="light"
           providers={["google"]}
           redirectTo={window.location.origin}
-          showLinks={true}
+          showLinks={false}
           view="sign_in"
         />
       </DialogContent>
