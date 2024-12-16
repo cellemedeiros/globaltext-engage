@@ -79,9 +79,9 @@ const Index = () => {
       <section id="features" className="py-24 bg-secondary-light scroll-section">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">A Fully Integrated Platform</h2>
+            <h2 className="text-4xl font-bold mb-4">{t('features.title')}</h2>
             <p className="text-gray-700 max-w-2xl mx-auto">
-              We simplify translation and localization, making it seamless and effective.
+              {t('features.subtitle')}
             </p>
           </div>
 
@@ -89,18 +89,18 @@ const Index = () => {
             {[
               {
                 icon: Globe,
-                title: "Advanced Translation",
-                description: "Delivering precise, accurate translations powered by cutting-edge technology and human expertise.",
+                titleKey: 'features.translation.title',
+                descriptionKey: 'features.translation.description',
               },
               {
                 icon: Users,
-                title: "Localization Expertise",
-                description: "Adapt your content for cultural relevance and local market success.",
+                titleKey: 'features.localization.title',
+                descriptionKey: 'features.localization.description',
               },
               {
                 icon: FileCheck,
-                title: "Humanized Review",
-                description: "Quality-checking by professional linguists ensures perfect results.",
+                titleKey: 'features.review.title',
+                descriptionKey: 'features.review.description',
               },
             ].map((feature, index) => (
               <Card
@@ -109,8 +109,8 @@ const Index = () => {
               >
                 <CardContent className="p-0">
                   <feature.icon className="w-12 h-12 text-primary mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-gray-700">{feature.description}</p>
+                  <h3 className="text-xl font-semibold mb-2">{t(feature.titleKey)}</h3>
+                  <p className="text-gray-700">{t(feature.descriptionKey)}</p>
                 </CardContent>
               </Card>
             ))}

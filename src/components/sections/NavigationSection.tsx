@@ -53,7 +53,7 @@ const NavigationSection = () => {
                 onClick={() => navigate("/dashboard")}
                 className="hover:text-primary transition-colors"
               >
-                Dashboard
+                {t('nav.dashboard')}
               </Button>
             )}
           </div>
@@ -67,7 +67,7 @@ const NavigationSection = () => {
               className="flex items-center gap-2"
             >
               <LogOut className="w-4 h-4" />
-              Logout
+              {t('nav.logout')}
             </Button>
           ) : (
             <AuthButton onClick={() => setShowAuthDialog(true)} />
