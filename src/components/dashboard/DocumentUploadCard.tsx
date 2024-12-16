@@ -31,6 +31,10 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     return text.trim().split(/\s+/).length;
   };
 
+  const calculatePrice = (wordCount: number) => {
+    return wordCount * 0.20; // R$0.20 per word
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -79,14 +83,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       localStorage.setItem('pendingTranslation', JSON.stringify({
         fileName,
         wordCount,
-        price: wordCount * 0.20 // R$0.20 per word
+        price: calculatePrice(wordCount) // R$0.20 per word
       }));
       navigate('/?auth=true');
       return;
     }
 
     if (!hasActiveSubscription) {
-      navigate(`/payment?words=${wordCount}&amount=${wordCount * 0.40}`);
+      navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount) * 2}`); // R$0.40 for non-subscribers
     } else if (wordsRemaining && wordCount > wordsRemaining) {
       navigate('/payment');
     } else {
@@ -165,7 +169,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             <div className="space-y-2">
               <p className="text-sm text-gray-600">Selected file: {fileName}</p>
               <p className="font-medium">Word count: {wordCount}</p>
-              <p className="font-medium">Price: R${(wordCount * 0.20).toFixed(2)}</p>
+              <p className="font-medium">Price: R${calculatePrice(wordCount).toFixed(2)}</p>
               <Button 
                 onClick={handleTranslate} 
                 className="w-full"

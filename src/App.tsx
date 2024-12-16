@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import Index from "./pages/Index";
 import Payment from "./pages/Payment";
 import Dashboard from "./pages/Dashboard";
@@ -85,47 +86,49 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute allowedRole="client">
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/translator-dashboard"
-              element={
-                <ProtectedRoute allowedRole="translator">
-                  <TranslatorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/applications"
-              element={
-                <ProtectedRoute allowedRole="admin">
-                  <TranslatorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment"
-              element={
-                <ProtectedRoute allowedRole="client">
-                  <Payment />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute allowedRole="client">
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/translator-dashboard"
+                element={
+                  <ProtectedRoute allowedRole="translator">
+                    <TranslatorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/applications"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <TranslatorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment"
+                element={
+                  <ProtectedRoute allowedRole="client">
+                    <Payment />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
