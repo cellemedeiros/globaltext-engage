@@ -5,6 +5,7 @@ import { FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AuthDialog from "@/components/auth/AuthDialog";
+import { useNavigate } from "react-router-dom";
 
 const DocumentUploadSection = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -13,14 +14,13 @@ const DocumentUploadSection = () => {
   const [price, setPrice] = useState<number>(0);
   const [fileName, setFileName] = useState<string>("");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check initial auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
     });
 
-    // Subscribe to auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -59,8 +59,7 @@ const DocumentUploadSection = () => {
 
     setFileName(file.name);
 
-    // For demonstration, we'll use a simple text file reader
-    // In production, you'd want to use proper PDF/DOC parsing libraries
+    // For demonstration, using simple text file reader
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
@@ -86,8 +85,7 @@ const DocumentUploadSection = () => {
       return;
     }
 
-    // Here you would redirect to payment page
-    window.location.href = `/payment?amount=${price}&words=${wordCount}`;
+    navigate(`/payment?amount=${price}&words=${wordCount}`);
   };
 
   return (

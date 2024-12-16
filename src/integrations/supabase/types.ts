@@ -45,6 +45,9 @@ export type Database = {
           name: string
           phone: string | null
           portfolio_url: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           years_of_experience: number
         }
@@ -59,6 +62,9 @@ export type Database = {
           name: string
           phone?: string | null
           portfolio_url?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           years_of_experience: number
         }
@@ -73,6 +79,9 @@ export type Database = {
           name?: string
           phone?: string | null
           portfolio_url?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           years_of_experience?: number
         }

@@ -20,7 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' }) => {
+const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' | 'admin' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -71,7 +71,11 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     return <Navigate to="/" />;
   }
 
-  if (profile?.role !== allowedRole) {
+  if (allowedRole === 'admin' && profile?.id !== '37665cdd-1fdd-40d0-b485-35148c159bed') {
+    return <Navigate to="/" />;
+  }
+
+  if (allowedRole !== 'admin' && profile?.role !== allowedRole) {
     return <Navigate to={profile?.role === 'translator' ? '/translator-dashboard' : '/dashboard'} />;
   }
 
@@ -99,6 +103,14 @@ const App = () => {
               path="/translator-dashboard"
               element={
                 <ProtectedRoute allowedRole="translator">
+                  <TranslatorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/applications"
+              element={
+                <ProtectedRoute allowedRole="admin">
                   <TranslatorDashboard />
                 </ProtectedRoute>
               }
