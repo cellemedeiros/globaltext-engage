@@ -44,6 +44,9 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
                 description: "There was a problem setting up your profile. Please try again.",
                 variant: "destructive",
               });
+            } else {
+              // Redirect based on role
+              window.location.href = role === 'translator' ? '/translator-dashboard' : '/dashboard';
             }
           } else {
             const { error: updateError } = await supabase
@@ -58,6 +61,9 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
                 description: "There was a problem updating your profile. Please try again.",
                 variant: "destructive",
               });
+            } else {
+              // Redirect based on role
+              window.location.href = role === 'translator' ? '/translator-dashboard' : '/dashboard';
             }
           }
         } catch (error) {

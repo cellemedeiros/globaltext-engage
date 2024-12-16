@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Payment from "./pages/Payment";
 import Dashboard from "./pages/Dashboard";
 import TranslatorDashboard from "./pages/TranslatorDashboard";
+import { useQuery } from "@tanstack/react-query";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -20,8 +21,25 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAuthenticated === true
+  });
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
@@ -29,12 +47,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     });
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null || isLoading) {
     return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/" />;
+  }
+
+  if (profile?.role !== allowedRole) {
+    return <Navigate to={profile?.role === 'translator' ? '/translator-dashboard' : '/dashboard'} />;
   }
 
   return <>{children}</>;
@@ -52,7 +74,7 @@ const App = () => {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRole="client">
                   <Dashboard />
                 </ProtectedRoute>
               }
@@ -60,7 +82,7 @@ const App = () => {
             <Route
               path="/translator-dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRole="translator">
                   <TranslatorDashboard />
                 </ProtectedRoute>
               }
@@ -68,7 +90,7 @@ const App = () => {
             <Route
               path="/payment"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRole="client">
                   <Payment />
                 </ProtectedRoute>
               }
