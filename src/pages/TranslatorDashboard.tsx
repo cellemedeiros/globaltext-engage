@@ -51,11 +51,16 @@ const TranslatorDashboard = () => {
   }
 
   // If user is not a translator, redirect to client dashboard
-  if (profile?.role !== 'translator') {
+  if (!profile || profile.role !== 'translator') {
+    toast({
+      title: "Access Denied",
+      description: "You must be a translator to access this page.",
+      variant: "destructive"
+    });
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If no application found and user is a translator without approval
+  // If not approved and no application exists, redirect to application
   if (!profile.is_approved_translator && !application) {
     toast({
       title: "Application Required",
@@ -64,8 +69,8 @@ const TranslatorDashboard = () => {
     return <Navigate to="/?apply=true" />;
   }
 
-  // If application exists but not approved
-  if (!profile?.is_approved_translator) {
+  // If application exists but not approved yet, show waiting message
+  if (!profile.is_approved_translator && application) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-3xl mx-auto space-y-8">
@@ -88,7 +93,7 @@ const TranslatorDashboard = () => {
     );
   }
 
-  const isAdmin = profile?.id === ADMIN_USER_ID;
+  const isAdmin = profile.id === ADMIN_USER_ID;
 
   return (
     <div className="container mx-auto py-8 space-y-12">
