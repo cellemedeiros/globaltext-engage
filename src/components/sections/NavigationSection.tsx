@@ -7,6 +7,7 @@ import AuthDialog from "@/components/auth/AuthDialog";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslation } from "react-i18next";
+import FreelancerApplicationDialog from "./FreelancerApplicationDialog";
 
 const NavigationSection = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -78,6 +79,7 @@ const NavigationSection = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <FreelancerApplicationDialog />
             <LanguageSwitcher />
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
