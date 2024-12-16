@@ -80,21 +80,33 @@ export type Database = {
       }
       profiles: {
         Row: {
+          country: string | null
           created_at: string
+          first_name: string | null
           id: string
           is_approved_translator: boolean | null
+          last_name: string | null
+          phone: string | null
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
+          country?: string | null
           created_at?: string
+          first_name?: string | null
           id: string
           is_approved_translator?: boolean | null
+          last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
+          country?: string | null
           created_at?: string
+          first_name?: string | null
           id?: string
           is_approved_translator?: boolean | null
+          last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []

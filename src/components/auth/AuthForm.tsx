@@ -1,6 +1,11 @@
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AuthFormProps {
   selectedRole: 'client' | 'translator';
@@ -9,6 +14,42 @@ interface AuthFormProps {
 }
 
 const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    country: '',
+    phone: '',
+  });
+  const { toast } = useToast();
+
+  const handleSignUp = async (event: any) => {
+    event.preventDefault();
+    const email = event.target.email.value;
+    const password = event.target.password.value;
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          country: formData.country,
+          phone: formData.phone,
+        }
+      }
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const appearance = {
     theme: ThemeSupa,
     variables: {
@@ -60,7 +101,7 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
     <>
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          Sign in as {selectedRole === 'client' ? 'Client' : 'Translator'}
+          {isSignUp ? 'Sign up' : 'Sign in'} as {selectedRole === 'client' ? 'Client' : 'Translator'}
         </h2>
         {message && (
           <p className="text-sm text-muted-foreground">{message}</p>
@@ -72,29 +113,96 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
           Change role
         </button>
       </div>
-      <Auth
-        supabaseClient={supabase}
-        appearance={appearance}
-        theme="light"
-        providers={["google"]}
-        redirectTo={window.location.origin}
-        view="sign_in"
-        showLinks={true}
-        localization={{
-          variables: {
-            sign_in: {
-              email_label: "Email",
-              password_label: "Password",
-              button_label: "Sign In",
-            },
-            sign_up: {
-              email_label: "Email",
-              password_label: "Password",
-              button_label: "Sign Up",
-            },
-          },
-        }}
-      />
+
+      {isSignUp ? (
+        <form onSubmit={handleSignUp} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" required />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" required />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="country">Country</Label>
+            <Input
+              id="country"
+              value={formData.country}
+              onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              required
+            />
+          </div>
+
+          <Button type="submit" className="w-full">Sign Up</Button>
+          
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => setIsSignUp(false)}
+              className="text-primary hover:text-primary-light"
+            >
+              Sign in
+            </button>
+          </p>
+        </form>
+      ) : (
+        <>
+          <Auth
+            supabaseClient={supabase}
+            appearance={appearance}
+            theme="light"
+            providers={["google"]}
+            redirectTo={window.location.origin}
+            view="sign_in"
+            showLinks={false}
+          />
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            Don't have an account?{" "}
+            <button
+              onClick={() => setIsSignUp(true)}
+              className="text-primary hover:text-primary-light"
+            >
+              Sign up
+            </button>
+          </p>
+        </>
+      )}
     </>
   );
 };

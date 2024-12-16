@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
 import DashboardStats from "@/components/dashboard/DashboardStats";
+import ProfileSection from "@/components/sections/ProfileSection";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -79,15 +80,17 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <DashboardStats translations={translations || []} />
-      </div>
+      <div className="max-w-7xl mx-auto space-y-8">
+        <ProfileSection />
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <DashboardStats translations={translations || []} />
+        </div>
 
-      <div className="grid gap-8 md:grid-cols-[2fr,1fr]">
-        <TranslationsList translations={translations || []} />
-        <SubscriptionInfo subscription={subscription} />
+        <div className="grid gap-8 md:grid-cols-[2fr,1fr]">
+          <TranslationsList translations={translations || []} />
+          <SubscriptionInfo subscription={subscription} />
+        </div>
       </div>
     </div>
   );
