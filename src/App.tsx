@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Payment from "./pages/Payment";
 import Dashboard from "./pages/Dashboard";
+import TranslatorDashboard from "./pages/TranslatorDashboard";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/translator-dashboard"
+            element={
+              <ProtectedRoute>
+                <TranslatorDashboard />
               </ProtectedRoute>
             }
           />

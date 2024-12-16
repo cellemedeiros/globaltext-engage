@@ -4,6 +4,8 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogIn } from "lucide-react";
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -12,6 +14,8 @@ interface AuthDialogProps {
 }
 
 const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
+  const [selectedRole, setSelectedRole] = useState<'client' | 'translator' | null>(null);
+
   const appearance = {
     theme: ThemeSupa,
     variables: {
@@ -59,14 +63,68 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
     },
   };
 
+  const handleRoleSelect = async (role: 'client' | 'translator') => {
+    setSelectedRole(role);
+    // Update the user's role in the profiles table after they sign up
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        await supabase
+          .from('profiles')
+          .update({ role })
+          .eq('id', session.user.id);
+      }
+    });
+  };
+
+  if (!selectedRole) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[400px] p-6">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to GlobalText</h2>
+            <p className="text-sm text-muted-foreground">Choose how you want to use GlobalText</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Card 
+              className="p-4 cursor-pointer hover:border-primary transition-colors"
+              onClick={() => handleRoleSelect('client')}
+            >
+              <div className="text-center">
+                <h3 className="font-semibold mb-2">Client</h3>
+                <p className="text-sm text-muted-foreground">Get your content translated</p>
+              </div>
+            </Card>
+            <Card 
+              className="p-4 cursor-pointer hover:border-primary transition-colors"
+              onClick={() => handleRoleSelect('translator')}
+            >
+              <div className="text-center">
+                <h3 className="font-semibold mb-2">Translator</h3>
+                <p className="text-sm text-muted-foreground">Work as a translator</p>
+              </div>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px] p-6">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to GlobalText</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            Sign in as {selectedRole === 'client' ? 'Client' : 'Translator'}
+          </h2>
           {message && (
             <p className="text-sm text-muted-foreground">{message}</p>
           )}
+          <button 
+            onClick={() => setSelectedRole(null)}
+            className="text-sm text-primary hover:text-primary-light mt-2"
+          >
+            Change role
+          </button>
         </div>
         <Auth
           supabaseClient={supabase}
