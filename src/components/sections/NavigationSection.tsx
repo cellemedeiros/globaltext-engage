@@ -37,25 +37,38 @@ const NavigationSection = () => {
         return null;
       }
     },
-    enabled: isAuthenticated === true,
+    enabled: !!isAuthenticated,
+    retry: false
+  });
+
+  const { data: application } = useQuery({
+    queryKey: ['translator-application'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.email) return null;
+
+      try {
+        const { data, error } = await supabase
+          .from('freelancer_applications')
+          .select('*')
+          .eq('email', session.user.email)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching application:', error);
+        return null;
+      }
+    },
+    enabled: !!isAuthenticated && profile?.role === 'client',
     retry: false
   });
 
   useEffect(() => {
-    let mounted = true;
-
     const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          setIsAuthenticated(!!session);
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-        if (mounted) {
-          setIsAuthenticated(false);
-        }
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
     };
 
     checkSession();
@@ -63,43 +76,28 @@ const NavigationSection = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setIsAuthenticated(!!session);
-      }
+      setIsAuthenticated(!!session);
     });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = useCallback(async () => {
     try {
-      await supabase.auth.signOut({ scope: 'local' });
-      
-      // Clear any remaining auth data from localStorage
-      for (const key of Object.keys(localStorage)) {
-        if (key.startsWith('sb-')) {
-          localStorage.removeItem(key);
-        }
-      }
-      
+      await supabase.auth.signOut();
       setIsAuthenticated(false);
-      
       toast({
         title: "Success",
         description: "You have been signed out successfully.",
       });
-
-      window.location.href = "/";
+      navigate("/");
     } catch (error) {
       console.error('Error in logout process:', error);
       setIsAuthenticated(false);
       localStorage.clear();
-      window.location.href = "/";
+      navigate("/");
     }
-  }, [toast]);
+  }, [toast, navigate]);
 
   const handleDashboardClick = useCallback(() => {
     if (profile?.role === 'translator') {
