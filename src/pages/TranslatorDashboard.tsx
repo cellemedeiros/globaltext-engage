@@ -38,19 +38,25 @@ const TranslatorDashboard = () => {
         .from("freelancer_applications")
         .select("*")
         .eq("email", user.email)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
+    enabled: !!profile && profile.role === 'client'
   });
 
   if (profileLoading || applicationLoading) {
     return <div>Loading...</div>;
   }
 
+  // If user is not a translator, redirect to client dashboard
+  if (profile?.role !== 'translator') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   // If no application found, redirect to application section
-  if (!application) {
+  if (!application && profile?.role === 'client') {
     toast({
       title: "Application Required",
       description: "You need to apply as a translator first.",
