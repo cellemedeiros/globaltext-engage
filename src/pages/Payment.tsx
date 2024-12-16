@@ -10,9 +10,9 @@ import { useQuery } from "@tanstack/react-query";
 
 const Payment = () => {
   const [searchParams] = useSearchParams();
-  const amount = searchParams.get("amount");
   const words = searchParams.get("words");
   const plan = searchParams.get("plan");
+  const amount = words ? (Number(words) * 0.20).toString() : searchParams.get("amount"); // R$0.20 per word
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
