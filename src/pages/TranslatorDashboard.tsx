@@ -37,7 +37,7 @@ const TranslatorDashboard = () => {
           {isAdmin && <TranslatorApprovals />}
         </div>
 
-        <TranslationsList role="translator" />
+        <TranslationsList translations={[]} role="translator" />
       </div>
     </TranslatorAccessControl>
   );

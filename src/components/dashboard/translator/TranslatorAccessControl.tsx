@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PendingApplicationMessage from "./PendingApplicationMessage";
+import { useEffect } from "react";
 
 interface TranslatorAccessControlProps {
   children: React.ReactNode;
@@ -56,16 +57,21 @@ const TranslatorAccessControl = ({ children }: TranslatorAccessControlProps) => 
     enabled: !!profile
   });
 
+  useEffect(() => {
+    if (!profileLoading && (!profile || profile.role !== 'translator')) {
+      toast({
+        title: "Access Denied",
+        description: "You must be a translator to access this page.",
+        variant: "destructive"
+      });
+    }
+  }, [profile, profileLoading, toast]);
+
   if (profileLoading || applicationLoading) {
     return <div>Loading...</div>;
   }
 
   if (!profile || profile.role !== 'translator') {
-    toast({
-      title: "Access Denied",
-      description: "You must be a translator to access this page.",
-      variant: "destructive"
-    });
     return <Navigate to="/dashboard" replace />;
   }
 

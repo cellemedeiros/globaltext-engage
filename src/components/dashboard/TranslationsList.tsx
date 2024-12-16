@@ -11,13 +11,18 @@ interface Translation {
   word_count: number;
 }
 
-const TranslationsList = ({ translations }: { translations: Translation[] }) => {
+interface TranslationsListProps {
+  translations: Translation[];
+  role?: 'client' | 'translator';
+}
+
+const TranslationsList = ({ translations, role = 'client' }: TranslationsListProps) => {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-primary" />
-          Recent Translations
+          {role === 'translator' ? 'Assigned Translations' : 'Recent Translations'}
         </h2>
       </div>
 
