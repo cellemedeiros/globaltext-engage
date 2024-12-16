@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Coins, TrendingUp, FileText } from "lucide-react";
+import { DollarSign, TrendingUp, FileText } from "lucide-react";
 
 const RATE_PER_WORD = 0.08; // R$0.08 per word
 
@@ -18,7 +18,10 @@ const TranslatorEarnings = () => {
         .eq('status', 'completed')
         .eq('translator_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching translations:', error);
+        throw error;
+      }
       return data || [];
     },
   });
@@ -34,7 +37,7 @@ const TranslatorEarnings = () => {
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <Coins className="w-8 h-8 text-primary" />
+            <DollarSign className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Total Earnings</p>
               <p className="text-2xl font-bold">R${totalEarnings.toFixed(2)}</p>

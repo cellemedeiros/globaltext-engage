@@ -143,6 +143,7 @@ export type Database = {
           status: string
           subscription_id: string | null
           target_language: string
+          translator_id: string | null
           user_id: string
           word_count: number
         }
@@ -156,6 +157,7 @@ export type Database = {
           status?: string
           subscription_id?: string | null
           target_language: string
+          translator_id?: string | null
           user_id: string
           word_count: number
         }
@@ -169,6 +171,7 @@ export type Database = {
           status?: string
           subscription_id?: string | null
           target_language?: string
+          translator_id?: string | null
           user_id?: string
           word_count?: number
         }
