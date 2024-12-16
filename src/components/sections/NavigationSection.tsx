@@ -76,28 +76,17 @@ const NavigationSection = () => {
 
   const handleLogout = async () => {
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Error getting session:', sessionError);
-        setIsAuthenticated(false);
-        navigate("/");
-        return;
-      }
-
-      if (!session) {
-        setIsAuthenticated(false);
-        navigate("/");
-        toast({
-          title: "Already signed out",
-          description: "You were already signed out of your account.",
-        });
-        return;
-      }
-
       const { error } = await supabase.auth.signOut();
+      
       if (error) {
         console.error('Error signing out:', error);
+        // If the error is due to session not found, clear local storage and reload
+        if (error.message.includes('session_not_found')) {
+          await supabase.auth.signOut({ scope: 'local' });
+          window.location.href = "/";
+          return;
+        }
+        
         toast({
           title: "Error",
           description: "There was a problem signing out. Please try again.",
@@ -107,8 +96,6 @@ const NavigationSection = () => {
       }
 
       setIsAuthenticated(false);
-      
-      // Clear any cached data
       window.location.href = "/";
       
       toast({
