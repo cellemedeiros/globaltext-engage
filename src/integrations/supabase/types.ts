@@ -12,24 +12,24 @@ export type Database = {
       contact_submissions: {
         Row: {
           created_at: string
-          email: number | null
+          email: string | null
           id: number
-          message: number | null
-          name: number | null
+          message: string | null
+          name: string | null
         }
         Insert: {
           created_at?: string
-          email?: number | null
+          email?: string | null
           id?: number
-          message?: number | null
-          name?: number | null
+          message?: string | null
+          name?: string | null
         }
         Update: {
           created_at?: string
-          email?: number | null
+          email?: string | null
           id?: number
-          message?: number | null
-          name?: number | null
+          message?: string | null
+          name?: string | null
         }
         Relationships: []
       }
