@@ -7,12 +7,31 @@ import FreelancerApplicationDialog from "./FreelancerApplicationDialog";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher";
+import { useQuery } from "@tanstack/react-query";
 
 const NavigationSection = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const { t } = useTranslation();
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAuthenticated
+  });
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
@@ -26,6 +45,14 @@ const NavigationSection = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
+  };
+
+  const handleDashboardClick = () => {
+    if (profile?.role === 'translator') {
+      navigate("/translator-dashboard");
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -50,7 +77,7 @@ const NavigationSection = () => {
             {isAuthenticated && (
               <Button
                 variant="ghost"
-                onClick={() => navigate("/dashboard")}
+                onClick={handleDashboardClick}
                 className="hover:text-primary transition-colors"
               >
                 {t('nav.dashboard')}
