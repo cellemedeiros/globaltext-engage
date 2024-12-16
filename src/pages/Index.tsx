@@ -1,8 +1,20 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, Globe2, MessageSquare, Users2, FileCheck } from "lucide-react";
+import { 
+  ChevronRight, 
+  Globe2, 
+  MessageSquare, 
+  Users2, 
+  FileCheck,
+  Mail,
+  Linkedin,
+  Twitter,
+  Facebook 
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import DocumentTranslationSection from "@/components/sections/DocumentTranslationSection";
 import PlansSection from "@/components/sections/PlansSection";
