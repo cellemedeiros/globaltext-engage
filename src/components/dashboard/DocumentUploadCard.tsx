@@ -79,7 +79,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       localStorage.setItem('pendingTranslation', JSON.stringify({
         fileName,
         wordCount,
-        price: wordCount * 0.40 // R$0.40 per word
+        price: wordCount * 0.20 // R$0.20 per word
       }));
       navigate('/?auth=true');
       return;
@@ -165,7 +165,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             <div className="space-y-2">
               <p className="text-sm text-gray-600">Selected file: {fileName}</p>
               <p className="font-medium">Word count: {wordCount}</p>
-              <p className="font-medium">Price: R${(wordCount * 0.40).toFixed(2)}</p>
+              <p className="font-medium">Price: R${(wordCount * 0.20).toFixed(2)}</p>
               <Button 
                 onClick={handleTranslate} 
                 className="w-full"
