@@ -76,18 +76,18 @@ const NavigationSection = () => {
 
   const handleLogout = async () => {
     try {
-      // Clear local state first
-      setIsAuthenticated(false);
+      // First, clear all Supabase session data locally
+      await supabase.auth.signOut({ scope: 'local' });
       
-      // Try to clear the session from Supabase, but don't worry if it fails
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
-        console.log('Session cleanup attempted:', error);
+      // Clear any remaining auth data from localStorage
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
       }
-
-      // Clear any local storage related to authentication
-      localStorage.removeItem('supabase.auth.token');
+      
+      // Update UI state
+      setIsAuthenticated(false);
       
       // Show success message
       toast({
@@ -99,8 +99,9 @@ const NavigationSection = () => {
       window.location.href = "/";
     } catch (error) {
       console.error('Error in logout process:', error);
-      // Even if there's an error, we want to ensure the user is logged out locally
+      // Even if there's an error, ensure the user is logged out locally
       setIsAuthenticated(false);
+      localStorage.clear(); // Clear all localStorage as a fallback
       window.location.href = "/";
     }
   };
