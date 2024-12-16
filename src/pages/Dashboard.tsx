@@ -1,8 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, CheckCircle } from "lucide-react";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
 import DashboardStats from "@/components/dashboard/DashboardStats";
@@ -28,7 +25,7 @@ const Dashboard = () => {
         .from('subscriptions')
         .select('*')
         .eq('status', 'active')
-        .single();
+        .maybeSingle(); // Using maybeSingle() instead of single()
       
       if (error && error.code !== 'PGRST116') throw error;
       return data;
