@@ -79,7 +79,7 @@ const Index = () => {
       <section id="features" className="py-24 bg-secondary-light scroll-section">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 gradient-text">{t('features.title')}</h2>
+            <h2 className="text-4xl font-bold mb-4">{t('features.title')}</h2>
             <p className="text-gray-700 max-w-2xl mx-auto">
               {t('features.subtitle')}
             </p>
@@ -109,7 +109,7 @@ const Index = () => {
               >
                 <CardContent className="p-0">
                   <feature.icon className="w-12 h-12 text-primary mb-4" />
-                  <h3 className="text-xl font-semibold mb-2 gradient-text">{t(feature.titleKey)}</h3>
+                  <h3 className="text-xl font-semibold mb-2">{t(feature.titleKey)}</h3>
                   <p className="text-gray-700">{t(feature.descriptionKey)}</p>
                 </CardContent>
               </Card>
