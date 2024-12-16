@@ -8,8 +8,11 @@ import DocumentUploadSection from "@/components/sections/DocumentUploadSection";
 import PlansSection from "@/components/sections/PlansSection";
 import ContactSection from "@/components/sections/ContactSection";
 import NavigationSection from "@/components/sections/NavigationSection";
+import { useTranslation } from "react-i18next";
 
 const Index = () => {
+  const { t } = useTranslation();
+
   const handleExploreClick = () => {
     document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -48,25 +51,24 @@ const Index = () => {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl md:text-7xl font-bold mb-6">
-              More than just{" "}
-              <span className="text-primary">translations</span>...
+              {t('hero.title')}
             </h1>
             <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto mb-8">
-              Empowering businesses and individuals with precise, culturally relevant communication.
+              {t('hero.subtitle')}
             </p>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               <Button
                 onClick={handleExploreClick}
                 className="px-8 py-6 text-lg hover:scale-105 transition-transform"
               >
-                Explore Features
+                {t('hero.explore')}
                 <ChevronRight className="w-5 h-5" />
               </Button>
               <Button
                 variant="outline"
                 className="px-8 py-6 text-lg hover:scale-105 transition-transform"
               >
-                Contact Us
+                {t('hero.contact')}
               </Button>
             </div>
           </motion.div>

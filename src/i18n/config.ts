@@ -11,11 +11,12 @@ i18n
     supportedLngs: ['en', 'es', 'fr', 'it', 'de', 'pt'],
     ns: ['translation'],
     defaultNS: 'translation',
+    debug: true, // Enable debug mode to see what's happening
     interpolation: {
       escapeValue: false,
     },
     backend: {
-      loadPath: '/locales/{{lng}}/translation.json',
+      loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
     react: {
       useSuspense: false
