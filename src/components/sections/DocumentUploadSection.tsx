@@ -1,14 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileUp } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import AuthDialog from "@/components/auth/AuthDialog";
 
 const DocumentUploadSection = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [wordCount, setWordCount] = useState<number>(0);
   const [price, setPrice] = useState<number>(0);
   const [fileName, setFileName] = useState<string>("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check initial auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+
+    // Subscribe to auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const newAuthState = !!session;
+      setIsAuthenticated(newAuthState);
+      
+      if (newAuthState) {
+        setShowAuthDialog(false);
+        toast({
+          title: "Successfully logged in!",
+          description: "You can now proceed with your translation.",
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [toast]);
 
   const calculatePrice = (words: number) => {
     return words * 0.20; // R$0.20 per word
@@ -43,6 +72,11 @@ const DocumentUploadSection = () => {
   };
 
   const handleProceedToPayment = () => {
+    if (!isAuthenticated) {
+      setShowAuthDialog(true);
+      return;
+    }
+
     if (wordCount === 0) {
       toast({
         title: "No document uploaded",
@@ -51,6 +85,7 @@ const DocumentUploadSection = () => {
       });
       return;
     }
+
     // Here you would redirect to payment page
     window.location.href = `/payment?amount=${price}&words=${wordCount}`;
   };
@@ -124,6 +159,12 @@ const DocumentUploadSection = () => {
           </CardContent>
         </Card>
       </div>
+
+      <AuthDialog 
+        isOpen={showAuthDialog} 
+        onOpenChange={setShowAuthDialog}
+        message="Please sign in or create an account to proceed with the translation"
+      />
     </section>
   );
 };
