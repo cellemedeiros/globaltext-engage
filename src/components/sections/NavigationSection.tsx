@@ -5,11 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import AuthDialog, { AuthButton } from "../auth/AuthDialog";
 import FreelancerApplicationDialog from "./FreelancerApplicationDialog";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 const NavigationSection = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
@@ -39,9 +42,9 @@ const NavigationSection = () => {
           <div className="hidden md:flex items-center gap-4 text-sm">
             {!isAuthenticated && (
               <>
-                <a href="#features" className="hover:text-primary transition-colors">Features</a>
-                <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
-                <a href="#contact" className="hover:text-primary transition-colors">Contact</a>
+                <a href="#features" className="hover:text-primary transition-colors">{t('nav.features')}</a>
+                <a href="#pricing" className="hover:text-primary transition-colors">{t('nav.pricing')}</a>
+                <a href="#contact" className="hover:text-primary transition-colors">{t('nav.contact')}</a>
               </>
             )}
             {isAuthenticated && (
@@ -54,6 +57,7 @@ const NavigationSection = () => {
               </Button>
             )}
           </div>
+          <LanguageSwitcher />
           <FreelancerApplicationDialog />
           {isAuthenticated ? (
             <Button

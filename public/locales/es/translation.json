@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "features": "Características",
+    "pricing": "Precios",
+    "contact": "Contacto"
+  },
+  "hero": {
+    "title": "Más que simples traducciones...",
+    "subtitle": "Potenciando empresas e individuos con comunicación precisa y culturalmente relevante.",
+    "explore": "Explorar Características",
+    "contact": "Contáctenos"
+  }
+}
