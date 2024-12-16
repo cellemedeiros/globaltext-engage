@@ -1,8 +1,42 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
 
 const PlansSection = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+  }, []);
+
+  const handlePlanSelection = (planName: string, price: string) => {
+    if (!isAuthenticated) {
+      setShowAuthDialog(true);
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in or create an account to select a plan.",
+      });
+    } else {
+      if (planName === "Business") {
+        // Handle business plan contact logic
+      } else {
+        navigate(`/payment?plan=${planName}&amount=${price.replace("R$", "")}`);
+      }
+    }
+  };
+
   const plans = [
     {
       name: "Standard",
@@ -95,22 +129,35 @@ const PlansSection = () => {
                   ))}
                 </ul>
 
-                <Button 
-                  className={`w-full hover:scale-105 transition-transform ${
-                    plan.name === "Business" 
-                      ? 'bg-secondary-dark hover:bg-secondary-dark/90' 
-                      : ''
-                  }`}
-                >
-                  {plan.name === "Business" ? (
-                    <>
-                      <MessageSquare className="w-5 h-5 mr-2" />
-                      Contact Sales
-                    </>
-                  ) : (
-                    "Get Started"
-                  )}
-                </Button>
+                <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className={`w-full hover:scale-105 transition-transform ${
+                        plan.name === "Business" 
+                          ? 'bg-secondary-dark hover:bg-secondary-dark/90' 
+                          : ''
+                      }`}
+                      onClick={() => handlePlanSelection(plan.name, plan.price)}
+                    >
+                      {plan.name === "Business" ? (
+                        <>
+                          <MessageSquare className="w-5 h-5 mr-2" />
+                          Contact Sales
+                        </>
+                      ) : (
+                        "Get Started"
+                      )}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <Auth
+                      supabaseClient={supabase}
+                      appearance={{ theme: ThemeSupa }}
+                      theme="light"
+                      providers={[]}
+                    />
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           ))}

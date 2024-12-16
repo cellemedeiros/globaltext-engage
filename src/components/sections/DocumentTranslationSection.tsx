@@ -1,8 +1,36 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
 
 const DocumentTranslationSection = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+  }, []);
+
+  const handleUploadClick = () => {
+    if (!isAuthenticated) {
+      setShowAuthDialog(true);
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in or create an account to upload documents.",
+      });
+    } else {
+      // Handle document upload logic
+    }
+  };
+
   return (
     <section id="document-translation" className="py-24 scroll-section">
       <div className="container mx-auto px-4">
@@ -35,10 +63,25 @@ const DocumentTranslationSection = () => {
               </ol>
             </div>
             
-            <Button className="w-full md:w-auto mx-auto flex gap-2 hover:scale-105 transition-transform">
-              <FileUp className="w-5 h-5" />
-              Upload Document
-            </Button>
+            <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="w-full md:w-auto mx-auto flex gap-2 hover:scale-105 transition-transform"
+                  onClick={handleUploadClick}
+                >
+                  <FileUp className="w-5 h-5" />
+                  Upload Document
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <Auth
+                  supabaseClient={supabase}
+                  appearance={{ theme: ThemeSupa }}
+                  theme="light"
+                  providers={[]}
+                />
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>

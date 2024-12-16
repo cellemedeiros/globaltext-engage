@@ -1,37 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  ChevronRight, 
-  Globe2, 
-  MessageSquare, 
-  Users2, 
-  FileCheck,
-  Mail,
-  Linkedin,
-  X,
-  Instagram,
-  LogOut 
-} from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import DocumentUploadSection from "@/components/sections/DocumentUploadSection";
 import PlansSection from "@/components/sections/PlansSection";
 import ContactSection from "@/components/sections/ContactSection";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import NavigationSection from "@/components/sections/NavigationSection";
 
 const Index = () => {
-  const featuresRef = useRef<HTMLElement>(null);
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
-
-  const scrollToFeatures = () => {
-    featuresRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleExploreClick = () => {
+    document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -56,30 +35,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
-        <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="text-2xl font-bold text-primary">GlobalText</div>
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex items-center gap-6 text-sm">
-              <a href="#features" className="hover:text-primary transition-colors">Features</a>
-              <a href="#languages" className="hover:text-primary transition-colors">Languages</a>
-              <a href="#testimonials" className="hover:text-primary transition-colors">Testimonials</a>
-              <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
-              <a href="#contact" className="hover:text-primary transition-colors">Contact</a>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
-          </div>
-        </nav>
-      </header>
+      <NavigationSection />
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 pt-20">
@@ -99,7 +55,7 @@ const Index = () => {
             </p>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               <Button
-                onClick={scrollToFeatures}
+                onClick={handleExploreClick}
                 className="px-8 py-6 text-lg hover:scale-105 transition-transform"
               >
                 Explore Features
@@ -117,7 +73,7 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section ref={featuresRef} id="features" className="py-24 bg-secondary-light scroll-section">
+      <section id="features" className="py-24 bg-secondary-light scroll-section">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">A Fully Integrated Platform</h2>
