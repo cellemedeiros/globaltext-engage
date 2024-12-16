@@ -33,6 +33,51 @@ export type Database = {
         }
         Relationships: []
       }
+      freelancer_applications: {
+        Row: {
+          cover_letter: string | null
+          created_at: string
+          cv_url: string
+          email: string
+          id: string
+          languages: string[]
+          linkedin_url: string | null
+          name: string
+          phone: string | null
+          portfolio_url: string | null
+          status: string
+          years_of_experience: number
+        }
+        Insert: {
+          cover_letter?: string | null
+          created_at?: string
+          cv_url: string
+          email: string
+          id?: string
+          languages: string[]
+          linkedin_url?: string | null
+          name: string
+          phone?: string | null
+          portfolio_url?: string | null
+          status?: string
+          years_of_experience: number
+        }
+        Update: {
+          cover_letter?: string | null
+          created_at?: string
+          cv_url?: string
+          email?: string
+          id?: string
+          languages?: string[]
+          linkedin_url?: string | null
+          name?: string
+          phone?: string | null
+          portfolio_url?: string | null
+          status?: string
+          years_of_experience?: number
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount_paid: number

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AuthDialog, { AuthButton } from "../auth/AuthDialog";
+import FreelancerApplicationDialog from "./FreelancerApplicationDialog";
 import { useEffect, useState } from "react";
 
 const NavigationSection = () => {
@@ -49,6 +50,7 @@ const NavigationSection = () => {
               </Button>
             )}
           </div>
+          <FreelancerApplicationDialog />
           {isAuthenticated ? (
             <Button
               variant="outline"
