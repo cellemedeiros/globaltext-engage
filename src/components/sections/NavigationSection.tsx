@@ -11,40 +11,62 @@ import { useQuery } from "@tanstack/react-query";
 
 const NavigationSection = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const { t } = useTranslation();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return null;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
     },
-    enabled: isAuthenticated
+    enabled: isAuthenticated === true,
+    retry: false
   });
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
-      if (session) {
-        setShowAuthDialog(false);
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+      if (!session) {
+        navigate('/');
       }
     });
-  }, []);
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/");
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleDashboardClick = () => {
@@ -54,6 +76,10 @@ const NavigationSection = () => {
       navigate("/dashboard");
     }
   };
+
+  if (isAuthenticated === null) {
+    return null; // or a loading spinner
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
