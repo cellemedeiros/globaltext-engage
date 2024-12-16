@@ -5,8 +5,11 @@ import { Database } from "@/integrations/supabase/types";
 import ProfileCard from "./profile/ProfileCard";
 import SubscriptionCard from "./profile/SubscriptionCard";
 
-type Profile = Database['public']['Tables']['profiles']['Row'] & {
-  subscriptions?: Database['public']['Tables']['subscriptions']['Row'] | null;
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type Subscription = Database['public']['Tables']['subscriptions']['Row'];
+
+type ProfileWithSubscription = Profile & {
+  subscriptions?: Subscription | null;
 };
 
 type FreelancerApplication = Database['public']['Tables']['freelancer_applications']['Row'];
@@ -14,7 +17,7 @@ type FreelancerApplication = Database['public']['Tables']['freelancer_applicatio
 const ProfileSection = () => {
   const navigate = useNavigate();
 
-  const { data: profile } = useQuery<Profile>({
+  const { data: profile } = useQuery<ProfileWithSubscription>({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
