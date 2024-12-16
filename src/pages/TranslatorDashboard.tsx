@@ -1,4 +1,5 @@
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
+import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,12 +22,16 @@ const TranslatorDashboard = () => {
   });
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Translator Dashboard</h1>
+    <div className="container mx-auto py-8 space-y-12">
+      <h1 className="text-3xl font-bold">Translator Dashboard</h1>
       
-      {/* Only show the approvals section if the current user is an approved translator */}
+      {/* Earnings section visible to all translators */}
+      <TranslatorEarnings />
+      
+      {/* Management section only visible to approved translators */}
       {profile?.is_approved_translator && (
         <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-6">Translator Management</h2>
           <TranslatorApprovals />
         </div>
       )}
