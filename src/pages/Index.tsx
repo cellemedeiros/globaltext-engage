@@ -8,8 +8,8 @@ import {
   FileCheck,
   Mail,
   Linkedin,
-  Twitter,
-  Facebook 
+  X,
+  Instagram 
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -211,8 +211,8 @@ const Index = () => {
             <div className="flex gap-4">
               {[
                 { icon: Linkedin, href: "#" },
-                { icon: Twitter, href: "#" },
-                { icon: Facebook, href: "#" },
+                { icon: X, href: "#" },
+                { icon: Instagram, href: "#" },
               ].map((social, index) => (
                 <a
                   key={index}
