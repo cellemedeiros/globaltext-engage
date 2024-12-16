@@ -9,7 +9,7 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 type Subscription = Database['public']['Tables']['subscriptions']['Row'];
 
 type ProfileWithSubscription = Profile & {
-  subscriptions?: Subscription | null;
+  subscription?: Subscription | null;
 };
 
 type FreelancerApplication = Database['public']['Tables']['freelancer_applications']['Row'];
@@ -23,17 +23,29 @@ const ProfileSection = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      const { data, error } = await supabase
+      // First get the profile
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          subscriptions (*)
-        `)
+        .select('*')
         .eq('id', session.user.id)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (profileError) throw profileError;
+
+      // Then get the active subscription if any
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (subscriptionError && subscriptionError.code !== 'PGRST116') throw subscriptionError;
+
+      return {
+        ...profileData,
+        subscription: subscriptionData
+      };
     },
   });
 
@@ -78,7 +90,7 @@ const ProfileSection = () => {
 
       {profile.role === 'client' && (
         <SubscriptionCard
-          subscription={profile.subscriptions || null}
+          subscription={profile.subscription || null}
           onChoosePlan={() => navigate('/payment')}
         />
       )}

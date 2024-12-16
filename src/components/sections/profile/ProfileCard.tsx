@@ -2,10 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Database } from "@/integrations/supabase/types";
 
-type ProfileData = Database['public']['Tables']['profiles']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'] & {
+  subscription?: Database['public']['Tables']['subscriptions']['Row'] | null;
+};
 
 interface ProfileCardProps {
-  profile: ProfileData;
+  profile: Profile;
   onApplyTranslator: () => void;
   showTranslatorButton: boolean;
   applicationPending: boolean;
