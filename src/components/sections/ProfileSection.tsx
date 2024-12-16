@@ -55,15 +55,21 @@ const ProfileSection = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.email) return null;
 
-      const { data, error } = await supabase
-        .from('freelancer_applications')
-        .select('*')
-        .eq('email', session.user.email)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('freelancer_applications')
+          .select('*')
+          .eq('email', session.user.email)
+          .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching application:', error);
+        return null;
+      }
     },
+    retry: false
   });
 
   const handleTranslatorApplication = () => {
