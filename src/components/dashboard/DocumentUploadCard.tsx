@@ -5,6 +5,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
@@ -16,6 +18,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const [wordCount, setWordCount] = useState<number>(0);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
+    },
+  });
 
   const calculateWordCount = (text: string) => {
     return text.trim().split(/\s+/).length;
@@ -54,7 +64,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     reader.readAsText(file);
   };
 
-  const handleTranslate = () => {
+  const handleTranslate = async () => {
     if (!fileName) {
       toast({
         title: "No document selected",
@@ -64,16 +74,50 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       return;
     }
 
+    if (!session) {
+      // Store document info in localStorage before redirecting to auth
+      localStorage.setItem('pendingTranslation', JSON.stringify({
+        fileName,
+        wordCount,
+        price: wordCount * 0.40 // R$0.40 per word
+      }));
+      navigate('/?auth=true');
+      return;
+    }
+
     if (!hasActiveSubscription) {
-      navigate(`/payment?words=${wordCount}`);
+      navigate(`/payment?words=${wordCount}&amount=${wordCount * 0.40}`);
     } else if (wordsRemaining && wordCount > wordsRemaining) {
       navigate('/payment');
     } else {
       // Handle translation with subscription
+      const { error } = await supabase
+        .from('translations')
+        .insert({
+          user_id: session.user.id,
+          document_name: fileName,
+          word_count: wordCount,
+          status: 'pending',
+          amount_paid: 0, // Using subscription
+          subscription_id: hasActiveSubscription ? subscription?.id : null
+        });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to submit translation. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
-        title: "Processing translation",
+        title: "Success",
         description: "Your document has been queued for translation",
       });
+      
+      // Refresh the page to update the translations list
+      window.location.reload();
     }
   };
 
