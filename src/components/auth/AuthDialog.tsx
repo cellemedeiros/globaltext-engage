@@ -53,6 +53,7 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
       input: 'rounded-lg border bg-background px-4 py-3 text-sm ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
       divider: 'my-4 text-xs text-muted-foreground',
       message: 'text-sm text-foreground/80 mb-4',
+      anchor: 'text-primary hover:text-primary/80 transition-colors',
     },
   };
 
@@ -69,9 +70,9 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
           supabaseClient={supabase}
           appearance={appearance}
           theme="light"
-          providers={[]}
+          providers={["google"]}
           redirectTo={window.location.origin}
-          showLinks={false}
+          showLinks={true}
           view="sign_in"
         />
       </DialogContent>
