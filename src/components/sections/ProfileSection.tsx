@@ -4,10 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
+interface Subscription {
+  plan_name: string;
+  words_remaining: number | null;
+}
+
+interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  country: string | null;
+  phone: string | null;
+  role: 'client' | 'translator';
+  is_approved_translator: boolean | null;
+  subscriptions?: Subscription | null;
+}
+
 const ProfileSection = () => {
   const navigate = useNavigate();
 
-  const { data: profile } = useQuery({
+  const { data: profile } = useQuery<Profile>({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -34,7 +50,7 @@ const ProfileSection = () => {
         .from('freelancer_applications')
         .select('*')
         .eq('email', session.user.email)
-        .maybeSingle(); // Changed from single() to maybeSingle()
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       return data;
