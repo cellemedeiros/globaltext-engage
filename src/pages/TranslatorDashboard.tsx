@@ -32,7 +32,7 @@ const TranslatorDashboard = () => {
     queryKey: ["translator-application"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user?.email) return null;
 
       const { data, error } = await supabase
         .from("freelancer_applications")
@@ -43,7 +43,7 @@ const TranslatorDashboard = () => {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
-    enabled: !!profile && profile.role === 'client'
+    enabled: !!profile && profile.role === 'translator'
   });
 
   if (profileLoading || applicationLoading) {
@@ -55,8 +55,8 @@ const TranslatorDashboard = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If no application found, redirect to application section
-  if (!application && profile?.role === 'client') {
+  // If no application found and user is a translator without approval
+  if (!profile.is_approved_translator && !application) {
     toast({
       title: "Application Required",
       description: "You need to apply as a translator first.",
@@ -77,9 +77,11 @@ const TranslatorDashboard = () => {
               Thank you for applying to be a translator. Your application is currently being reviewed.
               We'll notify you once a decision has been made.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Application submitted on: {new Date(application.created_at).toLocaleDateString()}
-            </p>
+            {application && (
+              <p className="text-sm text-muted-foreground">
+                Application submitted on: {new Date(application.created_at).toLocaleDateString()}
+              </p>
+            )}
           </div>
         </div>
       </div>
