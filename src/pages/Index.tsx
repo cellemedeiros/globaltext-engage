@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Globe, Users, FileCheck, Linkedin, Instagram, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import DocumentUploadSection from "@/components/sections/DocumentUploadSection";
 import PlansSection from "@/components/sections/PlansSection";
@@ -85,12 +86,12 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                icon: Globe2,
+                icon: Globe,
                 title: "Advanced Translation",
                 description: "Delivering precise, accurate translations powered by cutting-edge technology and human expertise.",
               },
               {
-                icon: Users2,
+                icon: Users,
                 title: "Localization Expertise",
                 description: "Adapt your content for cultural relevance and local market success.",
               },
@@ -137,7 +138,7 @@ const Index = () => {
             <div className="flex gap-4">
               {[
                 { icon: Linkedin, href: "#" },
-                { icon: X, href: "#" },
+                { icon: Twitter, href: "#" },
                 { icon: Instagram, href: "#" },
               ].map((social, index) => (
                 <a
