@@ -26,16 +26,16 @@ const LanguageSwitcher = () => {
 
   return (
     <Select value={i18n.language} onValueChange={handleLanguageChange}>
-      <SelectTrigger className="w-[140px]">
+      <SelectTrigger className="w-[140px] bg-white">
         <Globe2 className="mr-2 h-4 w-4" />
         <SelectValue placeholder="Language" />
       </SelectTrigger>
-      <SelectContent className="bg-white border border-gray-200 shadow-lg">
+      <SelectContent className="bg-white border border-gray-200 shadow-lg min-w-[140px]">
         {languages.map((lang) => (
           <SelectItem 
             key={lang.code} 
             value={lang.code}
-            className="hover:bg-gray-100"
+            className="hover:bg-gray-100 cursor-pointer"
           >
             {lang.name}
           </SelectItem>

@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "features": "Funktionen",
+    "pricing": "Preise",
+    "contact": "Kontakt"
+  },
+  "hero": {
+    "title": "Mehr als nur Übersetzungen...",
+    "subtitle": "Wir unterstützen Unternehmen und Einzelpersonen mit präziser, kulturell relevanter Kommunikation.",
+    "explore": "Funktionen entdecken",
+    "contact": "Kontaktieren Sie uns"
+  }
+}
