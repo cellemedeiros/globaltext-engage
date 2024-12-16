@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogIn } from "lucide-react";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface AuthDialogProps {
 
 const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
   const [selectedRole, setSelectedRole] = useState<'client' | 'translator' | null>(null);
+  const { toast } = useToast();
 
   const appearance = {
     theme: ThemeSupa,
@@ -65,13 +67,61 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
 
   const handleRoleSelect = async (role: 'client' | 'translator') => {
     setSelectedRole(role);
-    // Update the user's role in the profiles table after they sign up
+    
+    // Set up auth state change listener
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        await supabase
-          .from('profiles')
-          .update({ role })
-          .eq('id', session.user.id);
+        try {
+          // First check if profile exists
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', session.user.id)
+            .single();
+
+          if (!existingProfile) {
+            // Create profile if it doesn't exist
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([
+                { 
+                  id: session.user.id,
+                  role: role
+                }
+              ]);
+
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+              toast({
+                title: "Error",
+                description: "There was a problem setting up your profile. Please try again.",
+                variant: "destructive",
+              });
+            }
+          } else {
+            // Update existing profile with selected role
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ role: role })
+              .eq('id', session.user.id);
+
+            if (updateError) {
+              console.error('Error updating profile:', updateError);
+              toast({
+                title: "Error",
+                description: "There was a problem updating your profile. Please try again.",
+                variant: "destructive",
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error in profile setup:', error);
+          toast({
+            title: "Error",
+            description: "There was a problem setting up your profile. Please try again.",
+            variant: "destructive",
+          });
+        }
       }
     });
   };
