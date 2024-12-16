@@ -60,6 +60,21 @@ const NavigationSection = () => {
 
   const handleLogout = async () => {
     try {
+      // First check if we have a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // If no session exists, just redirect and show success message
+        setIsAuthenticated(false);
+        navigate("/");
+        toast({
+          title: "Success",
+          description: "You have been signed out successfully.",
+        });
+        return;
+      }
+
+      // If we have a session, attempt to sign out
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
@@ -72,6 +87,7 @@ const NavigationSection = () => {
       }
       
       // Only navigate after successful logout
+      setIsAuthenticated(false);
       navigate("/");
       
       toast({
