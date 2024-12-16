@@ -4,9 +4,12 @@ import TranslatorAccessControl from "@/components/dashboard/translator/Translato
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
 import TranslationsList from "@/components/dashboard/TranslationsList";
+import AvailableTranslations from "@/components/dashboard/translator/AvailableTranslations";
 import { useToast } from "@/components/ui/use-toast";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const ADMIN_USER_ID = "d87c0787-1b43-4c56-9f97-e1c0c69c3ab0";
+const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
@@ -58,20 +61,35 @@ const TranslatorDashboard = () => {
 
   return (
     <TranslatorAccessControl>
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <h1 className="text-4xl font-bold">Translator Dashboard</h1>
-          
-          <div className="grid gap-8 md:grid-cols-2">
-            <TranslatorEarnings />
-            {isAdmin && <TranslatorApprovals />}
-          </div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto py-8 px-4">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <h1 className="text-4xl font-bold text-gray-900">Translator Dashboard</h1>
+            
+            <div className="grid gap-8 md:grid-cols-2">
+              <TranslatorEarnings />
+              {isAdmin && <TranslatorApprovals />}
+            </div>
 
-          <TranslationsList 
-            translations={translations || []} 
-            role="translator"
-            isLoading={translationsLoading}
-          />
+            <Tabs defaultValue="available" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="available">Available Translations</TabsTrigger>
+                <TabsTrigger value="my-translations">My Translations</TabsTrigger>
+              </TabsList>
+              <TabsContent value="available">
+                <AvailableTranslations />
+              </TabsContent>
+              <TabsContent value="my-translations">
+                <Card className="p-6">
+                  <TranslationsList 
+                    translations={translations || []} 
+                    role="translator"
+                    isLoading={translationsLoading}
+                  />
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
     </TranslatorAccessControl>

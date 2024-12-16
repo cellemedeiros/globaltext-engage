@@ -99,7 +99,9 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           word_count: wordCount,
           status: 'pending',
           amount_paid: 0, // Using subscription
-          subscription_id: hasActiveSubscription ? subscription?.id : null
+          subscription_id: hasActiveSubscription ? session.user.id : null,
+          source_language: 'en', // Default to English for now
+          target_language: 'pt' // Default to Portuguese for now
         });
 
       if (error) {
@@ -163,6 +165,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             <div className="space-y-2">
               <p className="text-sm text-gray-600">Selected file: {fileName}</p>
               <p className="font-medium">Word count: {wordCount}</p>
+              <p className="font-medium">Price: R${(wordCount * 0.40).toFixed(2)}</p>
               <Button 
                 onClick={handleTranslate} 
                 className="w-full"
