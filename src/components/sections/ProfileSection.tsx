@@ -15,7 +15,7 @@ const ProfileSection = () => {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, subscriptions(*)')
+        .select('*, subscriptions!subscriptions_user_id_fkey(*)')
         .eq('id', session.user.id)
         .single();
 
@@ -34,7 +34,7 @@ const ProfileSection = () => {
         .from('freelancer_applications')
         .select('*')
         .eq('email', session.user.email)
-        .single();
+        .maybeSingle(); // Changed from single() to maybeSingle()
 
       if (error && error.code !== 'PGRST116') throw error;
       return data;
