@@ -13,11 +13,10 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
-import DocumentTranslationSection from "@/components/sections/DocumentTranslationSection";
+import DocumentUploadSection from "@/components/sections/DocumentUploadSection";
 import PlansSection from "@/components/sections/PlansSection";
+import ContactSection from "@/components/sections/ContactSection";
 
 const Index = () => {
   const featuresRef = useRef<HTMLElement>(null);
@@ -48,7 +47,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Sticky Header */}
+      {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="text-2xl font-bold text-primary">GlobalText</div>
@@ -140,60 +139,11 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Languages Section */}
-      <section id="languages" className="py-24 scroll-section">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">Our Supported Languages</h2>
-          <p className="text-gray-700 max-w-2xl mx-auto mb-12">
-            We provide high-quality translations in the most widely spoken languages to connect you with the world.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-            {[
-              { name: "English", code: "GB" },
-              { name: "Spanish", code: "ES" },
-              { name: "French", code: "FR" },
-              { name: "Portuguese", code: "PT" },
-              { name: "German", code: "DE" },
-              { name: "Italian", code: "IT" },
-            ].map((language) => (
-              <div key={language.code} className="flex flex-col items-center gap-2">
-                <img
-                  src={`https://flagcdn.com/w80/${language.code.toLowerCase()}.png`}
-                  alt={`${language.name} flag`}
-                  className="w-20 rounded shadow-sm"
-                />
-                <span className="font-medium">{language.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Other Sections */}
       <TestimonialsSection />
-      <DocumentTranslationSection />
+      <DocumentUploadSection />
       <PlansSection />
-
-      {/* Contact Section */}
-      <section id="contact" className="py-24 bg-secondary-light scroll-section">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-4xl font-bold mb-4">Get in Touch</h2>
-            <p className="text-gray-700 mb-8">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-            </p>
-            <div className="space-y-4">
-              <Input placeholder="Your Name" className="bg-white" />
-              <Input type="email" placeholder="Your Email" className="bg-white" />
-              <Textarea placeholder="Your Message" className="min-h-[150px] bg-white" />
-              <Button className="w-full md:w-auto hover:scale-105 transition-transform">
-                Send Message
-                <Mail className="ml-2" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <ContactSection />
 
       {/* Footer */}
       <footer className="bg-secondary-dark text-white py-12">
