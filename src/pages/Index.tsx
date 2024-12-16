@@ -51,7 +51,7 @@ const Index = () => {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl md:text-7xl font-bold mb-6">
-              <span className="gradient-text">{t('hero.title')}</span>
+              More than just <span className="gradient-text">translations</span>...
             </h1>
             <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto mb-8">
               {t('hero.subtitle')}
