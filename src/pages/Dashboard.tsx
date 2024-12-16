@@ -1,10 +1,45 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // First, fetch the user's profile
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) {
+        throw new Error('No session found');
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.session.user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!data) {
+        // If no profile exists, redirect to home page
+        toast({
+          title: "Profile not found",
+          description: "Please complete your profile setup",
+          variant: "destructive",
+        });
+        navigate('/');
+        return null;
+      }
+      return data;
+    },
+  });
+
   const { data: translations, isLoading: translationsLoading } = useQuery({
     queryKey: ['translations'],
     queryFn: async () => {
@@ -15,7 +50,8 @@ const Dashboard = () => {
       
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!profile, // Only fetch translations if we have a profile
   });
 
   const { data: subscription, isLoading: subscriptionLoading } = useQuery({
@@ -25,15 +61,20 @@ const Dashboard = () => {
         .from('subscriptions')
         .select('*')
         .eq('status', 'active')
-        .maybeSingle(); // Using maybeSingle() instead of single()
+        .maybeSingle();
       
       if (error && error.code !== 'PGRST116') throw error;
       return data;
-    }
+    },
+    enabled: !!profile, // Only fetch subscription if we have a profile
   });
 
-  if (translationsLoading || subscriptionLoading) {
+  if (profileLoading || translationsLoading || subscriptionLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!profile) {
+    return null; // Navigation will happen in the profile query
   }
 
   return (
