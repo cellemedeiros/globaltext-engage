@@ -26,25 +26,42 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      try {
+        const session = await supabase.auth.getSession();
+        if (!session.data.session) return null;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.data.session.user.id)
+          .single();
+        
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
     },
-    enabled: isAuthenticated === true
+    enabled: isAuthenticated === true,
+    retry: false
   });
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (isAuthenticated === null || isLoading) {
