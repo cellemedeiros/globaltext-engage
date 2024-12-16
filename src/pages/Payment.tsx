@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const Payment = () => {
   const [searchParams] = useSearchParams();
@@ -11,11 +12,15 @@ const Payment = () => {
 
   const handlePayment = async () => {
     try {
-      // Here you would integrate with a payment provider
-      toast({
-        title: "Payment initiated",
-        description: "You will be redirected to complete your payment.",
+      // Create a payment session in Supabase
+      const { data, error } = await supabase.functions.invoke('create-payment-session', {
+        body: { amount, words }
       });
+
+      if (error) throw error;
+
+      // Redirect to Stripe checkout
+      window.location.href = data.url;
     } catch (error) {
       toast({
         title: "Error",

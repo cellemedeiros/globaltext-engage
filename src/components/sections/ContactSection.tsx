@@ -4,18 +4,28 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const ContactSection = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      // Here you would integrate with Supabase to store the contact information
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert([
+          { name, email, message }
+        ]);
+
+      if (error) throw error;
+
       toast({
         title: "Message sent!",
         description: "We'll get back to you soon.",
@@ -31,6 +41,8 @@ const ContactSection = () => {
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -49,6 +61,7 @@ const ContactSection = () => {
               onChange={(e) => setName(e.target.value)}
               required
               className="bg-white"
+              disabled={isSubmitting}
             />
             <Input
               type="email"
@@ -57,6 +70,7 @@ const ContactSection = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="bg-white"
+              disabled={isSubmitting}
             />
             <Textarea
               placeholder="Your Message"
@@ -64,9 +78,14 @@ const ContactSection = () => {
               onChange={(e) => setMessage(e.target.value)}
               required
               className="min-h-[150px] bg-white"
+              disabled={isSubmitting}
             />
-            <Button className="w-full md:w-auto hover:scale-105 transition-transform">
-              Send Message
+            <Button 
+              type="submit" 
+              className="w-full md:w-auto hover:scale-105 transition-transform"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Sending..." : "Send Message"}
               <Mail className="ml-2" />
             </Button>
           </form>
