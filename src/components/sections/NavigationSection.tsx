@@ -76,39 +76,32 @@ const NavigationSection = () => {
 
   const handleLogout = async () => {
     try {
-      // First try to sign out locally
-      await supabase.auth.signOut({ scope: 'local' });
+      // Clear local state first
+      setIsAuthenticated(false);
       
-      // Then attempt to sign out globally
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error) {
-        // If we get a session_not_found error, that's okay - we've already signed out locally
-        if (!error.message.includes('session_not_found')) {
-          console.error('Error signing out:', error);
-          toast({
-            title: "Warning",
-            description: "There was an issue with the global sign out, but you have been signed out locally.",
-            variant: "default",
-          });
-        }
+      // Try to clear the session from Supabase, but don't worry if it fails
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        console.log('Session cleanup attempted:', error);
       }
 
-      // Always set authenticated to false and redirect
-      setIsAuthenticated(false);
-      window.location.href = "/";
+      // Clear any local storage related to authentication
+      localStorage.removeItem('supabase.auth.token');
       
+      // Show success message
       toast({
         title: "Success",
         description: "You have been signed out successfully.",
       });
+
+      // Redirect to home page
+      window.location.href = "/";
     } catch (error) {
       console.error('Error in logout process:', error);
-      toast({
-        title: "Error",
-        description: "There was a problem signing out. Please try again.",
-        variant: "destructive",
-      });
+      // Even if there's an error, we want to ensure the user is logged out locally
+      setIsAuthenticated(false);
+      window.location.href = "/";
     }
   };
 
