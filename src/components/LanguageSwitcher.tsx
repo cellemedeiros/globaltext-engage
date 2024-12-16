@@ -30,9 +30,13 @@ const LanguageSwitcher = () => {
         <Globe2 className="mr-2 h-4 w-4" />
         <SelectValue placeholder="Language" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="bg-white border border-gray-200 shadow-lg">
         {languages.map((lang) => (
-          <SelectItem key={lang.code} value={lang.code}>
+          <SelectItem 
+            key={lang.code} 
+            value={lang.code}
+            className="hover:bg-gray-100"
+          >
             {lang.name}
           </SelectItem>
         ))}

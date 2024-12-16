@@ -6,14 +6,16 @@ i18n
   .use(HttpBackend)
   .use(initReactI18next)
   .init({
-    lng: 'en', // default language
+    lng: 'en',
     fallbackLng: 'en',
-    supportedLngs: ['en', 'pt', 'es', 'fr', 'it', 'de'],
+    supportedLngs: ['en', 'es', 'fr', 'it', 'de', 'pt'],
+    ns: ['translation'],
+    defaultNS: 'translation',
     interpolation: {
       escapeValue: false,
     },
     backend: {
-      loadPath: '/locales/{{lng}}/{{ns}}.json',
+      loadPath: '/locales/{{lng}}/translation.json',
     },
   });
 
