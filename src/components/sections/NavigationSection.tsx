@@ -4,7 +4,7 @@ import { LogOut, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AuthDialog, { AuthButton } from "../auth/AuthDialog";
 import FreelancerApplicationDialog from "./FreelancerApplicationDialog";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useQuery } from "@tanstack/react-query";
@@ -74,9 +74,8 @@ const NavigationSection = () => {
     };
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
-      // First, clear all Supabase session data locally
       await supabase.auth.signOut({ scope: 'local' });
       
       // Clear any remaining auth data from localStorage
@@ -86,33 +85,29 @@ const NavigationSection = () => {
         }
       }
       
-      // Update UI state
       setIsAuthenticated(false);
       
-      // Show success message
       toast({
         title: "Success",
         description: "You have been signed out successfully.",
       });
 
-      // Redirect to home page
       window.location.href = "/";
     } catch (error) {
       console.error('Error in logout process:', error);
-      // Even if there's an error, ensure the user is logged out locally
       setIsAuthenticated(false);
-      localStorage.clear(); // Clear all localStorage as a fallback
+      localStorage.clear();
       window.location.href = "/";
     }
-  };
+  }, [toast]);
 
-  const handleDashboardClick = () => {
+  const handleDashboardClick = useCallback(() => {
     if (profile?.role === 'translator') {
       navigate("/translator-dashboard");
     } else {
       navigate("/dashboard");
     }
-  };
+  }, [navigate, profile?.role]);
 
   if (isAuthenticated === null) {
     return null;
