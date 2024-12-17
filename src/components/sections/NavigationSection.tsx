@@ -17,25 +17,48 @@ const NavigationSection = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
     });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
-      });
-    } else {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       navigate("/");
       toast({
         title: "Success",
         description: "You have been signed out.",
       });
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      // If we get a session_not_found error, we can consider the user logged out
+      if (error.message?.includes('session_not_found')) {
+        setIsAuthenticated(false);
+        navigate("/");
+        toast({
+          title: "Signed out",
+          description: "You have been signed out.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to sign out. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
