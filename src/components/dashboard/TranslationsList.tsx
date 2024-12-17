@@ -1,5 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { BookOpen, FileX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Translation {
   id: string;
@@ -9,6 +12,8 @@ interface Translation {
   status: string;
   created_at: string;
   word_count: number;
+  ai_translated_content?: string;
+  translator_review?: string;
 }
 
 interface TranslationsListProps {
@@ -18,7 +23,34 @@ interface TranslationsListProps {
 }
 
 const TranslationsList = ({ translations, role = 'client', isLoading = false }: TranslationsListProps) => {
-  const title = role === 'translator' ? 'Assigned Translations' : 'Recent Translations';
+  const title = role === 'translator' ? 'Translations to Review' : 'Recent Translations';
+  const { toast } = useToast();
+
+  const handleReviewSubmit = async (translationId: string, reviewedContent: string) => {
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          translator_review: reviewedContent,
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', translationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation review submitted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit review",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -82,6 +114,32 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
                 <p className="text-sm text-muted-foreground">
                   {translation.source_language} → {translation.target_language}
                 </p>
+                {role === 'translator' && translation.status === 'pending_review' && (
+                  <div className="mt-4 space-y-4">
+                    <div className="p-3 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">AI Translation</h4>
+                      <p className="text-sm whitespace-pre-wrap">{translation.ai_translated_content}</p>
+                    </div>
+                    <textarea
+                      className="w-full min-h-[100px] p-3 rounded-lg border"
+                      placeholder="Review and edit the translation..."
+                      defaultValue={translation.ai_translated_content}
+                      onChange={(e) => {
+                        // Store changes locally if needed
+                      }}
+                    />
+                    <Button 
+                      onClick={(e) => {
+                        const textarea = e.currentTarget.parentElement?.querySelector('textarea');
+                        if (textarea) {
+                          handleReviewSubmit(translation.id, textarea.value);
+                        }
+                      }}
+                    >
+                      Submit Review
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="text-right">
                 <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">

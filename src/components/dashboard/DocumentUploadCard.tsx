@@ -17,6 +17,7 @@ interface DocumentUploadCardProps {
 
 const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentUploadCardProps) => {
   const [fileName, setFileName] = useState<string>("");
+  const [fileContent, setFileContent] = useState<string>("");
   const [wordCount, setWordCount] = useState<number>(0);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
+      setFileContent(text);
       const words = calculateWordCount(text);
       console.log(`Word count for ${file.name}: ${words}`);
       setWordCount(words);
@@ -48,13 +50,11 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       }
     };
 
-    // Use readAsText for all file types for now
-    // In a production environment, you'd want to use specific parsers for different file types
     reader.readAsText(file);
   };
 
   const handleTranslate = async () => {
-    if (!fileName) {
+    if (!fileName || !fileContent) {
       toast({
         title: "No document selected",
         description: "Please upload a document first",
@@ -64,7 +64,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     }
 
     if (!session) {
-      // Store document info in localStorage before redirecting to auth
       localStorage.setItem('pendingTranslation', JSON.stringify({
         fileName,
         wordCount,
@@ -79,36 +78,57 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     } else if (wordsRemaining && wordCount > wordsRemaining) {
       navigate('/payment');
     } else {
-      // Handle translation with subscription
-      const { error } = await supabase
-        .from('translations')
-        .insert({
-          user_id: session.user.id,
-          document_name: fileName,
-          word_count: wordCount,
-          status: 'pending',
-          amount_paid: 0, // Using subscription
-          subscription_id: hasActiveSubscription ? session.user.id : null,
-          source_language: 'en', // Default to English for now
-          target_language: 'pt' // Default to Portuguese for now
+      try {
+        // Create translation record
+        const { data: translation, error: insertError } = await supabase
+          .from('translations')
+          .insert({
+            user_id: session.user.id,
+            document_name: fileName,
+            content: fileContent,
+            word_count: wordCount,
+            status: 'processing',
+            amount_paid: 0,
+            subscription_id: hasActiveSubscription ? session.user.id : null,
+            source_language: 'en',
+            target_language: 'pt'
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        // Trigger AI translation
+        const response = await fetch('/functions/v1/translate-document', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            translationId: translation.id,
+          }),
         });
 
-      if (error) {
+        if (!response.ok) {
+          throw new Error('Failed to initiate translation');
+        }
+
+        toast({
+          title: "Success",
+          description: "Your document has been submitted for translation",
+        });
+        
+        // Refresh the page to update the translations list
+        window.location.reload();
+      } catch (error) {
+        console.error('Error:', error);
         toast({
           title: "Error",
           description: "Failed to submit translation. Please try again.",
           variant: "destructive"
         });
-        return;
       }
-
-      toast({
-        title: "Success",
-        description: "Your document has been queued for translation",
-      });
-      
-      // Refresh the page to update the translations list
-      window.location.reload();
     }
   };
 
