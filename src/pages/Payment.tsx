@@ -50,8 +50,17 @@ const Payment = () => {
 
     setIsProcessing(true);
     try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        throw new Error('No active session');
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount, words, plan }
+        body: { amount, words, plan },
+        headers: {
+          Authorization: `Bearer ${currentSession.access_token}`
+        }
       });
 
       if (error) throw error;
