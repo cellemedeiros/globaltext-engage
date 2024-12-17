@@ -28,7 +28,17 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   });
 
   const calculateWordCount = (text: string) => {
-    return text.trim().split(/\s+/).length;
+    // Remove special characters and extra whitespace
+    const cleanText = text
+      .replace(/[\r\n]+/g, " ") // Replace multiple newlines with space
+      .replace(/[^\w\s]/g, " ") // Replace special characters with space
+      .replace(/\s+/g, " ") // Replace multiple spaces with single space
+      .trim();
+
+    // Split by whitespace and filter out empty strings
+    const words = cleanText.split(" ").filter(word => word.length > 0);
+    
+    return words.length;
   };
 
   const calculatePrice = (wordCount: number) => {
@@ -55,6 +65,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const words = calculateWordCount(text);
+      console.log(`Word count for ${file.name}: ${words}`);
       setWordCount(words);
 
       if (hasActiveSubscription && wordsRemaining && words > wordsRemaining) {
@@ -65,6 +76,9 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         });
       }
     };
+
+    // Use readAsText for all file types for now
+    // In a production environment, you'd want to use specific parsers for different file types
     reader.readAsText(file);
   };
 
