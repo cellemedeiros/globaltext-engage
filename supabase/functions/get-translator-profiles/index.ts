@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -18,6 +19,7 @@ Deno.serve(async (req) => {
       throw new Error('Missing environment variables');
     }
 
+    console.log('Initializing Supabase client...');
     const supabaseClient = createClient(
       supabaseUrl,
       supabaseServiceKey,
@@ -29,6 +31,7 @@ Deno.serve(async (req) => {
       }
     )
 
+    console.log('Fetching approved translator profiles...');
     // Get approved translator profiles
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
@@ -36,19 +39,29 @@ Deno.serve(async (req) => {
       .eq('role', 'translator')
       .eq('is_approved_translator', true)
 
-    if (profilesError) throw profilesError
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      throw profilesError;
+    }
+
+    console.log(`Found ${profiles.length} approved translators`);
 
     // Get emails for each profile
     const profilesWithEmail = await Promise.all(
       profiles.map(async (profile) => {
         const { data: { user }, error: userError } = await supabaseClient.auth.admin.getUserById(profile.id)
-        if (userError) throw userError
+        if (userError) {
+          console.error('Error fetching user:', userError);
+          throw userError;
+        }
         return {
           ...profile,
           email: user?.email
         }
       })
     )
+
+    console.log('Successfully processed all profiles with emails');
 
     return new Response(
       JSON.stringify(profilesWithEmail),
