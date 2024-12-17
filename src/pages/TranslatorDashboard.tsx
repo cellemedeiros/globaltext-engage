@@ -9,7 +9,9 @@ import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorA
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardHeader from "@/components/dashboard/translator/TranslatorDashboardHeader";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -71,18 +73,31 @@ const TranslatorDashboard = () => {
             <TranslatorDashboardHeader />
             
             {isAdmin && !isAdminApplicationsRoute && (
-              <Tabs defaultValue="applications" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="applications">Applications</TabsTrigger>
-                  <TabsTrigger value="translators">Translators</TabsTrigger>
-                </TabsList>
-                <TabsContent value="applications">
-                  <TranslatorApplicationsList />
-                </TabsContent>
-                <TabsContent value="translators">
-                  <TranslatorApprovals />
-                </TabsContent>
-              </Tabs>
+              <div className="space-y-4">
+                <Collapsible className="w-full border rounded-lg p-4">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Manage Applications</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <TranslatorApplicationsList />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible className="w-full border rounded-lg p-4">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Manage Translators</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <TranslatorApprovals />
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
             )}
 
             {!isAdminApplicationsRoute && (
