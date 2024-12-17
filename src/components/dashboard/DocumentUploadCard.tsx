@@ -1,12 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileUp, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import FileUploadButton from "./document-upload/FileUploadButton";
+import FileDetails from "./document-upload/FileDetails";
+import { calculateWordCount } from "@/utils/documentUtils";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
@@ -27,38 +29,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     },
   });
 
-  const calculateWordCount = (text: string) => {
-    // Remove special characters and extra whitespace
-    const cleanText = text
-      .replace(/[\r\n]+/g, " ") // Replace multiple newlines with space
-      .replace(/[^\w\s]/g, " ") // Replace special characters with space
-      .replace(/\s+/g, " ") // Replace multiple spaces with single space
-      .trim();
-
-    // Split by whitespace and filter out empty strings
-    const words = cleanText.split(" ").filter(word => word.length > 0);
-    
-    return words.length;
-  };
-
-  const calculatePrice = (wordCount: number) => {
-    return wordCount * 0.2; // R$0.20 per word
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!['text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-        .includes(file.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a .txt, .doc, .docx, or .pdf file",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleFileSelect = (file: File) => {
     setFileName(file.name);
 
     const reader = new FileReader();
@@ -166,31 +137,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         )}
 
         <div className="space-y-4">
-          <Button asChild className="w-full">
-            <label className="cursor-pointer">
-              <FileUp className="w-5 h-5 mr-2" />
-              Select Document
-              <input
-                type="file"
-                className="hidden"
-                accept=".txt,.doc,.docx,.pdf"
-                onChange={handleFileUpload}
-              />
-            </label>
-          </Button>
+          <FileUploadButton onFileSelect={handleFileSelect} />
 
           {fileName && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">Selected file: {fileName}</p>
-              <p className="font-medium">Word count: {wordCount}</p>
-              <p className="font-medium">Price: R${calculatePrice(wordCount).toFixed(2)}</p>
-              <Button 
-                onClick={handleTranslate} 
-                className="w-full"
-              >
-                Translate Now
-              </Button>
-            </div>
+            <FileDetails
+              fileName={fileName}
+              wordCount={wordCount}
+              onTranslate={handleTranslate}
+            />
           )}
         </div>
       </CardContent>
