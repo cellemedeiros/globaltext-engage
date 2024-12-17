@@ -75,7 +75,7 @@ serve(async (req) => {
       mode: 'subscription',
       line_items: [
         {
-          price: getPriceIdForPlan(plan), // You'll need to add your price IDs here
+          price: getPriceIdForPlan(plan),
           quantity: 1,
         },
       ],
@@ -128,9 +128,10 @@ serve(async (req) => {
 
 // Helper function to map plan names to Stripe price IDs
 function getPriceIdForPlan(plan: string): string {
+  // Replace these price IDs with your actual Stripe price IDs
   const priceIds = {
-    'Standard': 'price_standard_id_here', // Replace with your actual price ID
-    'Premium': 'price_premium_id_here',   // Replace with your actual price ID
+    'Standard': 'price_1OyGPkJEONOVVPBXXXXXXXXX', // Replace with your Standard plan price ID
+    'Premium': 'price_1OyGPkJEONOVVPBXYYYYYYYYY',  // Replace with your Premium plan price ID
   };
   return priceIds[plan as keyof typeof priceIds] || '';
 }
