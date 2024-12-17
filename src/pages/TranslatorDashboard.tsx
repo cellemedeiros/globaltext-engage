@@ -9,6 +9,7 @@ import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorA
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardHeader from "@/components/dashboard/translator/TranslatorDashboardHeader";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -69,15 +70,25 @@ const TranslatorDashboard = () => {
           <div className="max-w-7xl mx-auto space-y-8">
             <TranslatorDashboardHeader />
             
-            {isAdminApplicationsRoute ? (
-              <TranslatorApplicationsList />
-            ) : (
+            {isAdmin && !isAdminApplicationsRoute && (
+              <Tabs defaultValue="applications" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="applications">Applications</TabsTrigger>
+                  <TabsTrigger value="translators">Translators</TabsTrigger>
+                </TabsList>
+                <TabsContent value="applications">
+                  <TranslatorApplicationsList />
+                </TabsContent>
+                <TabsContent value="translators">
+                  <TranslatorApprovals />
+                </TabsContent>
+              </Tabs>
+            )}
+
+            {!isAdminApplicationsRoute && (
               <>
                 <div className="grid gap-8 md:grid-cols-2">
                   <TranslatorEarnings />
-                  {isAdmin && (
-                    <TranslatorApprovals />
-                  )}
                 </div>
 
                 <ProfileSection />
