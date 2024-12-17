@@ -1,4 +1,4 @@
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,7 @@ const Payment = () => {
   const amount = searchParams.get("amount");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Check authentication status
@@ -39,18 +40,32 @@ const Payment = () => {
   }, [session, isCheckingAuth, navigate, toast]);
 
   const handleBack = () => {
-    // If we have a plan parameter, we likely came from the pricing section
+    // If we came from a specific location, use that
+    if (location.state?.from) {
+      navigate(location.state.from);
+      return;
+    }
+
+    // If we have a plan parameter and it's an upgrade
+    if (plan === 'upgrade') {
+      navigate('/dashboard');
+      return;
+    }
+
+    // If we have a plan parameter (new subscription)
     if (plan) {
       navigate('/#pricing');
-    } 
-    // If we have words parameter, we likely came from the dashboard
-    else if (words) {
-      navigate('/dashboard');
+      return;
     }
-    // Default fallback
-    else {
+
+    // If we have words parameter (single document translation)
+    if (words) {
       navigate('/dashboard');
+      return;
     }
+
+    // Default fallback - go to dashboard
+    navigate('/dashboard');
   };
 
   const handlePayment = async () => {
@@ -99,10 +114,6 @@ const Payment = () => {
 
   if (isCheckingAuth) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-  }
-
-  if (!session) {
-    return null; // Will be redirected by useEffect
   }
 
   return (
