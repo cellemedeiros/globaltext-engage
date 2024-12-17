@@ -38,6 +38,21 @@ const Payment = () => {
     }
   }, [session, isCheckingAuth, navigate, toast]);
 
+  const handleBack = () => {
+    // If we have a plan parameter, we likely came from the pricing section
+    if (plan) {
+      navigate('/#pricing');
+    } 
+    // If we have words parameter, we likely came from the dashboard
+    else if (words) {
+      navigate('/dashboard');
+    }
+    // Default fallback
+    else {
+      navigate('/dashboard');
+    }
+  };
+
   const handlePayment = async () => {
     if (!session) {
       toast({
@@ -94,7 +109,7 @@ const Payment = () => {
     <div className="container mx-auto px-4 py-12">
       <Button 
         variant="ghost" 
-        onClick={() => navigate(-1)}
+        onClick={handleBack}
         className="mb-8 hover:bg-secondary/50"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
