@@ -18,23 +18,36 @@ serve(async (req) => {
   );
 
   try {
-    const { amount, words, plan } = await req.json();
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    const email = user?.email;
+    // Get the session or user object
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
 
-    if (!email) {
-      throw new Error('No email found');
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    if (userError || !user) {
+      throw new Error('Authentication failed');
+    }
+
+    if (!user.email) {
+      throw new Error('User email not found');
+    }
+
+    const { amount, words, plan } = await req.json();
+    
+    if (!amount) {
+      throw new Error('Amount is required');
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
 
+    console.log('Looking up customer for email:', user.email);
     const customers = await stripe.customers.list({
-      email: email,
+      email: user.email,
       limit: 1,
     });
 
@@ -46,7 +59,7 @@ serve(async (req) => {
     console.log('Creating payment session...');
     const session = await stripe.checkout.sessions.create({
       customer: customer_id,
-      customer_email: customer_id ? undefined : email,
+      customer_email: customer_id ? undefined : user.email,
       line_items: [
         {
           price_data: {

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { ArrowLeft } from "lucide-react";
 import PaymentForm from "@/components/payment/PaymentForm";
 import PaymentSummary from "@/components/payment/PaymentSummary";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 const Payment = () => {
@@ -17,7 +17,37 @@ const Payment = () => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Check authentication status
+  const { data: session, isLoading: isCheckingAuth } = useQuery({
+    queryKey: ['auth-session'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
+    },
+  });
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isCheckingAuth && !session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to continue with the payment.",
+        variant: "destructive",
+      });
+      navigate('/', { replace: true });
+    }
+  }, [session, isCheckingAuth, navigate, toast]);
+
   const handlePayment = async (values: any) => {
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to continue with the payment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -42,6 +72,14 @@ const Payment = () => {
       setIsProcessing(false);
     }
   };
+
+  if (isCheckingAuth) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
+
+  if (!session) {
+    return null; // Will be redirected by useEffect
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
