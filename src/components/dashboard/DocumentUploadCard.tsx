@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import FileUploadButton from "./document-upload/FileUploadButton";
 import FileDetails from "./document-upload/FileDetails";
-import { calculateWordCount } from "@/utils/documentUtils";
+import { calculateWordCount, calculatePrice } from "@/utils/documentUtils";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
