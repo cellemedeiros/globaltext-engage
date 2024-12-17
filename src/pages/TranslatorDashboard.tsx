@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
+import ProfileSection from "@/components/sections/ProfileSection";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -111,6 +112,8 @@ const TranslatorDashboard = () => {
                     </Card>
                   )}
                 </div>
+
+                <ProfileSection />
 
                 <Tabs defaultValue="available" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
