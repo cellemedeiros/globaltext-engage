@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import DocumentUploadCard from "@/components/dashboard/DocumentUploadCard";
 import TranslationsList from "@/components/dashboard/TranslationsList";
@@ -7,6 +10,8 @@ import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
 import ProfileSection from "@/components/sections/ProfileSection";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  
   const { data: translations = [] } = useQuery({
     queryKey: ['translations'],
     queryFn: async () => {
@@ -44,7 +49,17 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <Button 
+          variant="ghost" 
+          className="flex items-center gap-2"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Go Back
+        </Button>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+      </div>
       
       <div className="grid gap-6">
         <div className="grid md:grid-cols-3 gap-6">

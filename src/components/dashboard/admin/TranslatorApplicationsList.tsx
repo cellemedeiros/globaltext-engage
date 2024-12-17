@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Check, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -23,6 +25,7 @@ interface Application {
 
 const TranslatorApplicationsList = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const { data: applications, refetch } = useQuery({
     queryKey: ['translator-applications'],
@@ -88,7 +91,17 @@ const TranslatorApplicationsList = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Translator Applications</h2>
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          className="flex items-center gap-2"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Go Back
+        </Button>
+        <h2 className="text-2xl font-bold">Translator Applications</h2>
+      </div>
       
       <Table>
         <TableHeader>
@@ -116,14 +129,18 @@ const TranslatorApplicationsList = () => {
                       size="sm"
                       variant="default"
                       onClick={() => handleApplicationUpdate(app.id, 'approved')}
+                      className="flex items-center gap-1"
                     >
+                      <Check className="h-4 w-4" />
                       Approve
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={() => handleApplicationUpdate(app.id, 'rejected')}
+                      className="flex items-center gap-1"
                     >
+                      <X className="h-4 w-4" />
                       Reject
                     </Button>
                   </>

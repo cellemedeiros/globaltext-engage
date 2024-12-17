@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
@@ -13,6 +16,7 @@ const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -64,7 +68,17 @@ const TranslatorDashboard = () => {
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto py-8 px-4">
           <div className="max-w-7xl mx-auto space-y-8">
-            <h1 className="text-4xl font-bold text-gray-900">Translator Dashboard</h1>
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="ghost" 
+                className="flex items-center gap-2"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Go Back
+              </Button>
+              <h1 className="text-4xl font-bold text-gray-900">Translator Dashboard</h1>
+            </div>
             
             <div className="grid gap-8 md:grid-cols-2">
               <TranslatorEarnings />

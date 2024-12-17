@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { Globe, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AuthDialog from "@/components/auth/AuthDialog";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslation } from "react-i18next";
 import FreelancerApplicationDialog from "./FreelancerApplicationDialog";
+import { ArrowLeft, Globe, LogOut } from "lucide-react";
 
 const NavigationSection = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -46,14 +46,26 @@ const NavigationSection = () => {
     }
   };
 
+  const showBackButton = window.location.pathname !== "/";
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
+            {showBackButton && (
+              <Button 
+                variant="ghost" 
+                className="flex items-center gap-2"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Go Back
+              </Button>
+            )}
             <a href="/" className="flex items-center gap-2 text-xl font-bold">
-              <Globe className="w-6 h-6" />
-              GlobalText
+              <Globe className="w-6 h-6 text-primary" />
+              GlobalText AI
             </a>
             
             <div className="hidden md:flex items-center gap-6">
