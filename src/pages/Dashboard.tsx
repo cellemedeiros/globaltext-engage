@@ -8,6 +8,7 @@ import DocumentUploadCard from "@/components/dashboard/DocumentUploadCard";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
 import ProfileSection from "@/components/sections/ProfileSection";
+import TranslationStatsChart from "@/components/dashboard/stats/TranslationStatsChart";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -65,6 +66,8 @@ const Dashboard = () => {
         <div className="grid md:grid-cols-3 gap-6">
           <DashboardStats translations={translations} />
         </div>
+
+        <TranslationStatsChart />
 
         <div className="grid md:grid-cols-2 gap-6">
           <DocumentUploadCard 
