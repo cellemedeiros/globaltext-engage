@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft } from "lucide-react";
-import PaymentForm from "@/components/payment/PaymentForm";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
 
 const Payment = () => {
   const [searchParams] = useSearchParams();
@@ -113,11 +113,15 @@ const Payment = () => {
         </div>
 
         <div className="grid md:grid-cols-[1fr,300px] gap-8">
-          <PaymentForm 
-            onSubmit={handlePayment}
-            isProcessing={isProcessing}
-            amount={amount}
-          />
+          <Card className="p-6">
+            <Button 
+              onClick={handlePayment}
+              className="w-full"
+              disabled={isProcessing}
+            >
+              {isProcessing ? "Processing..." : `Proceed to Payment - R$${amount}`}
+            </Button>
+          </Card>
           <PaymentSummary 
             words={words}
             plan={plan}
