@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
 
 interface PaymentProcessorProps {
   amount: string | null;
