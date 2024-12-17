@@ -12,32 +12,20 @@ const PaymentNavigation = ({ plan, words }: PaymentNavigationProps) => {
   const location = useLocation();
 
   const handleBack = () => {
-    // If we came from a specific location, use that
-    if (location.state?.from) {
-      navigate(location.state.from);
-      return;
-    }
-
-    // If we have a plan parameter and it's an upgrade
-    if (plan === 'upgrade') {
-      navigate('/dashboard');
-      return;
-    }
-
     // If we have a plan parameter (new subscription)
     if (plan) {
-      navigate('/#pricing');
+      navigate('/', { replace: true });
       return;
     }
 
     // If we have words parameter (single document translation)
     if (words) {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
       return;
     }
 
-    // Default fallback - go to dashboard
-    navigate('/dashboard');
+    // Default fallback - go to landing page
+    navigate('/', { replace: true });
   };
 
   return (
