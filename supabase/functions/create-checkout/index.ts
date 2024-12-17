@@ -8,9 +8,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  console.log('Starting checkout session creation...');
 
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -21,26 +24,34 @@ serve(async (req) => {
     // Get the session or user object
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('No authorization header found');
       throw new Error('No authorization header');
     }
 
+    console.log('Authorization header found, getting user...');
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
+      console.error('Authentication failed:', userError);
       throw new Error('Authentication failed');
     }
 
     if (!user.email) {
+      console.error('User email not found');
       throw new Error('User email not found');
     }
+
+    console.log('User authenticated successfully');
 
     const { amount, words } = await req.json();
     
     if (!amount) {
+      console.error('Amount is required but not provided');
       throw new Error('Amount is required');
     }
 
+    console.log('Creating Stripe instance...');
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
@@ -54,9 +65,12 @@ serve(async (req) => {
     let customer_id = undefined;
     if (customers.data.length > 0) {
       customer_id = customers.data[0].id;
+      console.log('Existing customer found:', customer_id);
+    } else {
+      console.log('No existing customer found, will create new');
     }
 
-    console.log('Creating payment session...');
+    console.log('Creating payment session with amount:', amount);
     const session = await stripe.checkout.sessions.create({
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
@@ -77,7 +91,9 @@ serve(async (req) => {
       cancel_url: `${req.headers.get('origin')}/payment`,
     });
 
-    console.log('Payment session created:', session.id);
+    console.log('Payment session created successfully:', session.id);
+    console.log('Checkout URL:', session.url);
+
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
