@@ -44,7 +44,7 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words } = await req.json();
+    const { amount, words, plan } = await req.json();
     
     if (!amount) {
       console.error('Amount is required but not provided');
@@ -70,10 +70,17 @@ serve(async (req) => {
       console.log('No existing customer found, will create new');
     }
 
-    console.log('Creating payment session with amount:', amount);
-    const session = await stripe.checkout.sessions.create({
-      customer: customer_id,
-      customer_email: customer_id ? undefined : user.email,
+    // Define different configurations based on payment type
+    const sessionConfig = plan ? {
+      mode: 'subscription',
+      line_items: [
+        {
+          price: getPriceIdForPlan(plan), // You'll need to add your price IDs here
+          quantity: 1,
+        },
+      ],
+    } : {
+      mode: 'payment',
       line_items: [
         {
           price_data: {
@@ -86,7 +93,13 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: 'payment',
+    };
+
+    console.log('Creating checkout session with config:', sessionConfig);
+    const session = await stripe.checkout.sessions.create({
+      customer: customer_id,
+      customer_email: customer_id ? undefined : user.email,
+      ...sessionConfig,
       success_url: `${req.headers.get('origin')}/dashboard`,
       cancel_url: `${req.headers.get('origin')}/payment`,
     });
@@ -112,3 +125,12 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to map plan names to Stripe price IDs
+function getPriceIdForPlan(plan: string): string {
+  const priceIds = {
+    'Standard': 'price_standard_id_here', // Replace with your actual price ID
+    'Premium': 'price_premium_id_here',   // Replace with your actual price ID
+  };
+  return priceIds[plan as keyof typeof priceIds] || '';
+}

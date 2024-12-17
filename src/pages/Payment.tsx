@@ -57,7 +57,7 @@ const Payment = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount, words },
+        body: { amount, words, plan },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
@@ -66,7 +66,6 @@ const Payment = () => {
       if (error) throw error;
 
       if (data?.url) {
-        // Redirect to Stripe checkout URL
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
