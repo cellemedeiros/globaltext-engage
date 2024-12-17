@@ -1,24 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
-import TranslationsList from "@/components/dashboard/TranslationsList";
-import AvailableTranslations from "@/components/dashboard/translator/AvailableTranslations";
 import { useToast } from "@/components/ui/use-toast";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 import ProfileSection from "@/components/sections/ProfileSection";
+import TranslatorDashboardHeader from "@/components/dashboard/translator/TranslatorDashboardHeader";
+import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const { data: profile } = useQuery({
@@ -67,32 +62,12 @@ const TranslatorDashboard = () => {
   const isAdmin = profile?.id === ADMIN_USER_ID;
   const isAdminApplicationsRoute = location.pathname === '/admin/applications';
 
-  const handleBackNavigation = () => {
-    if (isAdminApplicationsRoute) {
-      navigate('/dashboard');
-    } else {
-      navigate('/');
-    }
-  };
-
   return (
     <TranslatorAccessControl>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto py-8 px-4">
           <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-              <Button 
-                variant="ghost" 
-                className="flex items-center gap-2"
-                onClick={handleBackNavigation}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Go Back
-              </Button>
-              <h1 className="text-4xl font-bold text-gray-900">
-                {isAdminApplicationsRoute ? 'Translator Applications' : 'Translator Dashboard'}
-              </h1>
-            </div>
+            <TranslatorDashboardHeader />
             
             {isAdminApplicationsRoute ? (
               <TranslatorApplicationsList />
@@ -101,38 +76,16 @@ const TranslatorDashboard = () => {
                 <div className="grid gap-8 md:grid-cols-2">
                   <TranslatorEarnings />
                   {isAdmin && (
-                    <Card className="p-6">
-                      <h2 className="text-xl font-semibold mb-4">Admin Actions</h2>
-                      <Button 
-                        onClick={() => navigate('/admin/applications')}
-                        className="w-full"
-                      >
-                        View Translator Applications
-                      </Button>
-                    </Card>
+                    <TranslatorApprovals />
                   )}
                 </div>
 
                 <ProfileSection />
 
-                <Tabs defaultValue="available" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="available">Available Translations</TabsTrigger>
-                    <TabsTrigger value="my-translations">My Translations</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="available">
-                    <AvailableTranslations />
-                  </TabsContent>
-                  <TabsContent value="my-translations">
-                    <Card className="p-6">
-                      <TranslationsList 
-                        translations={translations || []} 
-                        role="translator"
-                        isLoading={translationsLoading}
-                      />
-                    </Card>
-                  </TabsContent>
-                </Tabs>
+                <TranslatorDashboardTabs 
+                  translations={translations || []}
+                  isLoading={translationsLoading}
+                />
               </>
             )}
           </div>
