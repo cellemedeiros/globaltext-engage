@@ -46,9 +46,9 @@ serve(async (req) => {
 
     const { amount, words, plan } = await req.json();
     
-    if (!amount) {
-      console.error('Amount is required but not provided');
-      throw new Error('Amount is required');
+    if (!amount && !plan) {
+      console.error('Either amount or plan is required');
+      throw new Error('Either amount or plan is required');
     }
 
     console.log('Creating Stripe instance...');
@@ -104,9 +104,7 @@ serve(async (req) => {
       cancel_url: `${req.headers.get('origin')}/payment`,
     });
 
-    console.log('Payment session created successfully:', session.id);
-    console.log('Checkout URL:', session.url);
-
+    console.log('Payment session created:', session.id);
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
@@ -128,10 +126,10 @@ serve(async (req) => {
 
 // Helper function to map plan names to Stripe price IDs
 function getPriceIdForPlan(plan: string): string {
-  // Replace these price IDs with your actual Stripe price IDs
+  // You need to replace these with your actual Stripe price IDs
   const priceIds = {
-    'Standard': 'price_1OyGPkJEONOVVPBXXXXXXXXX', // Replace with your Standard plan price ID
-    'Premium': 'price_1OyGPkJEONOVVPBXYYYYYYYYY',  // Replace with your Premium plan price ID
+    'Standard': 'YOUR_STANDARD_PLAN_PRICE_ID', // Replace this with your Standard plan price ID from Stripe
+    'Premium': 'YOUR_PREMIUM_PLAN_PRICE_ID',   // Replace this with your Premium plan price ID from Stripe
   };
   return priceIds[plan as keyof typeof priceIds] || '';
 }
