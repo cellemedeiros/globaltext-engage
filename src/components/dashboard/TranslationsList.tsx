@@ -3,6 +3,7 @@ import { BookOpen, FileX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Translation {
   id: string;
@@ -14,6 +15,7 @@ interface Translation {
   word_count: number;
   ai_translated_content?: string;
   translator_review?: string;
+  content?: string;
 }
 
 interface TranslationsListProps {
@@ -102,57 +104,72 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
           {title}
         </h2>
       </div>
-      <div className="space-y-4">
-        {translations.map((translation) => (
-          <div
-            key={translation.id}
-            className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-medium mb-1">{translation.document_name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {translation.source_language} → {translation.target_language}
-                </p>
-                {role === 'translator' && translation.status === 'pending_review' && (
-                  <div className="mt-4 space-y-4">
-                    <div className="p-3 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2">AI Translation</h4>
-                      <p className="text-sm whitespace-pre-wrap">{translation.ai_translated_content}</p>
-                    </div>
-                    <textarea
-                      className="w-full min-h-[100px] p-3 rounded-lg border"
-                      placeholder="Review and edit the translation..."
-                      defaultValue={translation.ai_translated_content}
-                      onChange={(e) => {
-                        // Store changes locally if needed
-                      }}
-                    />
-                    <Button 
-                      onClick={(e) => {
-                        const textarea = e.currentTarget.parentElement?.querySelector('textarea');
-                        if (textarea) {
-                          handleReviewSubmit(translation.id, textarea.value);
-                        }
-                      }}
-                    >
-                      Submit Review
-                    </Button>
+      <ScrollArea className="h-[600px]">
+        <div className="space-y-4">
+          {translations.map((translation) => (
+            <div
+              key={translation.id}
+              className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-4 w-full">
+                  <div>
+                    <h3 className="font-medium mb-1">{translation.document_name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {translation.source_language} → {translation.target_language}
+                    </p>
                   </div>
-                )}
-              </div>
-              <div className="text-right">
-                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                  {translation.status}
-                </span>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {translation.word_count} words
-                </p>
+                  
+                  {role === 'translator' && (
+                    <div className="space-y-4">
+                      <div className="p-3 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">Original Content</h4>
+                        <p className="text-sm whitespace-pre-wrap">{translation.content}</p>
+                      </div>
+                      
+                      {translation.ai_translated_content && (
+                        <div className="p-3 bg-muted rounded-lg">
+                          <h4 className="font-medium mb-2">AI Translation</h4>
+                          <p className="text-sm whitespace-pre-wrap">{translation.ai_translated_content}</p>
+                        </div>
+                      )}
+
+                      {translation.status === 'pending_review' && (
+                        <>
+                          <textarea
+                            className="w-full min-h-[200px] p-3 rounded-lg border resize-y"
+                            placeholder="Review and edit the translation..."
+                            defaultValue={translation.ai_translated_content}
+                          />
+                          <Button 
+                            onClick={(e) => {
+                              const textarea = e.currentTarget.parentElement?.querySelector('textarea');
+                              if (textarea) {
+                                handleReviewSubmit(translation.id, textarea.value);
+                              }
+                            }}
+                            className="w-full"
+                          >
+                            Submit Review
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="text-right ml-4">
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                    {translation.status}
+                  </span>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {translation.word_count} words
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </ScrollArea>
     </Card>
   );
 };
