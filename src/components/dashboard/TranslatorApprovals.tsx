@@ -21,48 +21,21 @@ const TranslatorApprovals = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, role, is_approved_translator")
-        .eq("role", "translator");
+        .select("id, email:auth.users(email), role, is_approved_translator")
+        .eq("role", "translator")
+        .eq("is_approved_translator", true);
 
       if (error) throw error;
       return data;
     },
   });
 
-  const handleApproveTranslator = async (userId: string) => {
-    setIsUpdating(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_approved_translator: true })
-        .eq("id", userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Translator has been approved",
-      });
-      
-      refetch();
-    } catch (error) {
-      console.error("Error approving translator:", error);
-      toast({
-        title: "Error",
-        description: "Failed to approve translator",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const handleRevokeApproval = async (userId: string) => {
     setIsUpdating(true);
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ is_approved_translator: false })
+        .update({ is_approved_translator: false, role: 'client' })
         .eq("id", userId);
 
       if (error) throw error;
@@ -87,12 +60,12 @@ const TranslatorApprovals = () => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Manage Translators</h2>
+      <h2 className="text-2xl font-bold">Active Translators</h2>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>User ID</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Email</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -100,26 +73,15 @@ const TranslatorApprovals = () => {
           {profiles?.map((profile) => (
             <TableRow key={profile.id}>
               <TableCell>{profile.id}</TableCell>
+              <TableCell>{profile.email?.email}</TableCell>
               <TableCell>
-                {profile.is_approved_translator ? "Approved" : "Pending"}
-              </TableCell>
-              <TableCell>
-                {profile.is_approved_translator ? (
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleRevokeApproval(profile.id)}
-                    disabled={isUpdating}
-                  >
-                    Revoke Approval
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => handleApproveTranslator(profile.id)}
-                    disabled={isUpdating}
-                  >
-                    Approve
-                  </Button>
-                )}
+                <Button
+                  variant="destructive"
+                  onClick={() => handleRevokeApproval(profile.id)}
+                  disabled={isUpdating || profile.id === "37665cdd-1fdd-40d0-b485-35148c159bed"}
+                >
+                  Revoke Approval
+                </Button>
               </TableCell>
             </TableRow>
           ))}
