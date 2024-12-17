@@ -23,7 +23,7 @@ const TranslatorApprovals = () => {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data: profiles, refetch } = useQuery<TranslatorProfile[]>({
+  const { data: profiles, refetch, isLoading, error } = useQuery<TranslatorProfile[]>({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
       const response = await fetch(
@@ -40,6 +40,10 @@ const TranslatorApprovals = () => {
       }
 
       const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       return data;
     },
   });
@@ -72,35 +76,51 @@ const TranslatorApprovals = () => {
     }
   };
 
+  if (error) {
+    return (
+      <div className="text-red-500">
+        Error loading translators: {error.message}
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return <div>Loading translators...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Active Translators</h2>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>User ID</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {profiles?.map((profile) => (
-            <TableRow key={profile.id}>
-              <TableCell>{profile.id}</TableCell>
-              <TableCell>{profile.email}</TableCell>
-              <TableCell>
-                <Button
-                  variant="destructive"
-                  onClick={() => handleRevokeApproval(profile.id)}
-                  disabled={isUpdating || profile.id === "37665cdd-1fdd-40d0-b485-35148c159bed"}
-                >
-                  Revoke Approval
-                </Button>
-              </TableCell>
+      {profiles && profiles.length > 0 ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User ID</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {profiles.map((profile) => (
+              <TableRow key={profile.id}>
+                <TableCell>{profile.id}</TableCell>
+                <TableCell>{profile.email}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleRevokeApproval(profile.id)}
+                    disabled={isUpdating || profile.id === "37665cdd-1fdd-40d0-b485-35148c159bed"}
+                  >
+                    Revoke Approval
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <div className="text-gray-500">No active translators found.</div>
+      )}
     </div>
   );
 };
