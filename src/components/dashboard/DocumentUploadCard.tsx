@@ -32,7 +32,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   };
 
   const calculatePrice = (wordCount: number) => {
-    return wordCount * 0.20; // R$0.20 per word
+    return wordCount * 0.2; // R$0.20 per word
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,14 +83,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       localStorage.setItem('pendingTranslation', JSON.stringify({
         fileName,
         wordCount,
-        price: calculatePrice(wordCount) // R$0.20 per word
+        price: calculatePrice(wordCount)
       }));
       navigate('/?auth=true');
       return;
     }
 
     if (!hasActiveSubscription) {
-      navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount) * 2}`); // R$0.40 for non-subscribers
+      navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}`);
     } else if (wordsRemaining && wordCount > wordsRemaining) {
       navigate('/payment');
     } else {

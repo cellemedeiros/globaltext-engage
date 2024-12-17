@@ -50,7 +50,7 @@ const DocumentUploadSection = () => {
   };
 
   const calculatePrice = (wordCount: number) => {
-    return wordCount * 0.20; // R$0.20 per word
+    return wordCount * 0.2; // R$0.20 per word
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
