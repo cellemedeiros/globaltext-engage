@@ -38,7 +38,7 @@ const Payment = () => {
     }
   }, [session, isCheckingAuth, navigate, toast]);
 
-  const handlePayment = async (values: any) => {
+  const handlePayment = async () => {
     if (!session) {
       toast({
         title: "Authentication Required",
@@ -57,7 +57,7 @@ const Payment = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount, words, plan },
+        body: { amount, words },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
