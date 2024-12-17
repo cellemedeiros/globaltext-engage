@@ -16,9 +16,7 @@ type TranslatorProfile = {
   id: string;
   role: string;
   is_approved_translator: boolean;
-  auth_users: {
-    email: string;
-  } | null;
+  email?: string;
 };
 
 const TranslatorApprovals = () => {
@@ -28,24 +26,34 @@ const TranslatorApprovals = () => {
   const { data: profiles, refetch } = useQuery<TranslatorProfile[]>({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select(`
           id,
           role,
-          is_approved_translator,
-          auth_users:users!profiles_id_fkey (
-            email
-          )
+          is_approved_translator
         `)
         .eq("role", "translator")
         .eq("is_approved_translator", true);
 
-      if (error) {
-        console.error("Error fetching profiles:", error);
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
         return [];
       }
-      return data || [];
+
+      // Then get corresponding emails from auth.users
+      const profilesWithEmail = await Promise.all(
+        (profilesData || []).map(async (profile) => {
+          const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
+          return {
+            ...profile,
+            email: userData?.user?.email
+          };
+        })
+      );
+
+      return profilesWithEmail;
     },
   });
 
@@ -92,7 +100,7 @@ const TranslatorApprovals = () => {
           {profiles?.map((profile) => (
             <TableRow key={profile.id}>
               <TableCell>{profile.id}</TableCell>
-              <TableCell>{profile.auth_users?.email}</TableCell>
+              <TableCell>{profile.email}</TableCell>
               <TableCell>
                 <Button
                   variant="destructive"
