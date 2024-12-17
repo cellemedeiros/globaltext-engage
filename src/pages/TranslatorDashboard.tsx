@@ -64,14 +64,13 @@ const TranslatorDashboard = () => {
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
+  const isAdminApplicationsRoute = location.pathname === '/admin/applications';
 
   const handleBackNavigation = () => {
-    if (location.pathname === '/admin/applications') {
+    if (isAdminApplicationsRoute) {
       navigate('/dashboard');
-    } else if (location.pathname === '/translator-dashboard') {
-      navigate('/');
     } else {
-      navigate(-1);
+      navigate('/');
     }
   };
 
@@ -90,17 +89,27 @@ const TranslatorDashboard = () => {
                 Go Back
               </Button>
               <h1 className="text-4xl font-bold text-gray-900">
-                {location.pathname === '/admin/applications' ? 'Translator Applications' : 'Translator Dashboard'}
+                {isAdminApplicationsRoute ? 'Translator Applications' : 'Translator Dashboard'}
               </h1>
             </div>
             
-            {location.pathname === '/admin/applications' ? (
+            {isAdminApplicationsRoute ? (
               <TranslatorApplicationsList />
             ) : (
               <>
                 <div className="grid gap-8 md:grid-cols-2">
                   <TranslatorEarnings />
-                  {isAdmin && <TranslatorApprovals />}
+                  {isAdmin && (
+                    <Card className="p-6">
+                      <h2 className="text-xl font-semibold mb-4">Admin Actions</h2>
+                      <Button 
+                        onClick={() => navigate('/admin/applications')}
+                        className="w-full"
+                      >
+                        View Translator Applications
+                      </Button>
+                    </Card>
+                  )}
                 </div>
 
                 <Tabs defaultValue="available" className="w-full">
