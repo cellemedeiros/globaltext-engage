@@ -34,14 +34,17 @@ const TranslatorApprovals = () => {
           id,
           role,
           is_approved_translator,
-          auth_users:users(
+          auth_users:users!profiles_id_fkey (
             email
           )
         `)
         .eq("role", "translator")
         .eq("is_approved_translator", true);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profiles:", error);
+        return [];
+      }
       return data || [];
     },
   });
