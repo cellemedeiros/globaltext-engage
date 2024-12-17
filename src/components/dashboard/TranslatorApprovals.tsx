@@ -29,9 +29,15 @@ const TranslatorApprovals = () => {
       const { data, error } = await supabase.functions.invoke('get-translator-profiles');
       
       if (error) {
+        console.error('Error fetching translator profiles:', error);
         throw new Error(error.message);
       }
       
+      if (!data) {
+        throw new Error('No data returned from the server');
+      }
+
+      console.log('Fetched translator profiles:', data);
       return data;
     },
   });
