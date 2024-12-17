@@ -12,11 +12,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+type TranslatorProfile = {
+  id: string;
+  role: string;
+  is_approved_translator: boolean;
+  auth_users: {
+    email: string;
+  } | null;
+};
+
 const TranslatorApprovals = () => {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data: profiles, refetch } = useQuery({
+  const { data: profiles, refetch } = useQuery<TranslatorProfile[]>({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
       const { data, error } = await supabase
