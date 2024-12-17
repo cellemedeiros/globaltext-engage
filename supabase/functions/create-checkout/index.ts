@@ -70,32 +70,46 @@ serve(async (req) => {
       console.log('No existing customer found, will create new');
     }
 
-    // Define different configurations based on payment type
-    const sessionConfig = plan ? {
-      mode: 'subscription',
-      line_items: [
-        {
-          price: Deno.env.get(`${plan.toUpperCase()}_PLAN_PRICE`),
-          quantity: 1,
-        },
-      ],
-    } : {
-      mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'brl',
-            product_data: {
-              name: `Translation Service - ${words} words`,
-            },
-            unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
-          },
-          quantity: 1,
-        },
-      ],
-    };
+    let sessionConfig;
+    if (plan) {
+      const priceId = plan.toUpperCase() === 'PREMIUM' 
+        ? Deno.env.get('PREMIUM_PLAN_PRICE')
+        : Deno.env.get('STANDARD_PLAN_PRICE');
 
-    console.log('Creating checkout session with config:', sessionConfig);
+      if (!priceId) {
+        console.error(`No price ID found for plan: ${plan}`);
+        throw new Error(`Invalid plan configuration for ${plan}`);
+      }
+
+      console.log(`Using price ID for ${plan} plan:`, priceId);
+      sessionConfig = {
+        mode: 'subscription',
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+      };
+    } else {
+      sessionConfig = {
+        mode: 'payment',
+        line_items: [
+          {
+            price_data: {
+              currency: 'brl',
+              product_data: {
+                name: `Translation Service - ${words} words`,
+              },
+              unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
+            },
+            quantity: 1,
+          },
+        ],
+      };
+    }
+
+    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
     const session = await stripe.checkout.sessions.create({
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
