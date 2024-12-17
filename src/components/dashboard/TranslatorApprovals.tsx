@@ -21,7 +21,14 @@ const TranslatorApprovals = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email:auth.users(email), role, is_approved_translator")
+        .select(`
+          id,
+          role,
+          is_approved_translator,
+          auth_users:auth.users(
+            email
+          )
+        `)
         .eq("role", "translator")
         .eq("is_approved_translator", true);
 
@@ -73,7 +80,7 @@ const TranslatorApprovals = () => {
           {profiles?.map((profile) => (
             <TableRow key={profile.id}>
               <TableCell>{profile.id}</TableCell>
-              <TableCell>{profile.email?.email}</TableCell>
+              <TableCell>{profile.auth_users?.email}</TableCell>
               <TableCell>
                 <Button
                   variant="destructive"
