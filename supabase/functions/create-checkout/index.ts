@@ -35,7 +35,7 @@ serve(async (req) => {
       throw new Error('User email not found');
     }
 
-    const { amount, words, plan } = await req.json();
+    const { amount, words } = await req.json();
     
     if (!amount) {
       throw new Error('Amount is required');
@@ -65,9 +65,9 @@ serve(async (req) => {
           price_data: {
             currency: 'brl',
             product_data: {
-              name: plan ? `${plan} Plan` : `Translation Service - ${words} words`,
+              name: `Translation Service - ${words} words`,
             },
-            unit_amount: Math.round(parseFloat(amount) * 100),
+            unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
           },
           quantity: 1,
         },
