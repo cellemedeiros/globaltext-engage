@@ -26,22 +26,10 @@ const TranslatorApprovals = () => {
   const { data: profiles, refetch, isLoading, error } = useQuery<TranslatorProfile[]>({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
-      const response = await fetch(
-        `${process.env.VITE_SUPABASE_URL}/functions/v1/get-translator-profiles`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch translator profiles');
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
+      const { data, error } = await supabase.functions.invoke('get-translator-profiles');
+      
+      if (error) {
+        throw new Error(error.message);
       }
       
       return data;
