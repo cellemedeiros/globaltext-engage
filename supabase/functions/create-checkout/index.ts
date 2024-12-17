@@ -75,7 +75,7 @@ serve(async (req) => {
       mode: 'subscription',
       line_items: [
         {
-          price: getPriceIdForPlan(plan),
+          price: Deno.env.get(`${plan.toUpperCase()}_PLAN_PRICE`),
           quantity: 1,
         },
       ],
@@ -123,27 +123,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Helper function to map plan names to Stripe price IDs
-function getPriceIdForPlan(plan: string): string {
-  // Get the price IDs from environment variables
-  const standardPlanPrice = Deno.env.get('STANDARD_PLAN_PRICE');
-  const premiumPlanPrice = Deno.env.get('PREMIUM_PLAN_PRICE');
-  
-  if (!standardPlanPrice || !premiumPlanPrice) {
-    console.error('Missing plan price IDs in environment variables');
-    throw new Error('Plan price IDs not configured');
-  }
-
-  const priceIds = {
-    'Standard': standardPlanPrice,
-    'Premium': premiumPlanPrice,
-  };
-  
-  const priceId = priceIds[plan as keyof typeof priceIds];
-  if (!priceId) {
-    throw new Error(`Invalid plan name: ${plan}`);
-  }
-  
-  return priceId;
-}
