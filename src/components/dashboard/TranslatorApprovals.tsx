@@ -26,34 +26,21 @@ const TranslatorApprovals = () => {
   const { data: profiles, refetch } = useQuery<TranslatorProfile[]>({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
-      // First get profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          role,
-          is_approved_translator
-        `)
-        .eq("role", "translator")
-        .eq("is_approved_translator", true);
-
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        return [];
-      }
-
-      // Then get corresponding emails from auth.users
-      const profilesWithEmail = await Promise.all(
-        (profilesData || []).map(async (profile) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
-          return {
-            ...profile,
-            email: userData?.user?.email
-          };
-        })
+      const response = await fetch(
+        `${process.env.VITE_SUPABASE_URL}/functions/v1/get-translator-profiles`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        }
       );
 
-      return profilesWithEmail;
+      if (!response.ok) {
+        throw new Error('Failed to fetch translator profiles');
+      }
+
+      const data = await response.json();
+      return data;
     },
   });
 
