@@ -1,116 +1,17 @@
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
-import { ArrowLeft } from "lucide-react";
-import PaymentSummary from "@/components/payment/PaymentSummary";
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import PaymentSummary from "@/components/payment/PaymentSummary";
+import PaymentNavigation from "@/components/payment/PaymentNavigation";
+import PaymentProcessor from "@/components/payment/PaymentProcessor";
+import { usePaymentAuth } from "@/hooks/usePaymentAuth";
 
 const Payment = () => {
   const [searchParams] = useSearchParams();
   const words = searchParams.get("words");
   const plan = searchParams.get("plan");
   const amount = searchParams.get("amount");
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // Check authentication status
-  const { data: session, isLoading: isCheckingAuth } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      return session;
-    },
-  });
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isCheckingAuth && !session) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to continue with the payment.",
-        variant: "destructive",
-      });
-      navigate('/', { replace: true });
-    }
-  }, [session, isCheckingAuth, navigate, toast]);
-
-  const handleBack = () => {
-    // If we came from a specific location, use that
-    if (location.state?.from) {
-      navigate(location.state.from);
-      return;
-    }
-
-    // If we have a plan parameter and it's an upgrade
-    if (plan === 'upgrade') {
-      navigate('/dashboard');
-      return;
-    }
-
-    // If we have a plan parameter (new subscription)
-    if (plan) {
-      navigate('/#pricing');
-      return;
-    }
-
-    // If we have words parameter (single document translation)
-    if (words) {
-      navigate('/dashboard');
-      return;
-    }
-
-    // Default fallback - go to dashboard
-    navigate('/dashboard');
-  };
-
-  const handlePayment = async () => {
-    if (!session) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to continue with the payment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession) {
-        throw new Error('No active session');
-      }
-
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount, words, plan },
-        headers: {
-          Authorization: `Bearer ${currentSession.access_token}`
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (error: any) {
-      console.error('Payment error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process payment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  
+  const { session, isCheckingAuth } = usePaymentAuth();
 
   if (isCheckingAuth) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -118,14 +19,7 @@ const Payment = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <Button 
-        variant="ghost" 
-        onClick={handleBack}
-        className="mb-8 hover:bg-secondary/50"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
-      </Button>
+      <PaymentNavigation plan={plan} words={words} />
 
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
@@ -139,14 +33,13 @@ const Payment = () => {
         </div>
 
         <div className="grid md:grid-cols-[1fr,300px] gap-8">
-          <Card className="p-6">
-            <Button 
-              onClick={handlePayment}
-              className="w-full"
-              disabled={isProcessing}
-            >
-              {isProcessing ? "Processing..." : `Proceed to Payment - R$${amount}`}
-            </Button>
+          <Card>
+            <PaymentProcessor 
+              amount={amount}
+              words={words}
+              plan={plan}
+              session={session}
+            />
           </Card>
           <PaymentSummary 
             words={words}
