@@ -42,35 +42,25 @@ const TranslatorApplicationsList = () => {
 
   const handleApplicationUpdate = async (id: string, status: 'approved' | 'rejected', notes: string = '') => {
     try {
-      const { error: updateError } = await supabase
-        .from('freelancer_applications')
-        .update({
-          status,
-          reviewed_by: (await supabase.auth.getSession()).data.session?.user.id,
-          reviewed_at: new Date().toISOString(),
-          review_notes: notes
-        })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-
       if (status === 'approved') {
-        // Update the user's profile to mark them as an approved translator
-        const { data: application } = await supabase
-          .from('freelancer_applications')
-          .select('email')
-          .eq('id', id)
-          .single();
+        const { error } = await supabase.rpc('approve_translator', {
+          application_id: id,
+          reviewer_id: (await supabase.auth.getSession()).data.session?.user.id
+        });
 
-        if (application?.email) {
-          const { data: userData } = await supabase
-            .from('profiles')
-            .update({
-              role: 'translator',
-              is_approved_translator: true
-            })
-            .eq('id', (await supabase.auth.getSession()).data.session?.user.id);
-        }
+        if (error) throw error;
+      } else {
+        const { error: updateError } = await supabase
+          .from('freelancer_applications')
+          .update({
+            status: 'rejected',
+            reviewed_by: (await supabase.auth.getSession()).data.session?.user.id,
+            reviewed_at: new Date().toISOString(),
+            review_notes: notes
+          })
+          .eq('id', id);
+
+        if (updateError) throw updateError;
       }
 
       toast({

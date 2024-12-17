@@ -211,7 +211,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      approve_translator: {
+        Args: {
+          application_id: string
+          reviewer_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       user_role: "client" | "translator"
