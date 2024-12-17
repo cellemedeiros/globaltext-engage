@@ -130,9 +130,20 @@ function getPriceIdForPlan(plan: string): string {
   const standardPlanPrice = Deno.env.get('STANDARD_PLAN_PRICE');
   const premiumPlanPrice = Deno.env.get('PREMIUM_PLAN_PRICE');
   
+  if (!standardPlanPrice || !premiumPlanPrice) {
+    console.error('Missing plan price IDs in environment variables');
+    throw new Error('Plan price IDs not configured');
+  }
+
   const priceIds = {
     'Standard': standardPlanPrice,
     'Premium': premiumPlanPrice,
   };
-  return priceIds[plan as keyof typeof priceIds] || '';
+  
+  const priceId = priceIds[plan as keyof typeof priceIds];
+  if (!priceId) {
+    throw new Error(`Invalid plan name: ${plan}`);
+  }
+  
+  return priceId;
 }
