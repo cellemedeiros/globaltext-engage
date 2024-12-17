@@ -34,7 +34,7 @@ const TranslatorApprovals = () => {
           id,
           role,
           is_approved_translator,
-          auth_users:auth.users(
+          auth_users:auth.users!profiles_id_fkey(
             email
           )
         `)
@@ -42,7 +42,7 @@ const TranslatorApprovals = () => {
         .eq("is_approved_translator", true);
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
