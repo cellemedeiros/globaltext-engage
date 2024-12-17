@@ -89,12 +89,24 @@ const TranslatorDashboard = () => {
                 <Collapsible className="w-full border rounded-lg p-4">
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full flex justify-between items-center">
-                      <span>Manage Translators</span>
+                      <span>Manage Active Translators</span>
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
                     <TranslatorApprovals />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible className="w-full border rounded-lg p-4">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Manage Pending Translators</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <TranslatorApprovals isPending />
                   </CollapsibleContent>
                 </Collapsible>
               </div>
