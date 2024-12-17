@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
@@ -17,6 +17,7 @@ const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 const TranslatorDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -63,6 +64,16 @@ const TranslatorDashboard = () => {
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
 
+  const handleBackNavigation = () => {
+    if (location.pathname === '/admin/applications') {
+      navigate('/dashboard');
+    } else if (location.pathname === '/translator-dashboard') {
+      navigate('/');
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <TranslatorAccessControl>
       <div className="min-h-screen bg-gray-50">
@@ -72,12 +83,14 @@ const TranslatorDashboard = () => {
               <Button 
                 variant="ghost" 
                 className="flex items-center gap-2"
-                onClick={() => navigate(-1)}
+                onClick={handleBackNavigation}
               >
                 <ArrowLeft className="h-4 w-4" />
                 Go Back
               </Button>
-              <h1 className="text-4xl font-bold text-gray-900">Translator Dashboard</h1>
+              <h1 className="text-4xl font-bold text-gray-900">
+                {location.pathname === '/admin/applications' ? 'Translator Applications' : 'Translator Dashboard'}
+              </h1>
             </div>
             
             <div className="grid gap-8 md:grid-cols-2">
