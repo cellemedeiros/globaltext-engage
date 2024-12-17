@@ -9,15 +9,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-}
+type Notification = Database['public']['Tables']['notifications']['Row'];
 
 const NotificationsPopover = () => {
   const { data: notifications = [] } = useQuery({
