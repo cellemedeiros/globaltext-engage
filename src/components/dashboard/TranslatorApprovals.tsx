@@ -34,7 +34,7 @@ const TranslatorApprovals = () => {
           id,
           role,
           is_approved_translator,
-          auth_users:auth.users!profiles_id_fkey(
+          auth_users:users(
             email
           )
         `)
