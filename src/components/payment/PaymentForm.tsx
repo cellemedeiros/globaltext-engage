@@ -15,7 +15,7 @@ const formSchema = z.object({
   address: z.string().min(5, "Address is required"),
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
-  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
+  zipCode: z.string().min(3, "ZIP/Postal code is required"),
 });
 
 interface PaymentFormProps {
@@ -145,7 +145,7 @@ const PaymentForm = ({ onSubmit, isProcessing, amount }: PaymentFormProps) => {
                 name="state"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>State</FormLabel>
+                    <FormLabel>State/Province</FormLabel>
                     <FormControl>
                       <Input placeholder="NY" {...field} />
                     </FormControl>
@@ -160,9 +160,9 @@ const PaymentForm = ({ onSubmit, isProcessing, amount }: PaymentFormProps) => {
               name="zipCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ZIP Code</FormLabel>
+                  <FormLabel>ZIP/Postal Code</FormLabel>
                   <FormControl>
-                    <Input placeholder="12345" {...field} />
+                    <Input placeholder="Enter postal code" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
