@@ -126,9 +126,13 @@ serve(async (req) => {
 
 // Helper function to map plan names to Stripe price IDs
 function getPriceIdForPlan(plan: string): string {
+  // Get the price IDs from environment variables
+  const standardPlanPrice = Deno.env.get('STANDARD_PLAN_PRICE');
+  const premiumPlanPrice = Deno.env.get('PREMIUM_PLAN_PRICE');
+  
   const priceIds = {
-    'Standard': 'price_1OyGPkJEONOVVPBXXXXXXXXX', // Your Standard plan price ID
-    'Premium': 'price_1OyGPkJEONOVVPBXYYYYYYYYY',  // Your Premium plan price ID
+    'Standard': standardPlanPrice,
+    'Premium': premiumPlanPrice,
   };
   return priceIds[plan as keyof typeof priceIds] || '';
 }
