@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft } from "lucide-react";
 import PaymentForm from "@/components/payment/PaymentForm";
@@ -12,52 +12,30 @@ const Payment = () => {
   const [searchParams] = useSearchParams();
   const words = searchParams.get("words");
   const plan = searchParams.get("plan");
-  const amount = words ? (Number(words) * 0.20).toString() : searchParams.get("amount"); // R$0.20 per word
+  const amount = searchParams.get("amount");
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if user has an active subscription
-  const { data: subscription } = useQuery({
-    queryKey: ['subscription'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // If user has an active subscription with enough words, redirect to dashboard
-  if (subscription && words && subscription.words_remaining >= parseInt(words)) {
-    navigate('/dashboard');
-    return null;
-  }
-
   const handlePayment = async (values: any) => {
     setIsProcessing(true);
     try {
-      // Create a payment session in Supabase
-      const { data, error } = await supabase.functions.invoke('create-payment-session', {
-        body: { amount, words, plan, billingDetails: values }
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { amount, words, plan }
       });
 
       if (error) throw error;
 
-      // Redirect to Stripe checkout
-      window.location.href = data.url;
-    } catch (error) {
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
       toast({
         title: "Error",
-        description: "Failed to process payment. Please try again.",
+        description: error.message || "Failed to process payment. Please try again.",
         variant: "destructive",
       });
     } finally {
