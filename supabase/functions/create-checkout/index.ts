@@ -92,6 +92,7 @@ serve(async (req) => {
         ],
       };
     } else {
+      // For one-time payments, create a new price dynamically
       sessionConfig = {
         mode: 'payment',
         line_items: [
