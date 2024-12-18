@@ -37,14 +37,14 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original tone, context, and formatting. Only return the translated text without any additional comments or explanations.`
+            content: `You are a professional translator. Your task is to translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original tone, context, and formatting. Only provide the translated text without any additional comments or explanations.`
           },
           {
             role: 'user',
             content: text
           }
         ],
-        temperature: 0.3, // Lower temperature for more consistent translations
+        temperature: 0.3,
         max_tokens: 2000
       }),
     });
