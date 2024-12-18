@@ -1,10 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,8 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    const { content, sourceLanguage, targetLanguage } = await req.json();
-    
+    const { text, sourceLanguage, targetLanguage } = await req.json();
+    console.log('Received translation request:', { sourceLanguage, targetLanguage });
+
+    if (!text || !sourceLanguage || !targetLanguage) {
+      throw new Error('Missing required parameters');
+    }
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -30,34 +36,57 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original formatting and structure.`
+            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original formatting and structure. Only return the translated text, nothing else.`
           },
           {
             role: 'user',
-            content: content
+            content: text
           }
         ],
+        temperature: 0.7,
+        max_tokens: 2000
       }),
     });
 
-    const aiResponse = await response.json();
-    console.log('AI Response:', aiResponse);
-    
-    if (!aiResponse.choices?.[0]?.message?.content) {
-      throw new Error('Invalid AI response format');
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
     }
 
-    const translatedText = aiResponse.choices[0].message.content;
+    const data = await response.json();
+    console.log('OpenAI response received:', data);
+
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Invalid OpenAI response format:', data);
+      throw new Error('Invalid OpenAI response format');
+    }
+
+    const translation = data.choices[0].message.content.trim();
+    console.log('Translation completed successfully');
 
     return new Response(
-      JSON.stringify({ translation: translatedText }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ translation }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   } catch (error) {
-    console.error('Error in translate-text function:', error);
+    console.error('Translation error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: error.message || 'An error occurred during translation' 
+      }),
+      { 
+        status: 500,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   }
 });
