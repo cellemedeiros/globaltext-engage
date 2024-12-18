@@ -74,15 +74,21 @@ const TranslationCanvas = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
+      // Calculate word count (simple implementation)
+      const wordCount = sourceText.trim().split(/\s+/).length;
+
       const { error } = await supabase
         .from('translations')
         .insert({
           user_id: session.user.id,
-          content: sourceText,
-          translated_content: translatedText,
+          document_name: `Translation_${new Date().toISOString()}`,
           source_language: sourceLanguage,
           target_language: targetLanguage,
-          status: 'completed'
+          word_count: wordCount,
+          amount_paid: 0, // Set appropriate amount based on your business logic
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          translator_id: session.user.id
         });
 
       if (error) throw error;
