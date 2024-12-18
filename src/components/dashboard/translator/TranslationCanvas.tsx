@@ -2,24 +2,10 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const languages = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
-  { code: 'pt', name: 'Portuguese' }
-];
+import { supabase } from "@/integrations/supabase/client";
+import LanguageSelector from "./LanguageSelector";
+import TranslationTextArea from "./TranslationTextArea";
 
 const TranslationCanvas = () => {
   const [sourceText, setSourceText] = useState("");
@@ -41,7 +27,7 @@ const TranslationCanvas = () => {
 
     setIsTranslating(true);
     try {
-      const response = await fetch("/api/translate-document", {
+      const response = await fetch("/api/translate-text", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,20 +71,21 @@ const TranslationCanvas = () => {
     }
 
     try {
-      const response = await fetch("/api/upload-translation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sourceText,
-          translatedText,
-          sourceLanguage,
-          targetLanguage,
-        }),
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-      if (!response.ok) throw new Error("Upload failed");
+      const { error } = await supabase
+        .from('translations')
+        .insert({
+          user_id: session.user.id,
+          content: sourceText,
+          translated_content: translatedText,
+          source_language: sourceLanguage,
+          target_language: targetLanguage,
+          status: 'completed'
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -114,6 +101,14 @@ const TranslationCanvas = () => {
     }
   };
 
+  // Auto-translate when source text changes
+  const handleSourceTextChange = (text: string) => {
+    setSourceText(text);
+    if (text.trim()) {
+      handleTranslate();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Translation Canvas</h2>
@@ -125,34 +120,16 @@ const TranslationCanvas = () => {
               <TabsTrigger value="source" className="flex-1">Source Text</TabsTrigger>
             </TabsList>
             <TabsContent value="source">
-              <div className="mb-4">
-                <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select source language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <ScrollArea className="h-[500px] w-full">
-                <textarea
-                  value={sourceText}
-                  onChange={(e) => {
-                    setSourceText(e.target.value);
-                    // Trigger automatic translation after a delay
-                    if (e.target.value.trim()) {
-                      handleTranslate();
-                    }
-                  }}
-                  placeholder="Enter text to translate..."
-                  className="w-full h-full min-h-[480px] p-4 rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </ScrollArea>
+              <LanguageSelector
+                value={sourceLanguage}
+                onChange={setSourceLanguage}
+                label="source"
+              />
+              <TranslationTextArea
+                value={sourceText}
+                onChange={handleSourceTextChange}
+                placeholder="Enter text to translate..."
+              />
             </TabsContent>
           </Tabs>
         </Card>
@@ -163,28 +140,16 @@ const TranslationCanvas = () => {
               <TabsTrigger value="translation" className="flex-1">Translation</TabsTrigger>
             </TabsList>
             <TabsContent value="translation">
-              <div className="mb-4">
-                <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select target language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <ScrollArea className="h-[500px] w-full">
-                <textarea
-                  value={translatedText}
-                  onChange={(e) => setTranslatedText(e.target.value)}
-                  placeholder="Translation will appear here..."
-                  className="w-full h-full min-h-[480px] p-4 rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </ScrollArea>
+              <LanguageSelector
+                value={targetLanguage}
+                onChange={setTargetLanguage}
+                label="target"
+              />
+              <TranslationTextArea
+                value={translatedText}
+                onChange={setTranslatedText}
+                placeholder="Translation will appear here..."
+              />
             </TabsContent>
           </Tabs>
         </Card>
