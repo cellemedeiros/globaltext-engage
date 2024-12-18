@@ -4,6 +4,7 @@ import TranslationsList from "../TranslationsList";
 import AvailableTranslations from "./AvailableTranslations";
 import TranslationCanvas from "./TranslationCanvas";
 import { Database } from "@/integrations/supabase/types";
+import { motion } from "framer-motion";
 
 type Translation = Database['public']['Tables']['translations']['Row'];
 
@@ -14,30 +15,75 @@ interface TranslatorDashboardTabsProps {
 
 const TranslatorDashboardTabs = ({ translations, isLoading }: TranslatorDashboardTabsProps) => {
   return (
-    <Tabs defaultValue="available" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="available">Available Translations</TabsTrigger>
-        <TabsTrigger value="my-translations">My Translations</TabsTrigger>
-        <TabsTrigger value="canvas">Translation Canvas</TabsTrigger>
-      </TabsList>
-      <TabsContent value="available">
-        <AvailableTranslations />
-      </TabsContent>
-      <TabsContent value="my-translations">
-        <Card className="p-6">
-          <TranslationsList 
-            translations={translations} 
-            role="translator"
-            isLoading={isLoading}
-          />
-        </Card>
-      </TabsContent>
-      <TabsContent value="canvas">
-        <Card className="p-6">
-          <TranslationCanvas />
-        </Card>
-      </TabsContent>
-    </Tabs>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full"
+    >
+      <Tabs defaultValue="available" className="w-full space-y-6">
+        <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm">
+          <TabsTrigger 
+            value="available"
+            className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all duration-300 hover:bg-primary/80"
+          >
+            Available Translations
+          </TabsTrigger>
+          <TabsTrigger 
+            value="my-translations"
+            className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all duration-300 hover:bg-primary/80"
+          >
+            My Translations
+          </TabsTrigger>
+          <TabsTrigger 
+            value="canvas"
+            className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all duration-300 hover:bg-primary/80"
+          >
+            Translation Canvas
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="available" className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="p-6 hover:shadow-lg transition-shadow duration-300">
+              <AvailableTranslations />
+            </Card>
+          </motion.div>
+        </TabsContent>
+        
+        <TabsContent value="my-translations" className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="p-6 hover:shadow-lg transition-shadow duration-300">
+              <TranslationsList 
+                translations={translations} 
+                role="translator"
+                isLoading={isLoading}
+              />
+            </Card>
+          </motion.div>
+        </TabsContent>
+        
+        <TabsContent value="canvas" className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="p-6 hover:shadow-lg transition-shadow duration-300">
+              <TranslationCanvas />
+            </Card>
+          </motion.div>
+        </TabsContent>
+      </Tabs>
+    </motion.div>
   );
 };
 

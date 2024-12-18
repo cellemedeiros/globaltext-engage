@@ -1,80 +1,62 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 import LanguageSelector from "./LanguageSelector";
 import TranslationTextArea from "./TranslationTextArea";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const TranslationCanvas = () => {
-  const [sourceText, setSourceText] = useState("");
-  const [translatedText, setTranslatedText] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("es");
+  const [sourceText, setSourceText] = useState("");
+  const [translatedText, setTranslatedText] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  const handleTranslate = async () => {
-    if (!sourceText.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter some text to translate",
-        variant: "destructive",
-      });
-      return;
-    }
+  useEffect(() => {
+    const translateText = async () => {
+      if (!sourceText.trim()) {
+        setTranslatedText("");
+        return;
+      }
 
-    setIsTranslating(true);
-    try {
-      const response = await fetch("/api/translate-text", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: sourceText,
-          sourceLanguage,
-          targetLanguage,
-        }),
-      });
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-text', {
+          body: {
+            text: sourceText,
+            sourceLanguage,
+            targetLanguage,
+          },
+        });
 
-      if (!response.ok) throw new Error("Translation failed");
+        if (error) throw error;
+        setTranslatedText(data.translation);
+      } catch (error) {
+        console.error('Translation error:', error);
+        toast({
+          title: "Translation Error",
+          description: "Failed to translate text. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsTranslating(false);
+      }
+    };
 
-      const data = await response.json();
-      setTranslatedText(data.translation);
-
-      toast({
-        title: "Success",
-        description: "Translation completed",
-      });
-    } catch (error) {
-      console.error("Translation error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to translate text. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTranslating(false);
-    }
-  };
+    const debounceTimeout = setTimeout(translateText, 1000);
+    return () => clearTimeout(debounceTimeout);
+  }, [sourceText, sourceLanguage, targetLanguage, toast]);
 
   const handleUploadTranslation = async () => {
-    if (!translatedText.trim()) {
-      toast({
-        title: "Error",
-        description: "Please complete the translation before uploading",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
+      setIsUploading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Calculate word count (simple implementation)
       const wordCount = sourceText.trim().split(/\s+/).length;
 
       const { error } = await supabase
@@ -85,7 +67,7 @@ const TranslationCanvas = () => {
           source_language: sourceLanguage,
           target_language: targetLanguage,
           word_count: wordCount,
-          amount_paid: 0, // Set appropriate amount based on your business logic
+          amount_paid: 0,
           status: 'completed',
           completed_at: new Date().toISOString(),
           translator_id: session.user.id
@@ -95,87 +77,89 @@ const TranslationCanvas = () => {
 
       toast({
         title: "Success",
-        description: "Translation uploaded successfully",
+        description: "Translation uploaded successfully!",
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error('Upload error:', error);
       toast({
-        title: "Error",
+        title: "Upload Error",
         description: "Failed to upload translation. Please try again.",
         variant: "destructive",
       });
-    }
-  };
-
-  // Auto-translate when source text changes
-  const handleSourceTextChange = (text: string) => {
-    setSourceText(text);
-    if (text.trim()) {
-      handleTranslate();
+    } finally {
+      setIsUploading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Translation Canvas</h2>
-      
-      <div className="grid grid-cols-2 gap-6">
-        <Card className="p-4">
-          <Tabs defaultValue="source">
-            <TabsList className="w-full">
-              <TabsTrigger value="source" className="flex-1">Source Text</TabsTrigger>
-            </TabsList>
-            <TabsContent value="source">
-              <LanguageSelector
-                value={sourceLanguage}
-                onChange={setSourceLanguage}
-                label="source"
-              />
-              <TranslationTextArea
-                value={sourceText}
-                onChange={handleSourceTextChange}
-                placeholder="Enter text to translate..."
-              />
-            </TabsContent>
-          </Tabs>
-        </Card>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-6"
+    >
+      <div className="grid md:grid-cols-2 gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-4"
+        >
+          <LanguageSelector
+            value={sourceLanguage}
+            onChange={setSourceLanguage}
+            label="Source"
+          />
+          <TranslationTextArea
+            value={sourceText}
+            onChange={setSourceText}
+            placeholder="Enter text to translate..."
+          />
+        </motion.div>
 
-        <Card className="p-4">
-          <Tabs defaultValue="translation">
-            <TabsList className="w-full">
-              <TabsTrigger value="translation" className="flex-1">Translation</TabsTrigger>
-            </TabsList>
-            <TabsContent value="translation">
-              <LanguageSelector
-                value={targetLanguage}
-                onChange={setTargetLanguage}
-                label="target"
-              />
-              <TranslationTextArea
-                value={translatedText}
-                onChange={setTranslatedText}
-                placeholder="Translation will appear here..."
-              />
-            </TabsContent>
-          </Tabs>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-4"
+        >
+          <LanguageSelector
+            value={targetLanguage}
+            onChange={setTargetLanguage}
+            label="Target"
+          />
+          <TranslationTextArea
+            value={translatedText}
+            onChange={setTranslatedText}
+            placeholder="Translation will appear here..."
+            readOnly={isTranslating}
+          />
+        </motion.div>
       </div>
 
-      <div className="flex justify-end gap-4">
-        <Button 
-          onClick={handleTranslate} 
-          disabled={isTranslating}
-        >
-          {isTranslating ? "Translating..." : "Translate"}
-        </Button>
-        <Button 
+      <div className="flex justify-end space-x-4">
+        {isTranslating && (
+          <div className="flex items-center text-primary">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Translating...
+          </div>
+        )}
+        <Button
           onClick={handleUploadTranslation}
-          variant="default"
+          disabled={isUploading || !translatedText}
+          className="bg-primary hover:bg-primary-dark transition-colors duration-300"
         >
-          Upload Translation
+          {isUploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            'Upload Translation'
+          )}
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
