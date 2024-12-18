@@ -25,6 +25,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
+    console.log('Making request to OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -36,14 +37,14 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original formatting and structure. Only return the translated text, nothing else.`
+            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original tone, context, and formatting. Only return the translated text without any additional comments or explanations.`
           },
           {
             role: 'user',
             content: text
           }
         ],
-        temperature: 0.7,
+        temperature: 0.3, // Lower temperature for more consistent translations
         max_tokens: 2000
       }),
     });
@@ -55,7 +56,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('OpenAI response received:', data);
+    console.log('OpenAI response received');
 
     if (!data.choices?.[0]?.message?.content) {
       console.error('Invalid OpenAI response format:', data);
