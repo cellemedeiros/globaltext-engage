@@ -4,10 +4,29 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const languages = [
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'de', name: 'German' },
+  { code: 'it', name: 'Italian' },
+  { code: 'pt', name: 'Portuguese' }
+];
 
 const TranslationCanvas = () => {
   const [sourceText, setSourceText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
+  const [sourceLanguage, setSourceLanguage] = useState("en");
+  const [targetLanguage, setTargetLanguage] = useState("es");
+  const [isTranslating, setIsTranslating] = useState(false);
   const { toast } = useToast();
 
   const handleTranslate = async () => {
@@ -20,6 +39,7 @@ const TranslationCanvas = () => {
       return;
     }
 
+    setIsTranslating(true);
     try {
       const response = await fetch("/api/translate-document", {
         method: "POST",
@@ -28,8 +48,8 @@ const TranslationCanvas = () => {
         },
         body: JSON.stringify({
           content: sourceText,
-          sourceLanguage: "en",
-          targetLanguage: "es",
+          sourceLanguage,
+          targetLanguage,
         }),
       });
 
@@ -49,6 +69,48 @@ const TranslationCanvas = () => {
         description: "Failed to translate text. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleUploadTranslation = async () => {
+    if (!translatedText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please complete the translation before uploading",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/upload-translation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sourceText,
+          translatedText,
+          sourceLanguage,
+          targetLanguage,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+
+      toast({
+        title: "Success",
+        description: "Translation uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload translation. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -63,10 +125,30 @@ const TranslationCanvas = () => {
               <TabsTrigger value="source" className="flex-1">Source Text</TabsTrigger>
             </TabsList>
             <TabsContent value="source">
+              <div className="mb-4">
+                <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select source language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <ScrollArea className="h-[500px] w-full">
                 <textarea
                   value={sourceText}
-                  onChange={(e) => setSourceText(e.target.value)}
+                  onChange={(e) => {
+                    setSourceText(e.target.value);
+                    // Trigger automatic translation after a delay
+                    if (e.target.value.trim()) {
+                      handleTranslate();
+                    }
+                  }}
                   placeholder="Enter text to translate..."
                   className="w-full h-full min-h-[480px] p-4 rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -81,6 +163,20 @@ const TranslationCanvas = () => {
               <TabsTrigger value="translation" className="flex-1">Translation</TabsTrigger>
             </TabsList>
             <TabsContent value="translation">
+              <div className="mb-4">
+                <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select target language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <ScrollArea className="h-[500px] w-full">
                 <textarea
                   value={translatedText}
@@ -95,8 +191,17 @@ const TranslationCanvas = () => {
       </div>
 
       <div className="flex justify-end gap-4">
-        <Button onClick={handleTranslate}>
-          Translate
+        <Button 
+          onClick={handleTranslate} 
+          disabled={isTranslating}
+        >
+          {isTranslating ? "Translating..." : "Translate"}
+        </Button>
+        <Button 
+          onClick={handleUploadTranslation}
+          variant="default"
+        >
+          Upload Translation
         </Button>
       </div>
     </div>
