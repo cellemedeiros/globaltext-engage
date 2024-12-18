@@ -37,7 +37,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Your task is to translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original tone, context, and formatting. Only provide the translated text without any additional comments or explanations.`
+            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Maintain the original formatting and structure. Only provide the translated text without any additional comments.`
           },
           {
             role: 'user',
