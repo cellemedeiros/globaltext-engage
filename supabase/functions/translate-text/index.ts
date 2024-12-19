@@ -43,14 +43,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator with expertise in ${sourceLanguage} and ${targetLanguage}. 
-                     Your task is to translate the given text accurately while preserving the original meaning, tone, and context. 
-                     Maintain any special formatting or technical terms. 
-                     Only return the translated text without any explanations or additional comments.`
+            content: `You are a professional translator. Your task is to translate the following text from ${sourceLanguage} to ${targetLanguage}. 
+                     Translate accurately while maintaining the original meaning and formatting.
+                     Only provide the translated text without any additional comments.`
           },
           {
             role: 'user',
@@ -58,7 +57,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.3,
-        max_tokens: 2000
+        max_tokens: 1000
       }),
     });
 
@@ -90,6 +89,23 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Translation error:', error);
+    
+    // Check if it's an OpenAI quota error
+    if (error.message?.includes('exceeded your current quota')) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Translation service is temporarily unavailable. Please try again later.' 
+        }),
+        { 
+          status: 503,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An error occurred during translation' 
