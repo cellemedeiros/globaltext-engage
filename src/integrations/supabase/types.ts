@@ -182,6 +182,10 @@ export type Database = {
       }
       translations: {
         Row: {
+          admin_review_notes: string | null
+          admin_review_status: string | null
+          admin_reviewed_at: string | null
+          admin_reviewer_id: string | null
           amount_paid: number
           completed_at: string | null
           created_at: string | null
@@ -196,6 +200,10 @@ export type Database = {
           word_count: number
         }
         Insert: {
+          admin_review_notes?: string | null
+          admin_review_status?: string | null
+          admin_reviewed_at?: string | null
+          admin_reviewer_id?: string | null
           amount_paid: number
           completed_at?: string | null
           created_at?: string | null
@@ -210,6 +218,10 @@ export type Database = {
           word_count: number
         }
         Update: {
+          admin_review_notes?: string | null
+          admin_review_status?: string | null
+          admin_reviewed_at?: string | null
+          admin_reviewer_id?: string | null
           amount_paid?: number
           completed_at?: string | null
           created_at?: string | null

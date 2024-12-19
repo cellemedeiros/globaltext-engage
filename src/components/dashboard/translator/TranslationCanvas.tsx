@@ -1,113 +1,149 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import LanguageSelector from "./LanguageSelector";
-import TranslationTextArea from "./TranslationTextArea";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import LanguagePairs from "./LanguagePairs";
+import { useQuery } from "@tanstack/react-query";
 
 const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
-  const [targetLanguage, setTargetLanguage] = useState("es");
-  const [sourceText, setSourceText] = useState("");
+  const [targetLanguage, setTargetLanguage] = useState("pt");
   const [translatedText, setTranslatedText] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [translationError, setTranslationError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const translateText = async () => {
-      if (!sourceText.trim()) {
-        setTranslatedText("");
-        setTranslationError(null);
-        return;
-      }
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
 
-      setIsTranslating(true);
-      setTranslationError(null);
-      try {
-        const { data, error } = await supabase.functions.invoke('translate-text', {
-          body: {
-            text: sourceText,
-            sourceLanguage,
-            targetLanguage,
-          },
-        });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
-        if (error) {
-          // Parse the error message from the response body if it exists
-          let errorMessage = "Failed to translate text. Please try again.";
-          try {
-            const bodyObj = JSON.parse(error.message);
-            if (bodyObj?.error) {
-              errorMessage = bodyObj.error;
-            }
-          } catch {
-            // If parsing fails, use the original error message
-            errorMessage = error.message;
-          }
-          throw new Error(errorMessage);
-        }
-        
-        setTranslatedText(data.translation);
-        setTranslationError(null);
-      } catch (error) {
-        console.error('Translation error:', error);
-        setTranslationError(error.message);
-        toast({
-          title: "Translation Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } finally {
-        setIsTranslating(false);
-      }
-    };
+  const isAdmin = profile?.id === "37665cdd-1fdd-40d0-b485-35148c159bed";
 
-    const debounceTimeout = setTimeout(translateText, 1000);
-    return () => clearTimeout(debounceTimeout);
-  }, [sourceText, sourceLanguage, targetLanguage, toast]);
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const handleUploadTranslation = async () => {
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No file selected",
+        description: "Please upload a PDF file first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTranslating(true);
     try {
-      setIsUploading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const wordCount = sourceText.trim().split(/\s+/).length;
+      // Upload file to Supabase Storage
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('translations')
+        .upload(filePath, selectedFile);
 
-      const { error } = await supabase
+      if (uploadError) throw uploadError;
+
+      // Create translation record
+      const { data: translation, error: insertError } = await supabase
         .from('translations')
         .insert({
           user_id: session.user.id,
-          document_name: `Translation_${new Date().toISOString()}`,
+          document_name: selectedFile.name,
           source_language: sourceLanguage,
           target_language: targetLanguage,
-          word_count: wordCount,
+          status: 'pending_review',
+          word_count: 0, // You might want to implement word counting for PDFs
           amount_paid: 0,
-          status: 'completed',
-          completed_at: new Date().toISOString(),
           translator_id: session.user.id
-        });
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Success",
+        description: "Translation uploaded successfully",
+      });
+
+      // Reset form
+      setSelectedFile(null);
+      setTranslatedText("");
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload translation",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleReviewTranslation = async (translationId: string, status: 'approved' | 'rejected', notes?: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          admin_review_status: status,
+          admin_review_notes: notes,
+          admin_reviewer_id: session.user.id,
+          admin_reviewed_at: new Date().toISOString(),
+          status: status === 'approved' ? 'completed' : 'pending_review'
+        })
+        .eq('id', translationId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Translation uploaded successfully!",
+        description: `Translation ${status}`,
       });
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Review error:', error);
       toast({
-        title: "Upload Error",
-        description: "Failed to upload translation. Please try again.",
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to review translation",
+        variant: "destructive"
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -125,66 +161,43 @@ const TranslationCanvas = () => {
         </Alert>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4"
-        >
-          <LanguageSelector
-            value={sourceLanguage}
-            onChange={setSourceLanguage}
-            label="Source"
-          />
-          <TranslationTextArea
-            value={sourceText}
-            onChange={setSourceText}
-            placeholder="Enter text to translate..."
-          />
-        </motion.div>
+      <div className="space-y-6">
+        <LanguagePairs
+          sourceLanguage={sourceLanguage}
+          targetLanguage={targetLanguage}
+          onSourceChange={setSourceLanguage}
+          onTargetChange={setTargetLanguage}
+        />
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4"
-        >
-          <LanguageSelector
-            value={targetLanguage}
-            onChange={setTargetLanguage}
-            label="Target"
-          />
-          <TranslationTextArea
-            value={translatedText}
-            onChange={setTranslatedText}
-            placeholder="Translation will appear here..."
-            readOnly={isTranslating}
-          />
-        </motion.div>
-      </div>
+        <div className="space-y-4">
+          <Button asChild className="w-full">
+            <label className="cursor-pointer">
+              <Upload className="w-5 h-5 mr-2" />
+              {selectedFile ? selectedFile.name : "Upload Translation (PDF)"}
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf"
+                onChange={handleFileSelect}
+              />
+            </label>
+          </Button>
 
-      <div className="flex justify-end space-x-4">
-        {isTranslating && (
-          <div className="flex items-center text-primary">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Translating...
-          </div>
-        )}
-        <Button
-          onClick={handleUploadTranslation}
-          disabled={isUploading || !translatedText}
-          className="bg-primary hover:bg-primary-dark transition-colors duration-300"
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            'Upload Translation'
-          )}
-        </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!selectedFile || isTranslating}
+            className="w-full"
+          >
+            {isTranslating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              'Submit Translation'
+            )}
+          </Button>
+        </div>
       </div>
     </motion.div>
   );

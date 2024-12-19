@@ -16,11 +16,13 @@ interface Translation {
   ai_translated_content?: string;
   translator_review?: string;
   content?: string;
+  admin_review_status?: string;
+  admin_review_notes?: string;
 }
 
 interface TranslationsListProps {
   translations: Translation[];
-  role?: 'client' | 'translator';
+  role?: 'client' | 'translator' | 'admin';
   isLoading?: boolean;
 }
 
@@ -34,7 +36,7 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
         .from('translations')
         .update({
           translator_review: reviewedContent,
-          status: 'completed',
+          status: 'pending_admin_review',
           completed_at: new Date().toISOString()
         })
         .eq('id', translationId);
@@ -49,6 +51,32 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
       toast({
         title: "Error",
         description: "Failed to submit review",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAdminReview = async (translationId: string, status: 'approved' | 'rejected', notes?: string) => {
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          admin_review_status: status,
+          admin_review_notes: notes,
+          status: status === 'approved' ? 'completed' : 'pending_review'
+        })
+        .eq('id', translationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Translation ${status}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to review translation",
         variant: "destructive"
       });
     }
@@ -120,12 +148,14 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
                     </p>
                   </div>
                   
-                  {role === 'translator' && (
+                  {(role === 'translator' || role === 'admin') && (
                     <div className="space-y-4">
-                      <div className="p-3 bg-muted rounded-lg">
-                        <h4 className="font-medium mb-2">Original Content</h4>
-                        <p className="text-sm whitespace-pre-wrap">{translation.content}</p>
-                      </div>
+                      {translation.content && (
+                        <div className="p-3 bg-muted rounded-lg">
+                          <h4 className="font-medium mb-2">Original Content</h4>
+                          <p className="text-sm whitespace-pre-wrap">{translation.content}</p>
+                        </div>
+                      )}
                       
                       {translation.ai_translated_content && (
                         <div className="p-3 bg-muted rounded-lg">
@@ -134,7 +164,7 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
                         </div>
                       )}
 
-                      {translation.status === 'pending_review' && (
+                      {role === 'translator' && translation.status === 'pending_review' && (
                         <>
                           <textarea
                             className="w-full min-h-[200px] p-3 rounded-lg border resize-y"
@@ -154,6 +184,37 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
                           </Button>
                         </>
                       )}
+
+                      {role === 'admin' && translation.status === 'pending_admin_review' && (
+                        <div className="space-y-4">
+                          <textarea
+                            className="w-full min-h-[100px] p-3 rounded-lg border resize-y"
+                            placeholder="Add review notes (optional)..."
+                          />
+                          <div className="flex gap-4">
+                            <Button 
+                              onClick={(e) => {
+                                const textarea = e.currentTarget.parentElement?.parentElement?.querySelector('textarea');
+                                handleAdminReview(translation.id, 'approved', textarea?.value);
+                              }}
+                              className="flex-1"
+                              variant="default"
+                            >
+                              Approve
+                            </Button>
+                            <Button 
+                              onClick={(e) => {
+                                const textarea = e.currentTarget.parentElement?.parentElement?.querySelector('textarea');
+                                handleAdminReview(translation.id, 'rejected', textarea?.value);
+                              }}
+                              className="flex-1"
+                              variant="destructive"
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -164,6 +225,17 @@ const TranslationsList = ({ translations, role = 'client', isLoading = false }: 
                   <p className="text-sm text-muted-foreground mt-1">
                     {translation.word_count} words
                   </p>
+                  {translation.admin_review_status && (
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-2 ${
+                      translation.admin_review_status === 'approved' 
+                        ? 'bg-green-100 text-green-800'
+                        : translation.admin_review_status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {translation.admin_review_status}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
