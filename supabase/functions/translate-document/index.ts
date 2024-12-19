@@ -20,10 +20,8 @@ serve(async (req) => {
     const { translationId } = await req.json();
     console.log(`Processing translation ID: ${translationId}`);
     
-    // Initialize Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
     
-    // Get translation details
     const { data: translation, error: translationError } = await supabase
       .from('translations')
       .select('*')
@@ -37,7 +35,6 @@ serve(async (req) => {
 
     console.log('Translation details:', translation);
 
-    // Call OpenAI API for translation
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -45,17 +42,25 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the following text from ${translation.source_language} to ${translation.target_language}. Maintain the original formatting and structure.`
+            content: `You are a professional translator specializing in ${translation.source_language} to ${translation.target_language} translations.
+                     Your task is to translate the following document accurately while preserving:
+                     - Original formatting and structure
+                     - Technical terms and proper nouns
+                     - Cultural context and nuances
+                     - Document tone and style
+                     Provide only the translated text without any additional comments or explanations.`
           },
           {
             role: 'user',
             content: translation.content
           }
         ],
+        temperature: 0.3,
+        max_tokens: 4000
       }),
     });
 
@@ -69,7 +74,6 @@ serve(async (req) => {
 
     const translatedText = aiResponse.choices[0].message.content;
 
-    // Update translation with AI result
     const { error: updateError } = await supabase
       .from('translations')
       .update({ 

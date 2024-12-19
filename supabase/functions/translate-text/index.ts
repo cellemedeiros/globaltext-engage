@@ -43,11 +43,14 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. Only provide the translated text without any additional comments or explanations.`
+            content: `You are a professional translator with expertise in ${sourceLanguage} and ${targetLanguage}. 
+                     Your task is to translate the given text accurately while preserving the original meaning, tone, and context. 
+                     Maintain any special formatting or technical terms. 
+                     Only return the translated text without any explanations or additional comments.`
           },
           {
             role: 'user',
