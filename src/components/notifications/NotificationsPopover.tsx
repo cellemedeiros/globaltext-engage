@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Database } from "@/integrations/supabase/types";
 
 type Notification = Database['public']['Tables']['notifications']['Row'];
@@ -44,31 +45,47 @@ const NotificationsPopover = () => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 transition-colors">
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary"
-            >
-              {unreadCount}
-            </Badge>
-          )}
+          <AnimatePresence>
+            {unreadCount > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                className="absolute -top-1 -right-1"
+              >
+                <Badge 
+                  className="h-5 w-5 flex items-center justify-center p-0 bg-primary animate-pulse"
+                >
+                  {unreadCount}
+                </Badge>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <h4 className="font-semibold mb-4">Notifications</h4>
+      <PopoverContent className="w-80 bg-white border shadow-lg rounded-lg p-0">
+        <div className="p-4 border-b">
+          <h4 className="font-semibold">Notifications</h4>
+        </div>
         <ScrollArea className="h-[300px]">
           {notifications.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No notifications yet
-            </p>
+            <div className="flex flex-col items-center justify-center h-full p-4">
+              <Bell className="h-8 w-8 text-gray-400 mb-2" />
+              <p className="text-sm text-muted-foreground text-center">
+                No notifications yet
+              </p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y">
               {notifications.map((notification) => (
-                <div
+                <motion.div
                   key={notification.id}
-                  className={`p-3 rounded-lg ${
-                    notification.read ? 'bg-muted/50' : 'bg-muted'
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
+                    notification.read ? 'bg-white' : 'bg-blue-50'
                   }`}
                   onClick={() => !notification.read && markAsRead(notification.id)}
                 >
@@ -79,7 +96,7 @@ const NotificationsPopover = () => {
                   <span className="text-xs text-muted-foreground mt-2 block">
                     {new Date(notification.created_at).toLocaleDateString()}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}

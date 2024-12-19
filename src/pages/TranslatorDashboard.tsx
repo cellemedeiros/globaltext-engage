@@ -1,23 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useLocation } from "react-router-dom";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
 import { useToast } from "@/components/ui/use-toast";
 import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 import ProfileSection from "@/components/sections/ProfileSection";
-import TranslatorDashboardHeader from "@/components/dashboard/translator/TranslatorDashboardHeader";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
-  const location = useLocation();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -63,18 +61,36 @@ const TranslatorDashboard = () => {
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
-  const isAdminApplicationsRoute = location.pathname === '/admin/applications';
 
   return (
     <TranslatorAccessControl>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="container mx-auto py-8 px-4">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <TranslatorDashboardHeader />
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-7xl mx-auto space-y-8"
+          >
+            <div className="flex justify-between items-center">
+              <motion.h1 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-3xl font-bold text-gray-800"
+              >
+                Translator Workspace
+              </motion.h1>
+              <NotificationsPopover />
+            </div>
             
-            {isAdmin && !isAdminApplicationsRoute && (
-              <div className="space-y-4">
-                <Collapsible className="w-full border rounded-lg p-4">
+            {isAdmin && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-4"
+              >
+                <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full flex justify-between items-center">
                       <span>Manage Applications</span>
@@ -86,7 +102,7 @@ const TranslatorDashboard = () => {
                   </CollapsibleContent>
                 </Collapsible>
 
-                <Collapsible className="w-full border rounded-lg p-4">
+                <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full flex justify-between items-center">
                       <span>Manage Translators</span>
@@ -97,24 +113,37 @@ const TranslatorDashboard = () => {
                     <TranslatorApprovals />
                   </CollapsibleContent>
                 </Collapsible>
-              </div>
+              </motion.div>
             )}
 
-            {!isAdminApplicationsRoute && (
-              <>
-                <div className="grid gap-8 md:grid-cols-2">
-                  <TranslatorEarnings />
-                </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="grid gap-8 md:grid-cols-2"
+            >
+              <TranslatorEarnings />
+            </motion.div>
 
-                <ProfileSection />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <ProfileSection />
+            </motion.div>
 
-                <TranslatorDashboardTabs 
-                  translations={translations || []}
-                  isLoading={translationsLoading}
-                />
-              </>
-            )}
-          </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <TranslatorDashboardTabs 
+                translations={translations || []}
+                isLoading={translationsLoading}
+              />
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </TranslatorAccessControl>

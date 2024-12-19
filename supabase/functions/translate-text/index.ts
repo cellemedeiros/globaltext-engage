@@ -9,14 +9,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { text, sourceLanguage, targetLanguage } = await req.json();
-    console.log('Received translation request:', { sourceLanguage, targetLanguage });
 
     if (!text || !sourceLanguage || !targetLanguage) {
       throw new Error('Missing required parameters');
@@ -26,10 +24,20 @@ serve(async (req) => {
       throw new Error('Gemini API key not configured');
     }
 
-    const prompt = `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
-                   Provide only the translated text without any additional comments or explanations.
-                   Maintain the original formatting and structure.
-                   Here is the text to translate: "${text}"`;
+    const prompt = `You are a professional translator. I need you to translate the following text:
+
+Text: "${text}"
+Source Language: ${sourceLanguage}
+Target Language: ${targetLanguage}
+
+Important instructions:
+1. Translate ONLY the text provided
+2. Maintain all formatting and structure
+3. Do not add any explanations or comments
+4. Ensure the translation is accurate and natural in the target language
+5. If you encounter any specialized terms, maintain their professional translation
+
+Provide only the translated text as your response.`;
 
     console.log('Making request to Gemini API...');
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
@@ -45,7 +53,7 @@ serve(async (req) => {
           }]
         }],
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.1,
           topK: 1,
           topP: 1,
         },
@@ -71,26 +79,16 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ translation }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('Translation error:', error);
-    
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'An error occurred during translation' 
-      }),
+      JSON.stringify({ error: error.message }),
       { 
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
