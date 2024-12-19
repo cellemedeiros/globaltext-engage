@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,68 +22,51 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not configured');
     }
 
-    console.log('Making request to OpenAI API...');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const prompt = `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
+                   Provide only the translated text without any additional comments or explanations.
+                   Maintain the original formatting and structure.
+                   Here is the text to translate: "${text}"`;
+
+    console.log('Making request to Gemini API...');
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
-                     Provide only the translated text without any additional comments or explanations.
-                     Maintain the original formatting and structure.`
-          },
-          {
-            role: 'user',
-            content: text
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 1,
+          topP: 1,
+        },
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('OpenAI API error:', error);
-      
-      // Check for specific error types
-      if (error.error?.message?.includes('exceeded your current quota')) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Translation service is temporarily unavailable. Please try again later.' 
-          }),
-          { 
-            status: 503,
-            headers: { 
-              ...corsHeaders, 
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
-      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+      console.error('Gemini API error:', error);
+      throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI response received');
+    console.log('Gemini response received');
 
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('Invalid OpenAI response format:', data);
-      throw new Error('Invalid OpenAI response format');
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Invalid Gemini response format:', data);
+      throw new Error('Invalid Gemini response format');
     }
 
-    const translation = data.choices[0].message.content.trim();
+    const translation = data.candidates[0].content.parts[0].text.trim();
     console.log('Translation completed successfully');
 
     return new Response(
