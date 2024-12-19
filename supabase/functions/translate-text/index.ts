@@ -43,13 +43,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Your task is to translate the following text from ${sourceLanguage} to ${targetLanguage}. 
-                     Translate accurately while maintaining the original meaning and formatting.
-                     Only provide the translated text without any additional comments.`
+            content: `You are a professional translator. Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
+                     Provide only the translated text without any additional comments or explanations.
+                     Maintain the original formatting and structure.`
           },
           {
             role: 'user',
@@ -57,13 +57,30 @@ serve(async (req) => {
           }
         ],
         temperature: 0.3,
-        max_tokens: 1000
+        max_tokens: 2000
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
       console.error('OpenAI API error:', error);
+      
+      // Check for specific error types
+      if (error.error?.message?.includes('exceeded your current quota')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Translation service is temporarily unavailable. Please try again later.' 
+          }),
+          { 
+            status: 503,
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json' 
+            } 
+          }
+        );
+      }
+      
       throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
     }
 
@@ -90,22 +107,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Translation error:', error);
     
-    // Check if it's an OpenAI quota error
-    if (error.message?.includes('exceeded your current quota')) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Translation service is temporarily unavailable. Please try again later.' 
-        }),
-        { 
-          status: 503,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-    }
-
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An error occurred during translation' 
