@@ -33,7 +33,7 @@ const TranslatorDashboardTabs = ({ translations, isLoading }: TranslatorDashboar
             value="my-translations"
             className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all duration-300 hover:bg-primary/80"
           >
-            My Translations
+            In Progress
           </TabsTrigger>
           <TabsTrigger 
             value="canvas"

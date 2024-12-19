@@ -20,15 +20,16 @@ const LanguagePairs = ({ sourceLanguage, targetLanguage, onSourceChange, onTarge
   return (
     <div className="flex gap-4 items-center">
       <Select value={sourceLanguage} onValueChange={onSourceChange}>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px] bg-white">
           <SelectValue placeholder="Source Language" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white border border-gray-200 shadow-lg">
           {languages.map((lang) => (
             <SelectItem 
               key={lang.code} 
               value={lang.code}
               disabled={lang.code === targetLanguage}
+              className="hover:bg-gray-100 cursor-pointer"
             >
               {lang.name}
             </SelectItem>
@@ -39,15 +40,16 @@ const LanguagePairs = ({ sourceLanguage, targetLanguage, onSourceChange, onTarge
       <span>→</span>
 
       <Select value={targetLanguage} onValueChange={onTargetChange}>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px] bg-white">
           <SelectValue placeholder="Target Language" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white border border-gray-200 shadow-lg">
           {languages.map((lang) => (
             <SelectItem 
               key={lang.code} 
               value={lang.code}
               disabled={lang.code === sourceLanguage}
+              className="hover:bg-gray-100 cursor-pointer"
             >
               {lang.name}
             </SelectItem>

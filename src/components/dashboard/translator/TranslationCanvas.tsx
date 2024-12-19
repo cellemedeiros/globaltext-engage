@@ -1,20 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, Upload } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { motion } from "framer-motion";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import LanguagePairs from "./LanguagePairs";
+import TranslationEditor from "./TranslationEditor";
 import { useQuery } from "@tanstack/react-query";
 
 const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("pt");
-  const [translatedText, setTranslatedText] = useState("");
-  const [isTranslating, setIsTranslating] = useState(false);
+  const [sourceText, setSourceText] = useState("");
+  const [targetText, setTargetText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [translationError, setTranslationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const { data: profile } = useQuery({
@@ -33,8 +33,6 @@ const TranslationCanvas = () => {
       return data;
     }
   });
-
-  const isAdmin = profile?.id === "37665cdd-1fdd-40d0-b485-35148c159bed";
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -62,12 +60,20 @@ const TranslationCanvas = () => {
       return;
     }
 
-    setIsTranslating(true);
+    if (!sourceText.trim() || !targetText.trim()) {
+      toast({
+        title: "Missing content",
+        description: "Please provide both source and target text",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
       
@@ -77,73 +83,41 @@ const TranslationCanvas = () => {
 
       if (uploadError) throw uploadError;
 
-      // Create translation record
-      const { data: translation, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('translations')
         .insert({
           user_id: session.user.id,
           document_name: selectedFile.name,
           source_language: sourceLanguage,
           target_language: targetLanguage,
+          content: sourceText,
+          ai_translated_content: targetText,
           status: 'pending_review',
-          word_count: 0, // You might want to implement word counting for PDFs
+          word_count: sourceText.split(/\s+/).length,
           amount_paid: 0,
           translator_id: session.user.id
-        })
-        .select()
-        .single();
+        });
 
       if (insertError) throw insertError;
 
       toast({
         title: "Success",
-        description: "Translation uploaded successfully",
+        description: "Translation submitted successfully",
       });
 
       // Reset form
       setSelectedFile(null);
-      setTranslatedText("");
+      setSourceText("");
+      setTargetText("");
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: "Failed to upload translation",
+        description: "Failed to submit translation",
         variant: "destructive"
       });
     } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  const handleReviewTranslation = async (translationId: string, status: 'approved' | 'rejected', notes?: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from('translations')
-        .update({
-          admin_review_status: status,
-          admin_review_notes: notes,
-          admin_reviewer_id: session.user.id,
-          admin_reviewed_at: new Date().toISOString(),
-          status: status === 'approved' ? 'completed' : 'pending_review'
-        })
-        .eq('id', translationId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Translation ${status}`,
-      });
-    } catch (error) {
-      console.error('Review error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to review translation",
-        variant: "destructive"
-      });
+      setIsSubmitting(false);
     }
   };
 
@@ -154,19 +128,19 @@ const TranslationCanvas = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      {translationError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{translationError}</AlertDescription>
-        </Alert>
-      )}
-
       <div className="space-y-6">
         <LanguagePairs
           sourceLanguage={sourceLanguage}
           targetLanguage={targetLanguage}
           onSourceChange={setSourceLanguage}
           onTargetChange={setTargetLanguage}
+        />
+
+        <TranslationEditor
+          sourceText={sourceText}
+          targetText={targetText}
+          onSourceChange={setSourceText}
+          onTargetChange={setTargetText}
         />
 
         <div className="space-y-4">
@@ -185,13 +159,13 @@ const TranslationCanvas = () => {
 
           <Button
             onClick={handleSubmit}
-            disabled={!selectedFile || isTranslating}
+            disabled={!selectedFile || !sourceText.trim() || !targetText.trim() || isSubmitting}
             className="w-full"
           >
-            {isTranslating ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
+                Submitting...
               </>
             ) : (
               'Submit Translation'
