@@ -4,8 +4,9 @@ import { useToast } from "@/components/ui/use-toast";
 import LanguageSelector from "./LanguageSelector";
 import TranslationTextArea from "./TranslationTextArea";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
@@ -14,16 +15,19 @@ const TranslationCanvas = () => {
   const [translatedText, setTranslatedText] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [translationError, setTranslationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const translateText = async () => {
       if (!sourceText.trim()) {
         setTranslatedText("");
+        setTranslationError(null);
         return;
       }
 
       setIsTranslating(true);
+      setTranslationError(null);
       try {
         const { data, error } = await supabase.functions.invoke('translate-text', {
           body: {
@@ -33,13 +37,29 @@ const TranslationCanvas = () => {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          // Parse the error message from the response body if it exists
+          let errorMessage = "Failed to translate text. Please try again.";
+          try {
+            const bodyObj = JSON.parse(error.message);
+            if (bodyObj?.error) {
+              errorMessage = bodyObj.error;
+            }
+          } catch {
+            // If parsing fails, use the original error message
+            errorMessage = error.message;
+          }
+          throw new Error(errorMessage);
+        }
+        
         setTranslatedText(data.translation);
+        setTranslationError(null);
       } catch (error) {
         console.error('Translation error:', error);
+        setTranslationError(error.message);
         toast({
           title: "Translation Error",
-          description: "Failed to translate text. Please try again.",
+          description: error.message,
           variant: "destructive",
         });
       } finally {
@@ -98,6 +118,13 @@ const TranslationCanvas = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
+      {translationError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{translationError}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
