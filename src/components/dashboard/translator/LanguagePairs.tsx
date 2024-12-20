@@ -23,7 +23,7 @@ const LanguagePairs = ({ sourceLanguage, targetLanguage, onSourceChange, onTarge
         <SelectTrigger className="w-[180px] bg-white">
           <SelectValue placeholder="Source Language" />
         </SelectTrigger>
-        <SelectContent className="bg-white border border-gray-200 shadow-lg">
+        <SelectContent className="bg-white">
           {languages.map((lang) => (
             <SelectItem 
               key={lang.code} 
@@ -43,7 +43,7 @@ const LanguagePairs = ({ sourceLanguage, targetLanguage, onSourceChange, onTarge
         <SelectTrigger className="w-[180px] bg-white">
           <SelectValue placeholder="Target Language" />
         </SelectTrigger>
-        <SelectContent className="bg-white border border-gray-200 shadow-lg">
+        <SelectContent className="bg-white">
           {languages.map((lang) => (
             <SelectItem 
               key={lang.code} 

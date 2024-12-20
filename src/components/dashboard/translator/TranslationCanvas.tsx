@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import LanguagePairs from "./LanguagePairs";
 import TranslationEditor from "./TranslationEditor";
 import { useQuery } from "@tanstack/react-query";
+import AdminReviewPanel from "./AdminReviewPanel";
 
 const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
@@ -15,6 +16,7 @@ const TranslationCanvas = () => {
   const [targetText, setTargetText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const { toast } = useToast();
 
   const { data: profile } = useQuery({
@@ -33,6 +35,44 @@ const TranslationCanvas = () => {
       return data;
     }
   });
+
+  const handleSourceTextChange = async (text: string) => {
+    setSourceText(text);
+    if (text.trim()) {
+      setIsTranslating(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const response = await fetch('/functions/v1/translate-text', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text,
+            sourceLanguage,
+            targetLanguage,
+          }),
+        });
+
+        if (!response.ok) throw new Error('Translation failed');
+
+        const { translation } = await response.json();
+        setTargetText(translation);
+      } catch (error) {
+        console.error('Translation error:', error);
+        toast({
+          title: "Translation Error",
+          description: "Failed to translate text automatically. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsTranslating(false);
+      }
+    }
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -121,6 +161,8 @@ const TranslationCanvas = () => {
     }
   };
 
+  const isAdmin = profile?.id === "37665cdd-1fdd-40d0-b485-35148c159bed";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -139,8 +181,9 @@ const TranslationCanvas = () => {
         <TranslationEditor
           sourceText={sourceText}
           targetText={targetText}
-          onSourceChange={setSourceText}
+          onSourceChange={handleSourceTextChange}
           onTargetChange={setTargetText}
+          isTranslating={isTranslating}
         />
 
         <div className="space-y-4">
@@ -172,6 +215,8 @@ const TranslationCanvas = () => {
             )}
           </Button>
         </div>
+
+        {isAdmin && <AdminReviewPanel />}
       </div>
     </motion.div>
   );

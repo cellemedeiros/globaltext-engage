@@ -2,15 +2,75 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface AdminReviewPanelProps {
-  translationId: string;
-  onApprove: (notes: string) => void;
-  onReject: (notes: string) => void;
-}
+const AdminReviewPanel = () => {
+  const [selectedTranslation, setSelectedTranslation] = useState<any>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const { toast } = useToast();
 
-const AdminReviewPanel = ({ translationId, onApprove, onReject }: AdminReviewPanelProps) => {
-  const [notes, setNotes] = useState("");
+  const handleApprove = async () => {
+    if (!selectedTranslation) return;
+
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          admin_review_status: 'approved',
+          admin_review_notes: reviewNotes,
+          status: 'completed'
+        })
+        .eq('id', selectedTranslation.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation approved successfully",
+      });
+
+      setSelectedTranslation(null);
+      setReviewNotes("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve translation",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedTranslation) return;
+
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          admin_review_status: 'rejected',
+          admin_review_notes: reviewNotes,
+          status: 'pending_review'
+        })
+        .eq('id', selectedTranslation.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation rejected",
+      });
+
+      setSelectedTranslation(null);
+      setReviewNotes("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject translation",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <motion.div
@@ -20,21 +80,21 @@ const AdminReviewPanel = ({ translationId, onApprove, onReject }: AdminReviewPan
     >
       <h3 className="font-medium">Review Translation</h3>
       <Textarea
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
+        value={reviewNotes}
+        onChange={(e) => setReviewNotes(e.target.value)}
         placeholder="Add review notes (optional)..."
         className="min-h-[100px] bg-white"
       />
       <div className="flex gap-4">
         <Button
-          onClick={() => onApprove(notes)}
+          onClick={handleApprove}
           className="flex-1"
           variant="default"
         >
           Approve
         </Button>
         <Button
-          onClick={() => onReject(notes)}
+          onClick={handleReject}
           className="flex-1"
           variant="destructive"
         >
