@@ -3,17 +3,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TranslationsList from "../TranslationsList";
 import AvailableTranslations from "./AvailableTranslations";
 import TranslationCanvas from "./TranslationCanvas";
-import { Database } from "@/integrations/supabase/types";
 import { motion } from "framer-motion";
 
-type Translation = Database['public']['Tables']['translations']['Row'];
-
 interface TranslatorDashboardTabsProps {
-  translations: Translation[];
   isLoading: boolean;
 }
 
-const TranslatorDashboardTabs = ({ translations, isLoading }: TranslatorDashboardTabsProps) => {
+const TranslatorDashboardTabs = ({ isLoading }: TranslatorDashboardTabsProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -63,7 +59,6 @@ const TranslatorDashboardTabs = ({ translations, isLoading }: TranslatorDashboar
           >
             <Card className="p-6 hover:shadow-lg transition-shadow duration-300">
               <TranslationsList 
-                translations={translations} 
                 role="translator"
                 isLoading={isLoading}
               />

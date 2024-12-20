@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationItem from "./translations/TranslationItem";
 import { useTranslations } from "@/hooks/useTranslations";
+import { Database } from "@/integrations/supabase/types";
+
+type Translation = Database['public']['Tables']['translations']['Row'];
 
 interface TranslationsListProps {
   role?: 'client' | 'translator' | 'admin';
@@ -15,7 +18,7 @@ interface TranslationsListProps {
 const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsListProps) => {
   const title = role === 'translator' ? 'Translations to Review' : 'Recent Translations';
   const { toast } = useToast();
-  const { translations, isLoading: translationsLoading } = useTranslations(role);
+  const { data: translations, isLoading: translationsLoading } = useTranslations(role);
 
   if (isLoading || translationsLoading) {
     return (

@@ -13,7 +13,7 @@ import TranslationStatsChart from "@/components/dashboard/stats/TranslationStats
 const Dashboard = () => {
   const navigate = useNavigate();
   
-  const { data: translations = [] } = useQuery({
+  const { data: translations = [], isLoading: translationsLoading } = useQuery({
     queryKey: ['translations'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -77,7 +77,7 @@ const Dashboard = () => {
           <SubscriptionInfo subscription={subscription} />
         </div>
 
-        <TranslationsList translations={translations} />
+        <TranslationsList isLoading={translationsLoading} />
         
         <ProfileSection />
       </div>
