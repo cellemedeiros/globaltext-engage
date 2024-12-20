@@ -44,23 +44,19 @@ const TranslationCanvas = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("Not authenticated");
 
-        const response = await fetch('/functions/v1/translate-text', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const { data, error } = await supabase.functions.invoke('translate-text', {
+          body: {
             text,
             sourceLanguage,
             targetLanguage,
-          }),
+          },
         });
 
-        if (!response.ok) throw new Error('Translation failed');
-
-        const { translation } = await response.json();
-        setTargetText(translation);
+        if (error) throw error;
+        
+        if (data?.translation) {
+          setTargetText(data.translation);
+        }
       } catch (error) {
         console.error('Translation error:', error);
         toast({
@@ -132,7 +128,7 @@ const TranslationCanvas = () => {
           target_language: targetLanguage,
           content: sourceText,
           ai_translated_content: targetText,
-          status: 'pending_review',
+          status: 'pending_admin_review',
           word_count: sourceText.split(/\s+/).length,
           amount_paid: 0,
           translator_id: session.user.id
@@ -142,7 +138,7 @@ const TranslationCanvas = () => {
 
       toast({
         title: "Success",
-        description: "Translation submitted successfully",
+        description: "Translation submitted for admin review",
       });
 
       // Reset form
