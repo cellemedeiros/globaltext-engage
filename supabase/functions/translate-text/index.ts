@@ -1,11 +1,21 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+const deeplApiKey = Deno.env.get('DEEPL_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// DeepL language code mapping
+const languageMapping: { [key: string]: string } = {
+  en: 'EN-US',
+  es: 'ES',
+  fr: 'FR',
+  de: 'DE',
+  it: 'IT',
+  pt: 'PT-PT',
 };
 
 serve(async (req) => {
@@ -20,61 +30,43 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    if (!geminiApiKey) {
-      throw new Error('Gemini API key not configured');
+    if (!deeplApiKey) {
+      throw new Error('DeepL API key not configured');
     }
 
-    const prompt = `You are a professional translator. I need you to translate the following text:
+    console.log(`Translating from ${sourceLanguage} to ${targetLanguage}`);
+    
+    const deeplSourceLang = languageMapping[sourceLanguage] || sourceLanguage.toUpperCase();
+    const deeplTargetLang = languageMapping[targetLanguage] || targetLanguage.toUpperCase();
 
-Text: "${text}"
-Source Language: ${sourceLanguage}
-Target Language: ${targetLanguage}
-
-Important instructions:
-1. Translate ONLY the text provided
-2. Maintain all formatting and structure
-3. Do not add any explanations or comments
-4. Ensure the translation is accurate and natural in the target language
-5. If you encounter any specialized terms, maintain their professional translation
-
-Provide only the translated text as your response.`;
-
-    console.log('Making request to Gemini API...');
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+    const response = await fetch('https://api-free.deepl.com/v2/translate', {
       method: 'POST',
       headers: {
+        'Authorization': `DeepL-Auth-Key ${deeplApiKey}`,
         'Content-Type': 'application/json',
-        'x-goog-api-key': geminiApiKey,
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          topK: 1,
-          topP: 1,
-        },
+        text: [text],
+        source_lang: deeplSourceLang,
+        target_lang: deeplTargetLang,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error('Gemini API error:', error);
-      throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
+      const error = await response.text();
+      console.error('DeepL API error:', error);
+      throw new Error(`DeepL API error: ${error}`);
     }
 
     const data = await response.json();
-    console.log('Gemini response received');
+    console.log('DeepL response received');
 
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      console.error('Invalid Gemini response format:', data);
-      throw new Error('Invalid Gemini response format');
+    if (!data.translations?.[0]?.text) {
+      console.error('Invalid DeepL response format:', data);
+      throw new Error('Invalid DeepL response format');
     }
 
-    const translation = data.candidates[0].content.parts[0].text.trim();
+    const translation = data.translations[0].text;
     console.log('Translation completed successfully');
 
     return new Response(
