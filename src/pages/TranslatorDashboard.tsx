@@ -35,7 +35,7 @@ const TranslatorDashboard = () => {
     }
   });
 
-  const { data: translations, isLoading: translationsLoading } = useQuery({
+  const { isLoading: translationsLoading } = useQuery({
     queryKey: ['translator-translations'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -140,7 +140,6 @@ const TranslatorDashboard = () => {
               transition={{ delay: 0.5 }}
             >
               <TranslatorDashboardTabs 
-                translations={translations || []}
                 isLoading={translationsLoading}
               />
             </motion.div>
