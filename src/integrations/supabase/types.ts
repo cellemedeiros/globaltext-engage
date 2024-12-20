@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      badges: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          image_url: string | null
+          name: string
+          threshold: number | null
+          type: Database["public"]["Enums"]["badge_type"]
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          image_url?: string | null
+          name: string
+          threshold?: number | null
+          type: Database["public"]["Enums"]["badge_type"]
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          threshold?: number | null
+          type?: Database["public"]["Enums"]["badge_type"]
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -245,6 +275,35 @@ export type Database = {
           },
         ]
       }
+      translator_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string | null
+          id: string
+          translator_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string | null
+          id?: string
+          translator_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string | null
+          id?: string
+          translator_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translator_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -259,6 +318,12 @@ export type Database = {
       }
     }
     Enums: {
+      badge_type:
+        | "first_translation"
+        | "translations_milestone"
+        | "words_milestone"
+        | "speed_milestone"
+        | "quality_milestone"
       user_role: "client" | "translator"
     }
     CompositeTypes: {
