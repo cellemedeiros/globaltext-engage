@@ -37,7 +37,8 @@ const HeroSection = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
           >
-            {t('hero.title')}
+            Enterprise Translation <br />
+            <span className="text-primary">Made Simple</span>
           </motion.h1>
           <motion.p 
             className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8 leading-relaxed"
