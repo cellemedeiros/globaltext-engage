@@ -41,6 +41,11 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
 
       if (error) throw error;
       onUpdate();
+      
+      toast({
+        title: "Success",
+        description: "Translation submitted for admin review",
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -63,6 +68,11 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
 
       if (error) throw error;
       onUpdate();
+      
+      toast({
+        title: "Success",
+        description: `Translation ${status}`,
+      });
     } catch (error) {
       toast({
         title: "Error",

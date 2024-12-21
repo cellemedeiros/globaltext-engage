@@ -128,10 +128,11 @@ const TranslationCanvas = () => {
           target_language: targetLanguage,
           content: sourceText,
           ai_translated_content: targetText,
-          status: 'pending_admin_review',
+          status: 'pending_admin_review', // Changed from 'pending_review' to 'pending_admin_review'
           word_count: sourceText.split(/\s+/).length,
           amount_paid: 0,
-          translator_id: session.user.id
+          translator_id: session.user.id,
+          admin_review_status: 'pending' // Added to ensure admin review is required
         });
 
       if (insertError) throw insertError;
