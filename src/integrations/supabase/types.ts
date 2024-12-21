@@ -220,6 +220,7 @@ export type Database = {
           ai_translated_content: string | null
           amount_paid: number
           completed_at: string | null
+          content: string | null
           created_at: string | null
           document_name: string
           id: string
@@ -240,6 +241,7 @@ export type Database = {
           ai_translated_content?: string | null
           amount_paid: number
           completed_at?: string | null
+          content?: string | null
           created_at?: string | null
           document_name: string
           id?: string
@@ -260,6 +262,7 @@ export type Database = {
           ai_translated_content?: string | null
           amount_paid?: number
           completed_at?: string | null
+          content?: string | null
           created_at?: string | null
           document_name?: string
           id?: string
