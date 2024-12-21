@@ -216,6 +216,8 @@ export type Database = {
           admin_review_status: string | null
           admin_reviewed_at: string | null
           admin_reviewer_id: string | null
+          ai_translated_at: string | null
+          ai_translated_content: string | null
           amount_paid: number
           completed_at: string | null
           created_at: string | null
@@ -234,6 +236,8 @@ export type Database = {
           admin_review_status?: string | null
           admin_reviewed_at?: string | null
           admin_reviewer_id?: string | null
+          ai_translated_at?: string | null
+          ai_translated_content?: string | null
           amount_paid: number
           completed_at?: string | null
           created_at?: string | null
@@ -252,6 +256,8 @@ export type Database = {
           admin_review_status?: string | null
           admin_reviewed_at?: string | null
           admin_reviewer_id?: string | null
+          ai_translated_at?: string | null
+          ai_translated_content?: string | null
           amount_paid?: number
           completed_at?: string | null
           created_at?: string | null
