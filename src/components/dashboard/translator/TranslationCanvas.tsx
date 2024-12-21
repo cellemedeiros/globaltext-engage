@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Loader2, Upload } from "lucide-react";
 import { motion } from "framer-motion";
-import LanguagePairs from "./LanguagePairs";
-import TranslationEditor from "./TranslationEditor";
 import { useQuery } from "@tanstack/react-query";
+import TranslationHeader from "./TranslationHeader";
+import TranslationEditor from "./TranslationEditor";
+import TranslationActions from "./TranslationActions";
 import AdminReviewPanel from "./AdminReviewPanel";
 
 const TranslationCanvas = () => {
@@ -87,16 +86,7 @@ const TranslationCanvas = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile) {
-      toast({
-        title: "No file selected",
-        description: "Please upload a PDF file first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!sourceText.trim() || !targetText.trim()) {
+    if (!selectedFile || !sourceText.trim() || !targetText.trim()) {
       toast({
         title: "Missing content",
         description: "Please provide both source and target text",
@@ -128,11 +118,11 @@ const TranslationCanvas = () => {
           target_language: targetLanguage,
           content: sourceText,
           ai_translated_content: targetText,
-          status: 'pending_admin_review', // Changed from 'pending_review' to 'pending_admin_review'
+          status: 'pending_admin_review',
           word_count: sourceText.split(/\s+/).length,
           amount_paid: 0,
           translator_id: session.user.id,
-          admin_review_status: 'pending' // Added to ensure admin review is required
+          admin_review_status: 'pending'
         });
 
       if (insertError) throw insertError;
@@ -165,16 +155,16 @@ const TranslationCanvas = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6"
+      className="space-y-6 bg-gray-50 p-6 rounded-lg"
     >
-      <div className="space-y-6">
-        <LanguagePairs
-          sourceLanguage={sourceLanguage}
-          targetLanguage={targetLanguage}
-          onSourceChange={setSourceLanguage}
-          onTargetChange={setTargetLanguage}
-        />
+      <TranslationHeader
+        sourceLanguage={sourceLanguage}
+        targetLanguage={targetLanguage}
+        onSourceChange={setSourceLanguage}
+        onTargetChange={setTargetLanguage}
+      />
 
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
         <TranslationEditor
           sourceText={sourceText}
           targetText={targetText}
@@ -183,38 +173,20 @@ const TranslationCanvas = () => {
           isTranslating={isTranslating}
         />
 
-        <div className="space-y-4">
-          <Button asChild className="w-full">
-            <label className="cursor-pointer">
-              <Upload className="w-5 h-5 mr-2" />
-              {selectedFile ? selectedFile.name : "Upload Translation (PDF)"}
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf"
-                onChange={handleFileSelect}
-              />
-            </label>
-          </Button>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!selectedFile || !sourceText.trim() || !targetText.trim() || isSubmitting}
-            className="w-full"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              'Submit Translation'
-            )}
-          </Button>
-        </div>
-
-        {isAdmin && <AdminReviewPanel />}
+        <TranslationActions
+          selectedFile={selectedFile}
+          isSubmitting={isSubmitting}
+          onFileSelect={handleFileSelect}
+          onSubmit={handleSubmit}
+          disabled={!selectedFile || !sourceText.trim() || !targetText.trim()}
+        />
       </div>
+
+      {isAdmin && (
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <AdminReviewPanel />
+        </div>
+      )}
     </motion.div>
   );
 };
