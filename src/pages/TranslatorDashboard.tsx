@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
+import TranslationsList from "@/components/dashboard/TranslationsList";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -113,6 +114,18 @@ const TranslatorDashboard = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
                     <TranslatorApprovals />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Manage Translations</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <TranslationsList role="admin" />
                   </CollapsibleContent>
                 </Collapsible>
               </motion.div>
