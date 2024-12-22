@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { extract } from 'https://deno.land/x/textractor@0.0.7/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +17,26 @@ function calculateWordCount(text: string): number {
   // Split by whitespace and filter out empty strings
   const words = cleanText.split(" ").filter(word => word.length > 0);
   return words.length;
+}
+
+async function extractTextFromFile(file: File): Promise<string> {
+  // For text files, we can directly read the text
+  if (file.type === 'text/plain') {
+    return await file.text();
+  }
+
+  // For other file types, we'll need to use a more sophisticated approach
+  // For now, we'll read the text content and do basic cleanup
+  try {
+    const text = await file.text();
+    return text
+      .replace(/\u0000/g, '') // Remove null characters
+      .replace(/[^\S\r\n]+/g, ' ') // Replace multiple spaces with single space
+      .trim();
+  } catch (error) {
+    console.error('Text extraction error:', error);
+    throw new Error('Unable to extract text from file');
+  }
 }
 
 serve(async (req) => {
@@ -60,17 +79,22 @@ serve(async (req) => {
       );
     }
 
-    // Extract text content from the file
+    // Extract text and calculate word count
     let text;
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const extractResult = await extract(new Uint8Array(arrayBuffer), {
-        preserveLineBreaks: true,
-        preserveOnlyMultipleLineBreaks: true,
-      });
-      text = extractResult.text;
+      text = await extractTextFromFile(file);
+      const wordCount = calculateWordCount(text);
+
+      return new Response(
+        JSON.stringify({ 
+          wordCount,
+          text,
+          message: 'File processed successfully'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     } catch (error) {
-      console.error('Text extraction error:', error);
+      console.error('Processing error:', error);
       return new Response(
         JSON.stringify({ 
           error: 'Processing error',
@@ -79,18 +103,6 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
-
-    // Calculate word count
-    const wordCount = calculateWordCount(text);
-
-    return new Response(
-      JSON.stringify({ 
-        wordCount,
-        text,
-        message: 'File processed successfully'
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error('Server error:', error);
     return new Response(
