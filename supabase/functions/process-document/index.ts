@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { parse } from 'https://deno.land/x/xml@2.1.1/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +18,31 @@ function calculateWordCount(text: string): number {
   // Split by whitespace and filter out empty strings
   const words = cleanText.split(" ").filter(word => word.length > 0);
   return words.length;
+}
+
+async function processDocx(file: File): Promise<{ text: string; wordCount: number }> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = new JSZip();
+    await zip.loadAsync(arrayBuffer);
+    
+    // Get the main document content
+    const content = await zip.file("word/document.xml")?.async("string");
+    if (!content) {
+      throw new Error("Could not read DOCX content");
+    }
+
+    // Parse XML and extract text
+    const parsed = parse(content);
+    const textElements = parsed.getElementsByTagName("w:t");
+    const text = Array.from(textElements).map(el => el.textContent).join(" ");
+    
+    const wordCount = calculateWordCount(text);
+    return { text, wordCount };
+  } catch (error) {
+    console.error('DOCX processing error:', error);
+    throw new Error('Failed to process DOCX file');
+  }
 }
 
 async function processTextFile(file: File): Promise<{ text: string; wordCount: number }> {
@@ -49,43 +75,38 @@ serve(async (req) => {
 
     console.log(`Processing file: ${file.name} (${file.type})`);
 
-    // For now, we'll only handle text files
-    if (file.type === 'text/plain') {
-      const result = await processTextFile(file);
-      
-      console.log(`Successfully processed ${file.name}. Word count: ${result.wordCount}`);
-      
-      return new Response(
-        JSON.stringify({
-          wordCount: result.wordCount,
-          text: result.text,
-          message: 'File processed successfully'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let result;
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      result = await processDocx(file);
+    } else if (file.type === 'text/plain') {
+      result = await processTextFile(file);
     } else {
       // For other file types, attempt to read as text
       try {
-        const result = await processTextFile(file);
-        return new Response(
-          JSON.stringify({
-            wordCount: result.wordCount,
-            text: result.text,
-            message: 'File processed successfully'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        result = await processTextFile(file);
       } catch (error) {
         console.error('File processing error:', error);
         return new Response(
           JSON.stringify({ 
             error: 'Unsupported file type or unable to process file',
-            message: 'Please upload a text file for now. PDF support coming soon.'
+            message: 'Please upload a DOCX or text file.'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
     }
+
+    console.log(`Successfully processed ${file.name}. Word count: ${result.wordCount}`);
+    
+    return new Response(
+      JSON.stringify({
+        wordCount: result.wordCount,
+        text: result.text,
+        message: 'File processed successfully'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
   } catch (error) {
     console.error('Server error:', error);
     return new Response(

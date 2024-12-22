@@ -16,19 +16,13 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
 
     const allowedTypes = [
       'text/plain',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a .txt, .doc, .docx, .pdf, .xls, .xlsx, .ppt, or .pptx file",
+        description: "Please upload a .txt or .docx file",
         variant: "destructive"
       });
       return;
@@ -38,8 +32,6 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const response = await supabase.functions.invoke('process-document', {
         body: formData,
       });
@@ -69,7 +61,7 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
         <input
           type="file"
           className="hidden"
-          accept=".txt,.doc,.docx,.pdf,.xls,.xlsx,.ppt,.pptx"
+          accept=".txt,.docx"
           onChange={handleFileChange}
         />
       </label>
