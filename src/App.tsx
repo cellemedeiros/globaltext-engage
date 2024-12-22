@@ -10,6 +10,7 @@ import Payment from "./pages/Payment";
 import Dashboard from "./pages/Dashboard";
 import TranslatorDashboard from "./pages/TranslatorDashboard";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,11 +23,28 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' | 'admin' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { toast } = useToast();
+  
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          if (sessionError.message.includes('session_not_found')) {
+            await supabase.auth.signOut();
+            setIsAuthenticated(false);
+            toast({
+              title: "Session Expired",
+              description: "Please sign in again.",
+              variant: "destructive"
+            });
+            return null;
+          }
+          throw sessionError;
+        }
+        
         if (!session) return null;
 
         const { data, error } = await supabase
@@ -35,10 +53,19 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           .eq('id', session.user.id)
           .single();
         
-        if (error) throw error;
+        if (error) {
+          if (error.code === 'PGRST116') return null;
+          throw error;
+        }
+        
         return data;
       } catch (error) {
         console.error('Error fetching profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile. Please try again.",
+          variant: "destructive"
+        });
         return null;
       }
     },
@@ -48,20 +75,44 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          if (error.message.includes('session_not_found')) {
+            await supabase.auth.signOut();
+            toast({
+              title: "Session Expired",
+              description: "Please sign in again.",
+              variant: "destructive"
+            });
+          }
+          setIsAuthenticated(false);
+          return;
+        }
+        
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error('Session check error:', error);
+        setIsAuthenticated(false);
+      }
     };
 
     checkSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setIsAuthenticated(false);
+        queryClient.clear();
+      } else {
+        setIsAuthenticated(!!session);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [toast]);
 
   if (isAuthenticated === null || isLoading) {
     return <div>Loading...</div>;
