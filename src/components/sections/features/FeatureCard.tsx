@@ -3,13 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 
 interface FeatureCardProps {
-  icon: LucideIcon;
+  icon: React.ReactNode;
   title: string;
   description: string;
+  additionalInfo?: string;
   delay?: number;
 }
 
-const FeatureCard = ({ icon: Icon, title, description, delay = 0 }: FeatureCardProps) => {
+const FeatureCard = ({ icon, title, description, additionalInfo, delay = 0 }: FeatureCardProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -24,10 +25,13 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0 }: FeatureCardP
             transition={{ type: "spring", stiffness: 300 }}
             className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center"
           >
-            <Icon className="w-6 h-6 text-primary" />
+            {icon}
           </motion.div>
           <h3 className="text-xl font-semibold">{title}</h3>
           <p className="text-gray-600 leading-relaxed">{description}</p>
+          {additionalInfo && (
+            <p className="text-sm text-gray-500">{additionalInfo}</p>
+          )}
         </CardContent>
       </Card>
     </motion.div>
