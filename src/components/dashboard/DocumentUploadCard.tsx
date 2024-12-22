@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import FileUploadButton from "./document-upload/FileUploadButton";
 import FileDetails from "./document-upload/FileDetails";
-import { calculateWordCount, calculatePrice } from "@/utils/documentUtils";
+import { calculatePrice } from "@/utils/documentUtils";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
@@ -30,27 +30,19 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     },
   });
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = (file: File, count: number, content: string) => {
     setFileName(file.name);
+    setFileContent(content);
+    setWordCount(count);
+    console.log(`Word count for ${file.name}: ${count}`);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      setFileContent(text);
-      const words = calculateWordCount(text);
-      console.log(`Word count for ${file.name}: ${words}`);
-      setWordCount(words);
-
-      if (hasActiveSubscription && wordsRemaining && words > wordsRemaining) {
-        toast({
-          title: "Word limit exceeded",
-          description: `Your current plan has ${wordsRemaining} words remaining. Please upgrade your plan.`,
-          variant: "destructive"
-        });
-      }
-    };
-
-    reader.readAsText(file);
+    if (hasActiveSubscription && wordsRemaining && count > wordsRemaining) {
+      toast({
+        title: "Word limit exceeded",
+        description: `Your current plan has ${wordsRemaining} words remaining. Please upgrade your plan.`,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleTranslate = async () => {

@@ -1,29 +1,64 @@
 import { Button } from "@/components/ui/button";
 import { FileUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FileUploadButtonProps {
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: File, wordCount: number, content: string) => void;
 }
 
 const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
   const { toast } = useToast();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!['text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-        .includes(file.type)) {
+    const allowedTypes = [
+      'text/plain',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a .txt, .doc, .docx, or .pdf file",
+        description: "Please upload a .txt, .doc, .docx, .pdf, .xls, .xlsx, .ppt, or .pptx file",
         variant: "destructive"
       });
       return;
     }
 
-    onFileSelect(file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('process-document', {
+        body: formData,
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to process document');
+      }
+
+      const { wordCount, text } = response.data;
+      onFileSelect(file, wordCount, text);
+
+    } catch (error) {
+      console.error('File processing error:', error);
+      toast({
+        title: "Processing Error",
+        description: "Unable to process the file. Please try a different format or contact support.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -34,7 +69,7 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
         <input
           type="file"
           className="hidden"
-          accept=".txt,.doc,.docx,.pdf"
+          accept=".txt,.doc,.docx,.pdf,.xls,.xlsx,.ppt,.pptx"
           onChange={handleFileChange}
         />
       </label>
