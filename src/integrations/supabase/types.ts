@@ -222,8 +222,10 @@ export type Database = {
           completed_at: string | null
           content: string | null
           created_at: string | null
+          deadline: string | null
           document_name: string
           id: string
+          price_offered: number
           source_language: string
           status: string
           subscription_id: string | null
@@ -243,8 +245,10 @@ export type Database = {
           completed_at?: string | null
           content?: string | null
           created_at?: string | null
+          deadline?: string | null
           document_name: string
           id?: string
+          price_offered?: number
           source_language: string
           status?: string
           subscription_id?: string | null
@@ -264,8 +268,10 @@ export type Database = {
           completed_at?: string | null
           content?: string | null
           created_at?: string | null
+          deadline?: string | null
           document_name?: string
           id?: string
+          price_offered?: number
           source_language?: string
           status?: string
           subscription_id?: string | null
