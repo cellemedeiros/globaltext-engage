@@ -71,7 +71,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       navigate('/payment');
     } else {
       try {
-        // Create translation record
+        // Create translation record with status 'pending' and price
         const { data: translation, error: insertError } = await supabase
           .from('translations')
           .insert({
@@ -79,16 +79,42 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             document_name: fileName,
             content: fileContent,
             word_count: wordCount,
-            status: 'processing',
-            amount_paid: 0,
+            status: 'pending', // Changed from 'processing' to 'pending'
+            amount_paid: hasActiveSubscription ? 0 : calculatePrice(wordCount),
             subscription_id: hasActiveSubscription ? session.user.id : null,
             source_language: 'en',
-            target_language: 'pt'
+            target_language: 'pt',
+            price_offered: calculatePrice(wordCount) * 0.7, // 70% of the price goes to translator
+            deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days deadline
           })
           .select()
           .single();
 
         if (insertError) throw insertError;
+
+        // Create notification for all translators
+        const { data: translators } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'translator')
+          .eq('is_approved_translator', true);
+
+        if (translators) {
+          const notifications = translators.map(translator => ({
+            user_id: translator.id,
+            title: 'New Translation Available',
+            message: `A new translation project "${fileName}" is available for claiming.`,
+            read: false
+          }));
+
+          const { error: notificationError } = await supabase
+            .from('notifications')
+            .insert(notifications);
+
+          if (notificationError) {
+            console.error('Error creating notifications:', notificationError);
+          }
+        }
 
         // Trigger AI translation
         const response = await fetch('/functions/v1/translate-document', {
