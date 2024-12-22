@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { parse } from 'https://deno.land/x/xml@2.1.1/mod.ts'
+import * as zip from "https://deno.land/x/zipjs/index.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,22 +23,26 @@ function calculateWordCount(text: string): number {
 async function processDocx(file: File): Promise<{ text: string; wordCount: number }> {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const zip = new JSZip();
-    await zip.loadAsync(arrayBuffer);
+    const reader = new zip.ZipReader(new zip.Uint8ArrayReader(new Uint8Array(arrayBuffer)));
+    const entries = await reader.getEntries();
     
-    // Get the main document content
-    const content = await zip.file("word/document.xml")?.async("string");
-    if (!content) {
-      throw new Error("Could not read DOCX content");
+    // Find the document.xml file
+    const documentXml = entries.find(entry => entry.filename === "word/document.xml");
+    if (!documentXml) {
+      throw new Error("Could not find document.xml in DOCX file");
     }
 
-    // Parse XML and extract text
-    const parsed = parse(content);
-    const textElements = parsed.getElementsByTagName("w:t");
-    const text = Array.from(textElements).map(el => el.textContent).join(" ");
+    // Get the XML content
+    const xmlContent = await documentXml.getData(new zip.TextWriter());
     
-    const wordCount = calculateWordCount(text);
-    return { text, wordCount };
+    // Extract text from XML (simple approach - can be improved)
+    const textContent = xmlContent
+      .replace(/<[^>]+>/g, ' ') // Remove XML tags
+      .replace(/\s+/g, ' ')     // Normalize whitespace
+      .trim();
+
+    const wordCount = calculateWordCount(textContent);
+    return { text: textContent, wordCount };
   } catch (error) {
     console.error('DOCX processing error:', error);
     throw new Error('Failed to process DOCX file');
@@ -63,10 +67,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing document request received');
+    
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
+      console.error('No file uploaded');
       return new Response(
         JSON.stringify({ error: 'No file uploaded' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -81,19 +88,14 @@ serve(async (req) => {
     } else if (file.type === 'text/plain') {
       result = await processTextFile(file);
     } else {
-      // For other file types, attempt to read as text
-      try {
-        result = await processTextFile(file);
-      } catch (error) {
-        console.error('File processing error:', error);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Unsupported file type or unable to process file',
-            message: 'Please upload a DOCX or text file.'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
+      console.error(`Unsupported file type: ${file.type}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Unsupported file type',
+          message: 'Please upload a DOCX or text file.'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     console.log(`Successfully processed ${file.name}. Word count: ${result.wordCount}`);
