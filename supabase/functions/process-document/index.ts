@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { extract } from 'https://deno.land/x/pdf_extract@v1.1.1/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,28 +19,15 @@ function calculateWordCount(text: string): number {
   return words.length;
 }
 
-async function processPDF(file: File): Promise<{ text: string; wordCount: number }> {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const extractedText = await extract(uint8Array);
-    
-    if (!extractedText) {
-      throw new Error('No text could be extracted from the PDF');
-    }
-
-    const wordCount = calculateWordCount(extractedText);
-    return { text: extractedText, wordCount };
-  } catch (error) {
-    console.error('PDF processing error:', error);
-    throw new Error('Failed to process PDF file');
-  }
-}
-
 async function processTextFile(file: File): Promise<{ text: string; wordCount: number }> {
-  const text = await file.text();
-  const wordCount = calculateWordCount(text);
-  return { text, wordCount };
+  try {
+    const text = await file.text();
+    const wordCount = calculateWordCount(text);
+    return { text, wordCount };
+  } catch (error) {
+    console.error('Text processing error:', error);
+    throw new Error('Failed to process text file');
+  }
 }
 
 serve(async (req) => {
@@ -61,40 +47,45 @@ serve(async (req) => {
       );
     }
 
-    let result;
     console.log(`Processing file: ${file.name} (${file.type})`);
 
-    if (file.type === 'application/pdf') {
-      result = await processPDF(file);
-    } else if (file.type === 'text/plain') {
-      result = await processTextFile(file);
+    // For now, we'll only handle text files
+    if (file.type === 'text/plain') {
+      const result = await processTextFile(file);
+      
+      console.log(`Successfully processed ${file.name}. Word count: ${result.wordCount}`);
+      
+      return new Response(
+        JSON.stringify({
+          wordCount: result.wordCount,
+          text: result.text,
+          message: 'File processed successfully'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     } else {
       // For other file types, attempt to read as text
       try {
-        result = await processTextFile(file);
+        const result = await processTextFile(file);
+        return new Response(
+          JSON.stringify({
+            wordCount: result.wordCount,
+            text: result.text,
+            message: 'File processed successfully'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       } catch (error) {
         console.error('File processing error:', error);
         return new Response(
           JSON.stringify({ 
             error: 'Unsupported file type or unable to process file',
-            message: 'Please upload a PDF or text file.'
+            message: 'Please upload a text file for now. PDF support coming soon.'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
     }
-
-    console.log(`Successfully processed ${file.name}. Word count: ${result.wordCount}`);
-    
-    return new Response(
-      JSON.stringify({
-        wordCount: result.wordCount,
-        text: result.text,
-        message: 'File processed successfully'
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
   } catch (error) {
     console.error('Server error:', error);
     return new Response(
