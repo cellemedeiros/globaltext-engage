@@ -58,6 +58,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     if (!session) {
       localStorage.setItem('pendingTranslation', JSON.stringify({
         fileName,
+        fileContent,
         wordCount,
         price: calculatePrice(wordCount)
       }));
@@ -71,7 +72,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       navigate('/payment');
     } else {
       try {
-        // Create translation record with status 'pending' and price
+        // Create translation record
         const { data: translation, error: insertError } = await supabase
           .from('translations')
           .insert({
@@ -79,20 +80,20 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             document_name: fileName,
             content: fileContent,
             word_count: wordCount,
-            status: 'pending', // Changed from 'processing' to 'pending'
+            status: 'pending',
             amount_paid: hasActiveSubscription ? 0 : calculatePrice(wordCount),
             subscription_id: hasActiveSubscription ? session.user.id : null,
             source_language: 'en',
             target_language: 'pt',
-            price_offered: calculatePrice(wordCount) * 0.7, // 70% of the price goes to translator
-            deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days deadline
+            price_offered: calculatePrice(wordCount) * 0.7,
+            deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           })
           .select()
           .single();
 
         if (insertError) throw insertError;
 
-        // Create notification for all translators
+        // Create notifications for translators
         const { data: translators } = await supabase
           .from('profiles')
           .select('id')
@@ -107,37 +108,24 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             read: false
           }));
 
-          const { error: notificationError } = await supabase
+          await supabase
             .from('notifications')
             .insert(notifications);
-
-          if (notificationError) {
-            console.error('Error creating notifications:', notificationError);
-          }
         }
 
         // Trigger AI translation
-        const response = await fetch('/functions/v1/translate-document', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        await supabase.functions.invoke('translate-document', {
+          body: {
             translationId: translation.id,
-          }),
+          },
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to initiate translation');
-        }
 
         toast({
           title: "Success",
           description: "Your document has been submitted for translation",
         });
-        
-        // Refresh the page to update the translations list
+
+        // Refresh the translations list
         window.location.reload();
       } catch (error) {
         console.error('Error:', error);

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PaymentProcessorProps {
   amount: string | null;
@@ -14,6 +15,7 @@ interface PaymentProcessorProps {
 const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const queryClient = useQueryClient();
 
   const handlePayment = async () => {
     if (!session) {
@@ -43,6 +45,18 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       if (error) throw error;
 
       if (data?.url) {
+        // Store payment details in localStorage before redirecting
+        localStorage.setItem('pendingPayment', JSON.stringify({
+          amount,
+          words,
+          plan,
+          timestamp: new Date().toISOString()
+        }));
+        
+        // Invalidate queries to ensure fresh data after payment
+        queryClient.invalidateQueries({ queryKey: ['translations'] });
+        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
