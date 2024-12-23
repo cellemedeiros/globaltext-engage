@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
   return useQuery({
@@ -15,13 +14,10 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
         .order('created_at', { ascending: false });
 
       if (role === 'translator') {
-        // For translators, show translations they're reviewing or available translations
         query = query.or(`translator_id.eq.${session.user.id},and(translator_id.is.null,status.eq.pending)`);
       } else if (role === 'admin') {
-        // For admin, show translations pending review
         query = query.eq('status', 'pending_admin_review');
       } else {
-        // For clients, show their own translations
         query = query.eq('user_id', session.user.id);
       }
 
@@ -31,10 +27,10 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
         console.error('Error fetching translations:', error);
         throw error;
       }
-      
+
       console.log('Fetched translations:', data);
       return data;
     },
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 10000,
   });
 };
