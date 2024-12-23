@@ -16,9 +16,9 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
 
       if (role === 'translator') {
         // For translators, show translations they're reviewing or available translations
-        query = query
-          .or(`translator_id.eq.${session.user.id},and(translator_id.is.null,status.eq.pending)`);
+        query = query.or(`translator_id.eq.${session.user.id},and(translator_id.is.null,status.eq.pending)`);
       } else if (role === 'admin') {
+        // For admin, show translations pending review
         query = query.eq('status', 'pending_admin_review');
       } else {
         // For clients, show their own translations

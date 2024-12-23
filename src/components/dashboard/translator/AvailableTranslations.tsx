@@ -25,8 +25,10 @@ const AvailableTranslations = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('Available translations:', data);
       return data;
     },
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 
   useEffect(() => {
@@ -41,6 +43,7 @@ const AvailableTranslations = () => {
           filter: 'status=eq.pending'
         },
         (payload) => {
+          console.log('New translation available:', payload);
           toast({
             title: "New Translation Available",
             description: `A new translation project has been added: ${payload.new.document_name}`,
@@ -68,6 +71,7 @@ const AvailableTranslations = () => {
       .eq('id', translationId);
 
     if (error) {
+      console.error('Error claiming translation:', error);
       toast({
         title: "Error",
         description: "Failed to claim translation. Please try again.",

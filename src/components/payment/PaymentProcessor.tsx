@@ -29,7 +29,7 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
 
     try {
       const { fileName, fileContent, wordCount } = JSON.parse(pendingTranslation);
-      console.log('Parsed pending translation:', { fileName, wordCount });
+      console.log('Creating translation with data:', { fileName, wordCount });
 
       const { data: translation, error: insertError } = await supabase
         .from('translations')
@@ -93,7 +93,7 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       console.error('Error creating translation:', error);
       toast({
         title: "Error",
-        description: "Failed to create translation. Please contact support.",
+        description: "Failed to create translation. Please try again.",
         variant: "destructive"
       });
     }
@@ -111,6 +111,9 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
 
     setIsProcessing(true);
     try {
+      // Create translation before redirecting to payment
+      await createTranslationFromPending();
+
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (!currentSession) {
@@ -127,8 +130,6 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       if (error) throw error;
 
       if (data?.url) {
-        // Create translation before redirecting to payment
-        await createTranslationFromPending();
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
