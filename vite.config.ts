@@ -68,10 +68,14 @@ export const createTranslationAfterPayment = async (session: Session, pendingTra
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   server: {
-    port: 3000,
+    port: 8080,
+    host: true, // Add this to allow accessing from outside
+    strictPort: true, // Add this to ensure the port is strictly enforced
   },
-  optimizeDeps: {
-    exclude: ["some-package"],
+  preview: {
+    port: 8080,
+    host: true,
+    strictPort: true,
   },
   build: {
     rollupOptions: {
@@ -88,5 +92,3 @@ export default defineConfig({
     loader: "tsx",
   },
 });
-
-
