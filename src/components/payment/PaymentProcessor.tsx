@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface PaymentProcessorProps {
   amount: string | null;
@@ -16,14 +17,20 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const createTranslationFromPending = async () => {
+    console.log('Creating translation from pending data...');
     const pendingTranslation = localStorage.getItem('pendingTranslation');
-    if (!pendingTranslation || !session) return;
-
-    const { fileName, fileContent, wordCount } = JSON.parse(pendingTranslation);
+    if (!pendingTranslation || !session) {
+      console.log('No pending translation or session found');
+      return;
+    }
 
     try {
+      const { fileName, fileContent, wordCount } = JSON.parse(pendingTranslation);
+      console.log('Parsed pending translation:', { fileName, wordCount });
+
       const { data: translation, error: insertError } = await supabase
         .from('translations')
         .insert({
@@ -42,6 +49,7 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
         .single();
 
       if (insertError) throw insertError;
+      console.log('Translation created successfully:', translation);
 
       // Notify translators
       const { data: translators, error: translatorsError } = await supabase
@@ -65,6 +73,7 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
           .insert(notifications);
 
         if (notificationError) throw notificationError;
+        console.log('Translator notifications created');
       }
 
       // Clear pending translation
@@ -74,7 +83,13 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       queryClient.invalidateQueries({ queryKey: ['translations'] });
       queryClient.invalidateQueries({ queryKey: ['available-translations'] });
 
-    } catch (error) {
+      toast({
+        title: "Success",
+        description: "Translation project created successfully",
+      });
+
+      navigate('/dashboard');
+    } catch (error: any) {
       console.error('Error creating translation:', error);
       toast({
         title: "Error",
@@ -114,7 +129,6 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       if (data?.url) {
         // Create translation before redirecting to payment
         await createTranslationFromPending();
-        
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');

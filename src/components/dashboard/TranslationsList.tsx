@@ -18,7 +18,16 @@ interface TranslationsListProps {
 const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsListProps) => {
   const title = role === 'translator' ? 'Translations to Review' : 'Recent Translations';
   const { toast } = useToast();
-  const { data: translations, isLoading: translationsLoading } = useTranslations(role);
+  const { data: translations, isLoading: translationsLoading, refetch } = useTranslations(role);
+
+  // Add automatic refetch every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   if (isLoading || translationsLoading) {
     return (
@@ -82,6 +91,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
                   title: "Success",
                   description: "Translation updated successfully",
                 });
+                refetch();
               }}
             />
           ))}
