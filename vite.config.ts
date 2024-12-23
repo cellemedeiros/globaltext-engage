@@ -43,7 +43,7 @@ export const createTranslationAfterPayment = async (session: Session, pendingTra
     if (translatorsError) throw translatorsError;
 
     if (translators?.length) {
-      const notifications = translators.map(translator => ({
+      const notifications = translators.map((translator: { id: string }) => ({
         user_id: translator.id,
         title: 'New Translation Available',
         message: `A new translation project "${fileName}" is available for claiming.`,
@@ -69,8 +69,8 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   server: {
     port: 8080,
-    host: true, // Add this to allow accessing from outside
-    strictPort: true, // Add this to ensure the port is strictly enforced
+    host: true,
+    strictPort: true,
   },
   preview: {
     port: 8080,
