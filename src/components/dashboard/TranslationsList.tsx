@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationItem from "./translations/TranslationItem";
 import { useTranslations } from "@/hooks/useTranslations";
 import { Database } from "@/integrations/supabase/types";
+import { useEffect } from "react";
 
 type Translation = Database['public']['Tables']['translations']['Row'];
 
