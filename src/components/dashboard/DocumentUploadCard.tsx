@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import FileUploadButton from "./document-upload/FileUploadButton";
 import FileDetails from "./document-upload/FileDetails";
@@ -21,6 +21,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const [wordCount, setWordCount] = useState<number>(0);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: session } = useQuery({
     queryKey: ['session'],
@@ -34,7 +35,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     setFileName(file.name);
     setFileContent(content);
     setWordCount(count);
-    console.log(`Word count for ${file.name}: ${count}`);
 
     if (hasActiveSubscription && wordsRemaining && count > wordsRemaining) {
       toast({
@@ -42,6 +42,56 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         description: `Your current plan has ${wordsRemaining} words remaining. Please upgrade your plan.`,
         variant: "destructive"
       });
+    }
+  };
+
+  const createTranslation = async () => {
+    if (!session) throw new Error("No session found");
+
+    const { data: translation, error: insertError } = await supabase
+      .from('translations')
+      .insert({
+        user_id: session.user.id,
+        document_name: fileName,
+        content: fileContent,
+        word_count: wordCount,
+        status: 'pending',
+        amount_paid: hasActiveSubscription ? 0 : calculatePrice(wordCount),
+        subscription_id: hasActiveSubscription ? session.user.id : null,
+        source_language: 'en',
+        target_language: 'pt',
+        price_offered: calculatePrice(wordCount) * 0.7,
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    return translation;
+  };
+
+  const notifyTranslators = async () => {
+    const { data: translators, error: translatorsError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'translator')
+      .eq('is_approved_translator', true);
+
+    if (translatorsError) throw translatorsError;
+
+    if (translators?.length) {
+      const notifications = translators.map(translator => ({
+        user_id: translator.id,
+        title: 'New Translation Available',
+        message: `A new translation project "${fileName}" is available for claiming.`,
+        read: false
+      }));
+
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (notificationError) throw notificationError;
     }
   };
 
@@ -68,73 +118,40 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
 
     if (!hasActiveSubscription) {
       navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}`);
-    } else if (wordsRemaining && wordCount > wordsRemaining) {
+      return;
+    }
+
+    if (wordsRemaining && wordCount > wordsRemaining) {
       navigate('/payment');
-    } else {
-      try {
-        // Create translation record
-        const { data: translation, error: insertError } = await supabase
-          .from('translations')
-          .insert({
-            user_id: session.user.id,
-            document_name: fileName,
-            content: fileContent,
-            word_count: wordCount,
-            status: 'pending',
-            amount_paid: hasActiveSubscription ? 0 : calculatePrice(wordCount),
-            subscription_id: hasActiveSubscription ? session.user.id : null,
-            source_language: 'en',
-            target_language: 'pt',
-            price_offered: calculatePrice(wordCount) * 0.7,
-            deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-          })
-          .select()
-          .single();
+      return;
+    }
 
-        if (insertError) throw insertError;
+    try {
+      const translation = await createTranslation();
+      await notifyTranslators();
 
-        // Create notifications for translators
-        const { data: translators } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('role', 'translator')
-          .eq('is_approved_translator', true);
+      // Trigger AI translation
+      await supabase.functions.invoke('translate-document', {
+        body: { translationId: translation.id },
+      });
 
-        if (translators) {
-          const notifications = translators.map(translator => ({
-            user_id: translator.id,
-            title: 'New Translation Available',
-            message: `A new translation project "${fileName}" is available for claiming.`,
-            read: false
-          }));
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['translations'] });
 
-          await supabase
-            .from('notifications')
-            .insert(notifications);
-        }
+      toast({
+        title: "Success",
+        description: "Your document has been submitted for translation",
+      });
 
-        // Trigger AI translation
-        await supabase.functions.invoke('translate-document', {
-          body: {
-            translationId: translation.id,
-          },
-        });
-
-        toast({
-          title: "Success",
-          description: "Your document has been submitted for translation",
-        });
-
-        // Refresh the translations list
-        window.location.reload();
-      } catch (error) {
-        console.error('Error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to submit translation. Please try again.",
-          variant: "destructive"
-        });
-      }
+      // Navigate to dashboard instead of reloading
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit translation. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
