@@ -121,7 +121,12 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount, words, plan },
+        body: { 
+          amount, 
+          words, 
+          plan,
+          returnUrl: `${window.location.origin}/dashboard` // Add explicit return URL
+        },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
