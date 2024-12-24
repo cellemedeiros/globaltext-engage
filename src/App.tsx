@@ -35,6 +35,7 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           console.error('Session error:', sessionError);
           await supabase.auth.signOut();
           setIsAuthenticated(false);
+          queryClient.clear();
           toast({
             title: "Session Error",
             description: "Please sign in again.",
@@ -56,13 +57,18 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         
         if (error) {
           console.error('Profile fetch error:', error);
-          if (error.code === 'PGRST116') return null;
+          if (error.code === 'PGRST116') {
+            setIsAuthenticated(false);
+            return null;
+          }
           throw error;
         }
         
+        setIsAuthenticated(true);
         return data;
       } catch (error) {
         console.error('Error fetching profile:', error);
+        setIsAuthenticated(false);
         toast({
           title: "Error",
           description: "Failed to load profile. Please try again.",
@@ -71,11 +77,13 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         return null;
       }
     },
-    enabled: isAuthenticated === true,
+    enabled: isAuthenticated !== null,
     retry: false
   });
 
   useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -83,7 +91,10 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         if (error) {
           console.error('Session check error:', error);
           await supabase.auth.signOut();
-          setIsAuthenticated(false);
+          if (mounted) {
+            setIsAuthenticated(false);
+            queryClient.clear();
+          }
           toast({
             title: "Session Error",
             description: "Please sign in again.",
@@ -92,10 +103,14 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           return;
         }
         
-        setIsAuthenticated(!!session);
+        if (mounted) {
+          setIsAuthenticated(!!session);
+        }
       } catch (error) {
         console.error('Session check error:', error);
-        setIsAuthenticated(false);
+        if (mounted) {
+          setIsAuthenticated(false);
+        }
       }
     };
 
@@ -105,17 +120,34 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session);
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        setIsAuthenticated(!!session);
-        if (!session) {
+      
+      if (event === 'SIGNED_OUT') {
+        if (mounted) {
+          setIsAuthenticated(false);
           queryClient.clear();
         }
-      } else {
-        setIsAuthenticated(!!session);
+      } else if (event === 'TOKEN_REFRESHED') {
+        if (!session) {
+          if (mounted) {
+            setIsAuthenticated(false);
+            queryClient.clear();
+          }
+        } else {
+          if (mounted) {
+            setIsAuthenticated(true);
+          }
+        }
+      } else if (event === 'SIGNED_IN') {
+        if (mounted) {
+          setIsAuthenticated(true);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [toast, queryClient]);
 
   if (isAuthenticated === null || isLoading) {
