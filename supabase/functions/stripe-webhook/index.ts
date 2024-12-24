@@ -1,41 +1,43 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
 });
 
-const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-);
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+// Initialize Supabase client with service role key
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
   try {
     const signature = req.headers.get('stripe-signature');
-    if (!signature) {
-      throw new Error('No Stripe signature found');
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+
+    if (!signature || !webhookSecret) {
+      return new Response('Missing signature or webhook secret', { status: 400 });
     }
 
     const body = await req.text();
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      throw new Error('Webhook secret not configured');
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (err) {
+      console.error(`Webhook signature verification failed:`, err.message);
+      return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
     }
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
-
-    console.log('Processing Stripe event:', event.type);
+    console.log(`Event type: ${event.type}`);
 
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        const metadata = session.metadata || {};
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation') {
           const translationId = metadata.translationId;
@@ -46,7 +48,7 @@ serve(async (req) => {
             .from('translations')
             .update({
               status: 'pending',
-              amount_paid: session.amount_total ? session.amount_total / 100 : 0,
+              amount_paid: paymentIntent.amount / 100, // Convert from cents to dollars
             })
             .eq('id', translationId);
 
@@ -55,24 +57,39 @@ serve(async (req) => {
             throw updateError;
           }
 
-          // Create notification for translators
-          const { error: notificationError } = await supabaseAdmin
-            .from('notifications')
-            .insert({
+          // Get all approved translators
+          const { data: translators, error: translatorError } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('role', 'translator')
+            .eq('is_approved_translator', true);
+
+          if (translatorError) {
+            console.error('Error fetching translators:', translatorError);
+          } else {
+            // Create notifications for all translators
+            const notifications = translators.map(translator => ({
               title: 'New Translation Available',
               message: `A new translation project is available: ${metadata.documentName}`,
-              user_id: metadata.userId,
-            });
+              user_id: translator.id,
+            }));
 
-          if (notificationError) {
-            console.error('Error creating notification:', notificationError);
+            if (notifications.length > 0) {
+              const { error: notificationError } = await supabaseAdmin
+                .from('notifications')
+                .insert(notifications);
+
+              if (notificationError) {
+                console.error('Error creating notifications:', notificationError);
+              }
+            }
           }
 
-          console.log('Successfully updated translation and created notification');
+          console.log('Successfully updated translation and created notifications');
         }
         break;
       }
-      
+
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object;
         const metadata = paymentIntent.metadata || {};
@@ -83,7 +100,7 @@ serve(async (req) => {
           const { error } = await supabaseAdmin
             .from('translations')
             .update({
-              status: 'payment_failed',
+              status: 'payment_failed'
             })
             .eq('id', metadata.translationId);
 
@@ -97,17 +114,14 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ received: true }), {
-      status: 200,
       headers: { 'Content-Type': 'application/json' },
+      status: 200,
     });
   } catch (err) {
-    console.error('Webhook error:', err);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    console.error('Error processing webhook:', err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 400,
+    });
   }
 });
