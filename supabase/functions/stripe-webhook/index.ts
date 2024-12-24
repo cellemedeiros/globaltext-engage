@@ -39,7 +39,10 @@ serve(async (req) => {
         
         if (metadata.type === 'translation') {
           const translationId = metadata.translationId;
-          const { error } = await supabaseAdmin
+          console.log('Updating translation status for ID:', translationId);
+
+          // Update translation status to pending (available for translators)
+          const { error: updateError } = await supabaseAdmin
             .from('translations')
             .update({
               status: 'pending',
@@ -47,19 +50,25 @@ serve(async (req) => {
             })
             .eq('id', translationId);
 
-          if (error) {
-            console.error('Error updating translation:', error);
-            throw error;
+          if (updateError) {
+            console.error('Error updating translation:', updateError);
+            throw updateError;
           }
 
           // Create notification for translators
-          await supabaseAdmin
+          const { error: notificationError } = await supabaseAdmin
             .from('notifications')
             .insert({
               title: 'New Translation Available',
               message: `A new translation project is available: ${metadata.documentName}`,
               user_id: metadata.userId,
             });
+
+          if (notificationError) {
+            console.error('Error creating notification:', notificationError);
+          }
+
+          console.log('Successfully updated translation and created notification');
         }
         break;
       }
@@ -69,6 +78,8 @@ serve(async (req) => {
         const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation') {
+          console.log('Updating failed payment status for translation:', metadata.translationId);
+          
           const { error } = await supabaseAdmin
             .from('translations')
             .update({
