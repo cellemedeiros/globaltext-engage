@@ -65,46 +65,42 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       return;
     }
 
-    if (!hasActiveSubscription) {
-      navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}`);
-    } else if (wordsRemaining && wordCount > wordsRemaining) {
-      navigate('/payment');
-    } else {
-      try {
-        // Create translation record
-        const { data: translation, error: insertError } = await supabase
+    try {
+      // Create translation record first
+      const { data: translation, error: insertError } = await supabase
+        .from('translations')
+        .insert({
+          user_id: session.user.id,
+          document_name: fileName,
+          content: fileContent,
+          word_count: wordCount,
+          status: 'awaiting_payment',
+          amount_paid: 0,
+          subscription_id: hasActiveSubscription ? session.user.id : null,
+          source_language: 'en',
+          target_language: 'pt',
+          price_offered: calculatePrice(wordCount)
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      if (!hasActiveSubscription) {
+        // Redirect to payment with translation ID
+        navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}&translationId=${translation.id}&documentName=${encodeURIComponent(fileName)}`);
+      } else if (wordsRemaining && wordCount > wordsRemaining) {
+        navigate('/payment');
+      } else {
+        // If using subscription, update status directly
+        const { error: updateError } = await supabase
           .from('translations')
-          .insert({
-            user_id: session.user.id,
-            document_name: fileName,
-            content: fileContent,
-            word_count: wordCount,
-            status: 'processing',
-            amount_paid: 0,
-            subscription_id: hasActiveSubscription ? session.user.id : null,
-            source_language: 'en',
-            target_language: 'pt'
+          .update({
+            status: 'pending',
           })
-          .select()
-          .single();
+          .eq('id', translation.id);
 
-        if (insertError) throw insertError;
-
-        // Trigger AI translation
-        const response = await fetch('/functions/v1/translate-document', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            translationId: translation.id,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to initiate translation');
-        }
+        if (updateError) throw updateError;
 
         toast({
           title: "Success",
@@ -113,14 +109,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         
         // Refresh the page to update the translations list
         window.location.reload();
-      } catch (error) {
-        console.error('Error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to submit translation. Please try again.",
-          variant: "destructive"
-        });
       }
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit translation. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 

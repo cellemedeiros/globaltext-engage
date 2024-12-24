@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,7 +20,6 @@ serve(async (req) => {
   );
 
   try {
-    // Get the session or user object
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('No authorization header found');
@@ -44,7 +42,7 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words, plan } = await req.json();
+    const { amount, words, plan, translationId, documentName } = await req.json();
     
     if (!amount && !plan) {
       console.error('Either amount or plan is required');
@@ -90,9 +88,13 @@ serve(async (req) => {
             quantity: 1,
           },
         ],
+        metadata: {
+          type: 'subscription',
+          plan,
+          userId: user.id,
+        },
       };
     } else {
-      // For one-time payments, create a new price dynamically
       sessionConfig = {
         mode: 'payment',
         line_items: [
@@ -102,11 +104,18 @@ serve(async (req) => {
               product_data: {
                 name: `Translation Service - ${words} words`,
               },
-              unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
+              unit_amount: Math.round(parseFloat(amount) * 100),
             },
             quantity: 1,
           },
         ],
+        metadata: {
+          type: 'translation',
+          translationId,
+          documentName,
+          userId: user.id,
+          words,
+        },
       };
     }
 
@@ -115,8 +124,8 @@ serve(async (req) => {
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
       ...sessionConfig,
-      success_url: `${req.headers.get('origin')}/dashboard`,
-      cancel_url: `${req.headers.get('origin')}/payment`,
+      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
+      cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
     });
 
     console.log('Payment session created:', session.id);
