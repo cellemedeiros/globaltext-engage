@@ -4,7 +4,6 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Updated Vite Configuration
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
@@ -13,7 +12,7 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   server: {
     port: 8080,
-    host: "::",
+    host: true,
     strictPort: true,
   },
   preview: {
