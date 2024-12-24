@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 
 interface PaymentProcessorProps {
   amount: string | null;
@@ -16,88 +14,6 @@ interface PaymentProcessorProps {
 const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-
-  const createTranslationFromPending = async () => {
-    console.log('Creating translation from pending data...');
-    const pendingTranslation = localStorage.getItem('pendingTranslation');
-    if (!pendingTranslation || !session) {
-      console.log('No pending translation or session found');
-      return;
-    }
-
-    try {
-      const { fileName, fileContent, wordCount } = JSON.parse(pendingTranslation);
-      console.log('Creating translation with data:', { fileName, wordCount });
-
-      const { data: translation, error: insertError } = await supabase
-        .from('translations')
-        .insert({
-          user_id: session.user.id,
-          document_name: fileName,
-          content: fileContent,
-          word_count: wordCount,
-          status: 'pending',
-          amount_paid: amount ? parseFloat(amount) : 0,
-          source_language: 'en',
-          target_language: 'pt',
-          price_offered: amount ? parseFloat(amount) * 0.7 : 0,
-          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-      console.log('Translation created successfully:', translation);
-
-      // Notify translators
-      const { data: translators, error: translatorsError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'translator')
-        .eq('is_approved_translator', true);
-
-      if (translatorsError) throw translatorsError;
-
-      if (translators?.length) {
-        const notifications = translators.map(translator => ({
-          user_id: translator.id,
-          title: 'New Translation Available',
-          message: `A new translation project "${fileName}" is available for claiming.`,
-          read: false
-        }));
-
-        const { error: notificationError } = await supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (notificationError) throw notificationError;
-        console.log('Translator notifications created');
-      }
-
-      // Clear pending translation
-      localStorage.removeItem('pendingTranslation');
-
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['translations'] });
-      queryClient.invalidateQueries({ queryKey: ['available-translations'] });
-
-      toast({
-        title: "Success",
-        description: "Translation project created successfully",
-      });
-
-      navigate('/dashboard');
-    } catch (error: any) {
-      console.error('Error creating translation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create translation. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handlePayment = async () => {
     if (!session) {
@@ -111,9 +27,6 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
 
     setIsProcessing(true);
     try {
-      // Create translation before redirecting to payment
-      await createTranslationFromPending();
-
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (!currentSession) {
@@ -121,12 +34,7 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          amount, 
-          words, 
-          plan,
-          returnUrl: `${window.location.origin}/dashboard` // Add explicit return URL
-        },
+        body: { amount, words, plan },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }

@@ -44,7 +44,7 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words, plan, returnUrl } = await req.json();
+    const { amount, words, plan } = await req.json();
     
     if (!amount && !plan) {
       console.error('Either amount or plan is required');
@@ -115,7 +115,7 @@ serve(async (req) => {
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
       ...sessionConfig,
-      success_url: returnUrl || `${req.headers.get('origin')}/dashboard`,
+      success_url: `${req.headers.get('origin')}/dashboard`,
       cancel_url: `${req.headers.get('origin')}/payment`,
     });
 

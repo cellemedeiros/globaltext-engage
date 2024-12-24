@@ -7,7 +7,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationItem from "./translations/TranslationItem";
 import { useTranslations } from "@/hooks/useTranslations";
 import { Database } from "@/integrations/supabase/types";
-import { useEffect } from "react";
 
 type Translation = Database['public']['Tables']['translations']['Row'];
 
@@ -19,16 +18,7 @@ interface TranslationsListProps {
 const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsListProps) => {
   const title = role === 'translator' ? 'Translations to Review' : 'Recent Translations';
   const { toast } = useToast();
-  const { data: translations, isLoading: translationsLoading, refetch } = useTranslations(role);
-
-  // Add automatic refetch every 10 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetch();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [refetch]);
+  const { data: translations, isLoading: translationsLoading } = useTranslations(role);
 
   if (isLoading || translationsLoading) {
     return (
@@ -92,7 +82,6 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
                   title: "Success",
                   description: "Translation updated successfully",
                 });
-                refetch();
               }}
             />
           ))}

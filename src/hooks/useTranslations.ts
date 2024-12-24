@@ -5,7 +5,6 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
   return useQuery({
     queryKey: ['translations', role],
     queryFn: async () => {
-      console.log('Fetching translations for role:', role);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
 
@@ -15,27 +14,19 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
         .order('created_at', { ascending: false });
 
       if (role === 'translator') {
-        // For translators, show translations they're reviewing or available translations
-        query = query.or(`translator_id.eq.${session.user.id},and(translator_id.is.null,status.eq.pending)`);
+        query = query
+          .eq('translator_id', session.user.id)
+          .eq('status', 'pending_review');
       } else if (role === 'admin') {
-        // For admin, show translations pending review
         query = query.eq('status', 'pending_admin_review');
       } else {
-        // For clients, show their own translations
         query = query.eq('user_id', session.user.id);
       }
 
       const { data, error } = await query;
 
-      if (error) {
-        console.error('Error fetching translations:', error);
-        throw error;
-      }
-      
-      console.log('Fetched translations:', data);
+      if (error) throw error;
       return data;
     },
-    refetchInterval: 10000, // Refetch every 10 seconds
   });
 };
-
