@@ -28,23 +28,36 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
     const email = event.target.email.value;
     const password = event.target.password.value;
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          country: formData.country,
-          phone: formData.phone,
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            country: formData.country,
+            phone: formData.phone,
+          }
         }
-      }
-    });
+      });
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Please check your email to confirm your account.",
+        });
+      }
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }
@@ -64,8 +77,8 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
           inputPlaceholder: 'hsl(var(--muted-foreground))',
         },
         space: {
-          inputPadding: '1rem',
-          buttonPadding: '1rem',
+          inputPadding: '0.75rem',
+          buttonPadding: '0.75rem',
         },
         borderWidths: {
           buttonBorderWidth: '1px',
@@ -85,22 +98,22 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
       },
     },
     className: {
-      container: 'flex flex-col gap-4',
-      button: 'w-full bg-primary hover:bg-primary-light text-white font-medium py-3 px-4 rounded-lg transition-colors',
-      label: 'block text-sm font-medium text-foreground mb-1.5',
-      input: 'w-full rounded-lg border bg-background px-4 py-3 text-sm ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-      divider: 'my-4 text-xs text-muted-foreground',
-      message: 'text-sm text-foreground/80 mb-4',
+      container: 'flex flex-col gap-3',
+      button: 'w-full bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg transition-colors',
+      label: 'block text-sm font-medium text-foreground mb-1',
+      input: 'w-full rounded-lg border bg-background px-3 py-2 text-sm ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+      divider: 'my-3 text-xs text-muted-foreground',
+      message: 'text-sm text-foreground/80 mb-3',
       anchor: 'text-primary hover:text-primary-light transition-colors',
-      auth_button: 'w-full bg-primary hover:bg-primary-light text-white font-medium py-3 px-4 rounded-lg transition-colors',
-      auth_button_container: 'flex flex-col gap-3',
+      auth_button: 'w-full bg-primary hover:bg-primary-light text-white font-medium py-2 px-4 rounded-lg transition-colors',
+      auth_button_container: 'flex flex-col gap-2',
     },
   };
 
   return (
-    <>
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-foreground mb-2">
+    <div className="space-y-4">
+      <div className="text-center mb-4">
+        <h2 className="text-xl font-bold text-foreground mb-2">
           {isSignUp ? 'Sign up' : 'Sign in'} as {selectedRole === 'client' ? 'Client' : 'Translator'}
         </h2>
         {message && (
@@ -115,9 +128,9 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
       </div>
 
       {isSignUp ? (
-        <form onSubmit={handleSignUp} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+        <form onSubmit={handleSignUp} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <Label htmlFor="firstName">First Name</Label>
               <Input
                 id="firstName"
@@ -126,7 +139,7 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="lastName">Last Name</Label>
               <Input
                 id="lastName"
@@ -137,17 +150,17 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" required />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" required />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="country">Country</Label>
             <Input
               id="country"
@@ -157,7 +170,7 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
@@ -192,7 +205,7 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
             view="sign_in"
             showLinks={false}
           />
-          <p className="text-center text-sm text-muted-foreground mt-4">
+          <p className="text-center text-sm text-muted-foreground mt-3">
             Don't have an account?{" "}
             <button
               onClick={() => setIsSignUp(true)}
@@ -203,7 +216,7 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
           </p>
         </>
       )}
-    </>
+    </div>
   );
 };
 
