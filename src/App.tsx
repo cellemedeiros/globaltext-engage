@@ -10,6 +10,7 @@ import Payment from "./pages/Payment";
 import Dashboard from "./pages/Dashboard";
 import TranslatorDashboard from "./pages/TranslatorDashboard";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,12 +23,21 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' | 'admin' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { toast } = useToast();
+  
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return null;
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw sessionError;
+        }
+        
+        if (!session) {
+          return null;
+        }
 
         const { data, error } = await supabase
           .from('profiles')
@@ -35,10 +45,20 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           .eq('id', session.user.id)
           .single();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Profile error:', error);
+          throw error;
+        }
+        
         return data;
       } catch (error) {
         console.error('Error fetching profile:', error);
+        toast({
+          title: "Authentication Error",
+          description: "Please try logging in again.",
+          variant: "destructive"
+        });
+        await supabase.auth.signOut();
         return null;
       }
     },
@@ -47,20 +67,40 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
   });
 
   useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (mounted) {
+          setIsAuthenticated(!!session);
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+        if (mounted) {
+          setIsAuthenticated(false);
+        }
+      }
     };
 
     checkSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (mounted) {
+        setIsAuthenticated(!!session);
+        if (event === 'SIGNED_OUT') {
+          queryClient.clear();
+        }
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (isAuthenticated === null || isLoading) {
