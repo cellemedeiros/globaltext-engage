@@ -32,13 +32,12 @@ const HeroSection = () => {
           className="text-center space-y-8"
         >
           <motion.h1 
-            className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+            className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-black"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
           >
-            Enterprise Translation <br />
-            <span className="text-primary">Made Simple</span>
+            More than just <span className="text-primary">Translations</span>...
           </motion.h1>
           <motion.p 
             className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8 leading-relaxed"
