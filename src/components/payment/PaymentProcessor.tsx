@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 
@@ -9,9 +9,10 @@ interface PaymentProcessorProps {
   words: string | null;
   plan: string | null;
   session: Session | null;
+  documentName?: string | null;
 }
 
-const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProps) => {
+const PaymentProcessor = ({ amount, words, plan, session, documentName }: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -34,7 +35,13 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount, words, plan },
+        body: { 
+          amount, 
+          words, 
+          plan,
+          documentName,
+          type: plan ? 'subscription' : 'translation'
+        },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }

@@ -11,20 +11,21 @@ const Payment = () => {
   const words = searchParams.get("words");
   const plan = searchParams.get("plan");
   const amount = searchParams.get("amount");
+  const documentName = searchParams.get("documentName");
   
   const { session, isCheckingAuth } = usePaymentAuth();
 
-  // Store parameters in sessionStorage to persist them during navigation
   useEffect(() => {
     if (amount) sessionStorage.setItem('payment_amount', amount);
     if (words) sessionStorage.setItem('payment_words', words);
     if (plan) sessionStorage.setItem('payment_plan', plan);
-  }, [amount, words, plan]);
+    if (documentName) sessionStorage.setItem('payment_document_name', documentName);
+  }, [amount, words, plan, documentName]);
 
-  // Retrieve stored values if URL parameters are missing
   const effectiveAmount = amount || sessionStorage.getItem('payment_amount');
   const effectiveWords = words || sessionStorage.getItem('payment_words');
   const effectivePlan = plan || sessionStorage.getItem('payment_plan');
+  const effectiveDocumentName = documentName || sessionStorage.getItem('payment_document_name');
 
   if (isCheckingAuth) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -52,12 +53,14 @@ const Payment = () => {
               words={effectiveWords}
               plan={effectivePlan}
               session={session}
+              documentName={effectiveDocumentName}
             />
           </Card>
           <PaymentSummary 
             words={effectiveWords}
             plan={effectivePlan}
             amount={effectiveAmount}
+            documentName={effectiveDocumentName}
           />
         </div>
       </div>

@@ -1,169 +1,170 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileUp } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import AuthDialog from "@/components/auth/AuthDialog";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { calculatePrice } from "@/utils/documentUtils";
-
-interface PendingDocument {
-  fileName: string;
-  wordCount: number;
-  price: number;
-  content: string;
-}
+import AuthDialog from "@/components/auth/AuthDialog";
+import { useAuthState } from "@/hooks/useAuthState";
 
 const DocumentUploadSection = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [wordCount, setWordCount] = useState<number>(0);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [pendingDocument, setPendingDocument] = useState<PendingDocument | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthState();
+  const [pendingDocument, setPendingDocument] = useState<{
+    fileName: string;
+    wordCount: number;
+    price: number;
+  } | null>(null);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
-      const newAuthState = !!session;
-      setIsAuthenticated(newAuthState);
-      
-      // If user just logged in and there's a pending document, redirect to payment
-      if (newAuthState && !isAuthenticated && pendingDocument) {
-        navigate(`/payment?amount=${pendingDocument.price}&words=${pendingDocument.wordCount}`);
-      }
-    });
+    const stored = localStorage.getItem('pendingTranslation');
+    if (stored && isAuthenticated) {
+      const parsed = JSON.parse(stored);
+      setPendingDocument(parsed);
+      localStorage.removeItem('pendingTranslation');
+      navigate('/payment');
+    }
   }, [isAuthenticated, pendingDocument, navigate]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!['text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-        .includes(file.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a .txt, .doc, .docx, or .pdf file",
-        variant: "destructive"
-      });
-      return;
-    }
+    setFile(file);
+    setIsProcessing(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
-      console.log('Processing file:', file.name);
-      const formData = new FormData();
-      formData.append('file', file);
-
+      console.log('Processing document...');
       const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData,
       });
 
       console.log('Response:', data, error);
 
-      if (error) {
-        throw new Error(error.message || 'Failed to process document');
-      }
+      if (error) throw error;
 
-      if (!data || !data.wordCount || !data.text) {
-        throw new Error('Invalid response from document processing');
-      }
-
-      const price = calculatePrice(data.wordCount);
+      const count = data.wordCount;
+      setWordCount(count);
       setPendingDocument({
         fileName: file.name,
-        wordCount: data.wordCount,
-        price: price,
-        content: data.text
+        wordCount: count,
+        price: calculatePrice(count)
       });
 
-    } catch (error) {
-      console.error('File processing error:', error);
       toast({
-        title: "Error processing file",
+        title: "Document processed successfully",
+        description: `Word count: ${count}`,
+      });
+    } catch (error: any) {
+      console.error('Error processing document:', error);
+      setFile(null);
+      setWordCount(0);
+      setPendingDocument(null);
+      toast({
+        title: "Error processing document",
         description: error.message || "Please try again with a different file",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleTranslateClick = async () => {
+    if (!pendingDocument) return;
+
+    if (!isAuthenticated) {
+      localStorage.setItem('pendingTranslation', JSON.stringify(pendingDocument));
+      setShowAuthDialog(true);
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      navigate(`/payment?words=${pendingDocument.wordCount}&amount=${pendingDocument.price}&documentName=${encodeURIComponent(pendingDocument.fileName)}`);
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process translation request. Please try again.",
         variant: "destructive"
       });
     }
   };
 
-  const handleTranslateClick = () => {
-    if (!isAuthenticated) {
-      setShowAuthDialog(true);
-    } else if (pendingDocument) {
-      navigate(`/payment?amount=${pendingDocument.price}&words=${pendingDocument.wordCount}`);
-    }
-  };
-
   return (
-    <section id="document-translation" className="py-24 scroll-section">
+    <section className="py-12 bg-background">
       <div className="container mx-auto px-4">
-        <h2 className="text-4xl font-bold mb-4 text-center">Single Document Translation</h2>
-        <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-          Upload your document and get an instant estimate. Our professional translators ensure quality with a maximum delivery time of 48 hours.
-        </p>
-        
-        <Card className="max-w-2xl mx-auto glass">
-          <CardContent className="p-8">
-            <div className="text-center mb-8">
-              <h3 className="text-xl font-semibold mb-4">How it works</h3>
-              <ol className="text-left space-y-4">
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-primary">1.</span>
-                  <span className="text-gray-700">Upload your document (.txt, .doc, .docx, or .pdf)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-primary">2.</span>
-                  <span className="text-gray-700">Get an instant word count and price estimate</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-primary">3.</span>
-                  <span className="text-gray-700">Choose your target language and delivery timeline (max 48 hours)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-primary">4.</span>
-                  <span className="text-gray-700">Receive your professionally translated document</span>
-                </li>
-              </ol>
-            </div>
-            
+        <div className="max-w-3xl mx-auto">
+          <Card className="p-6">
             <div className="space-y-4">
-              <Button 
-                asChild
-                className="w-full md:w-auto mx-auto flex gap-2 hover:scale-105 transition-transform"
-              >
-                <label className="cursor-pointer">
-                  <FileUp className="w-5 h-5" />
-                  Upload Document
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".txt,.doc,.docx,.pdf"
-                    onChange={handleFileUpload}
-                  />
+              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg border-gray-300 hover:border-primary transition-colors">
+                <input
+                  type="file"
+                  accept=".txt,.doc,.docx"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="fileInput"
+                />
+                <label
+                  htmlFor="fileInput"
+                  className="cursor-pointer text-center space-y-2"
+                >
+                  <div className="text-lg font-medium">
+                    {isProcessing ? "Processing..." : "Upload Document"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Supported formats: .txt, .doc, .docx
+                  </div>
                 </label>
-              </Button>
+              </div>
 
               {pendingDocument && (
-                <div className="bg-secondary/30 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-2">Selected file: {pendingDocument.fileName}</p>
-                  <p className="font-medium">Word count: {pendingDocument.wordCount}</p>
-                  <p className="font-medium mb-4">Estimated price: R${pendingDocument.price.toFixed(2)}</p>
-                  <Button 
+                <div className="space-y-4">
+                  <div className="p-4 bg-secondary rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">{pendingDocument.fileName}</h3>
+                        <p className="text-sm text-gray-500">
+                          {pendingDocument.wordCount} words
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">
+                          R${pendingDocument.price}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
                     onClick={handleTranslateClick}
                     className="w-full"
+                    size="lg"
                   >
                     Translate Now
                   </Button>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
 
-      <AuthDialog 
-        isOpen={showAuthDialog} 
+      <AuthDialog
+        open={showAuthDialog}
         onOpenChange={setShowAuthDialog}
-        message="Please sign in or create an account to proceed with the translation"
       />
     </section>
   );
