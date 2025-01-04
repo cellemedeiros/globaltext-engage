@@ -7,6 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileText, Clock, Languages, DollarSign } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { Database } from "@/integrations/supabase/types";
+
+type Translation = Database['public']['Tables']['translations']['Row'] & {
+  profiles?: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+};
 
 const AvailableTranslations = () => {
   const { toast } = useToast();
@@ -36,7 +44,7 @@ const AvailableTranslations = () => {
         throw error;
       }
 
-      return data || [];
+      return (data || []) as Translation[];
     },
   });
 
