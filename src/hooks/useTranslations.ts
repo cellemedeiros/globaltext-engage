@@ -11,7 +11,6 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
       let query = supabase
         .from('translations')
         .select('*')
-        .neq('status', 'awaiting_payment')  // Add this line to filter out awaiting_payment
         .order('created_at', { ascending: false });
 
       if (role === 'translator') {
@@ -21,12 +20,20 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
       } else if (role === 'admin') {
         query = query.eq('status', 'pending_admin_review');
       } else {
-        query = query.eq('user_id', session.user.id);
+        // For clients, show all their translations that have been paid for
+        query = query
+          .eq('user_id', session.user.id)
+          .neq('status', 'awaiting_payment');
       }
 
       const { data, error } = await query;
-
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error fetching translations:', error);
+        throw error;
+      }
+      
+      console.log('Fetched translations:', data); // Add this for debugging
       return data;
     },
   });
