@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import * as zip from "https://deno.land/x/zipjs/index.js";
 
 const corsHeaders = {
@@ -69,7 +68,7 @@ serve(async (req) => {
   try {
     console.log('Processing document request received');
     
-    // Get the content type from the request
+    // Get and validate content type
     const contentType = req.headers.get('content-type') || '';
     console.log('Content-Type:', contentType);
 

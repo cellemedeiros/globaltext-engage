@@ -29,16 +29,13 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
     }
 
     try {
-      console.log('Processing file:', file.name);
+      console.log('Processing file:', file.name, 'Type:', file.type);
       const formData = new FormData();
       formData.append('file', file);
 
+      // Let the browser handle the Content-Type header with boundary
       const { data, error } = await supabase.functions.invoke('process-document', {
-        body: formData,
-        headers: {
-          // Remove the Content-Type header to let the browser set it with the boundary
-          // 'Content-Type': 'multipart/form-data',
-        },
+        body: formData
       });
 
       console.log('Response:', data, error);
