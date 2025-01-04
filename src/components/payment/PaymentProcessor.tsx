@@ -48,6 +48,7 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
 
     setIsProcessing(true);
     try {
+      console.log('Starting payment process...');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           amount: parseFloat(amount),
@@ -61,6 +62,7 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
       });
 
       if (error) throw error;
+      console.log('Checkout response:', data);
 
       if (data?.url) {
         window.location.href = data.url;

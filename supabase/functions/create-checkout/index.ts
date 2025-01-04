@@ -12,14 +12,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('Starting checkout session creation...');
-
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  );
-
   try {
+    console.log('Starting checkout session creation...');
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    );
+
     // Get auth header and validate
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -33,12 +33,24 @@ serve(async (req) => {
 
     if (userError || !user) {
       console.error('Authentication failed:', userError);
-      throw new Error('Authentication failed');
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     if (!user.email) {
       console.error('User email not found');
-      throw new Error('User email not found');
+      return new Response(
+        JSON.stringify({ error: 'User email not found' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('User authenticated successfully:', user.id);
@@ -47,7 +59,13 @@ serve(async (req) => {
     
     if (!amount) {
       console.error('Amount is required');
-      throw new Error('Amount is required');
+      return new Response(
+        JSON.stringify({ error: 'Amount is required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Creating Stripe instance...');
@@ -77,7 +95,13 @@ serve(async (req) => {
 
       if (!priceId) {
         console.error(`No price ID found for plan: ${plan}`);
-        throw new Error(`Invalid plan configuration for ${plan}`);
+        return new Response(
+          JSON.stringify({ error: `Invalid plan configuration for ${plan}` }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
 
       console.log(`Using price ID for ${plan} plan:`, priceId);
