@@ -73,7 +73,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           document_name: fileName,
           content: fileContent,
           word_count: wordCount,
-          status: 'awaiting_payment',
+          status: hasActiveSubscription ? 'pending' : 'awaiting_payment',
           amount_paid: 0,
           subscription_id: hasActiveSubscription ? session.user.id : null,
           source_language: 'en',
@@ -90,15 +90,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       } else if (wordsRemaining && wordCount > wordsRemaining) {
         navigate('/payment');
       } else {
-        const { error: updateError } = await supabase
-          .from('translations')
-          .update({
-            status: 'pending',
-          })
-          .eq('id', translation.id);
-
-        if (updateError) throw updateError;
-
         toast({
           title: "Success",
           description: "Your document has been submitted for translation",
