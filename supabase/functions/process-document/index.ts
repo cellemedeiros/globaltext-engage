@@ -1,6 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import * as zip from "https://deno.land/x/zipjs/index.js";
 import * as mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {
@@ -23,36 +21,44 @@ function calculateWordCount(text: string): number {
 
 async function processDocx(file: File): Promise<{ text: string; wordCount: number }> {
   try {
+    console.log('Processing document:', file.name, 'Type:', file.type);
     const arrayBuffer = await file.arrayBuffer();
     
     if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // Process .docx file using mammoth
+      console.log('Processing .docx file using mammoth');
       const result = await mammoth.extractRawText({ arrayBuffer });
+      if (!result || !result.value) {
+        throw new Error('Failed to extract text from .docx file');
+      }
       const text = result.value;
       const wordCount = calculateWordCount(text);
+      console.log('Successfully processed .docx file. Word count:', wordCount);
       return { text, wordCount };
     } else {
       // Process .doc file (older format)
-      // For .doc files, we'll extract text in a simpler way
+      console.log('Processing .doc file');
       const decoder = new TextDecoder('utf-8');
       const text = decoder.decode(arrayBuffer);
       const wordCount = calculateWordCount(text);
+      console.log('Successfully processed .doc file. Word count:', wordCount);
       return { text, wordCount };
     }
   } catch (error) {
     console.error('Document processing error:', error);
-    throw new Error('Failed to process document file');
+    throw new Error(`Failed to process document file: ${error.message}`);
   }
 }
 
 async function processTextFile(file: File): Promise<{ text: string; wordCount: number }> {
   try {
+    console.log('Processing text file:', file.name);
     const text = await file.text();
     const wordCount = calculateWordCount(text);
+    console.log('Successfully processed text file. Word count:', wordCount);
     return { text, wordCount };
   } catch (error) {
     console.error('Text processing error:', error);
-    throw new Error('Failed to process text file');
+    throw new Error(`Failed to process text file: ${error.message}`);
   }
 }
 
@@ -111,7 +117,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Processing error',
-        message: 'Unable to process the file. Please try a different format or contact support.'
+        message: error.message || 'Unable to process the file. Please try a different format or contact support.'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
