@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Database } from "@/integrations/supabase/types";
 
-type TranslationWithProfile = Database['public']['Tables']['translations']['Row'] & {
+type Translation = Database['public']['Tables']['translations']['Row'] & {
   profiles: {
     first_name: string | null;
     last_name: string | null;
@@ -12,7 +12,7 @@ type TranslationWithProfile = Database['public']['Tables']['translations']['Row'
 };
 
 interface TranslationCardProps {
-  translation: TranslationWithProfile;
+  translation: Translation;
   onClaim: (translationId: string) => void;
 }
 
