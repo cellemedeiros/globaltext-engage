@@ -12,66 +12,41 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('Starting checkout session creation...');
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  );
+
   try {
-    console.log('Starting checkout session creation...');
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-
-    // Get auth header and validate
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header');
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      console.error('No authorization header found');
+      throw new Error('No authorization header');
     }
 
+    console.log('Authorization header found, getting user...');
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       console.error('Authentication failed:', userError);
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('Authentication failed');
     }
 
     if (!user.email) {
       console.error('User email not found');
-      return new Response(
-        JSON.stringify({ error: 'User email not found' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('User email not found');
     }
 
-    console.log('User authenticated successfully:', user.id);
+    console.log('User authenticated successfully');
 
-    // Get request body
-    const { amount, plan, mode } = await req.json();
+    const { amount, words, plan, translationId, documentName } = await req.json();
     
-    if (!amount) {
-      console.error('Amount is required');
-      return new Response(
-        JSON.stringify({ error: 'Amount is required' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    if (!amount && !plan) {
+      console.error('Either amount or plan is required');
+      throw new Error('Either amount or plan is required');
     }
 
     console.log('Creating Stripe instance...');
@@ -79,69 +54,81 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    // Get or create customer
+    console.log('Looking up customer for email:', user.email);
     const customers = await stripe.customers.list({
       email: user.email,
       limit: 1,
     });
 
-    let customerId = customers.data[0]?.id;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-      });
-      customerId = customer.id;
+    let customer_id = undefined;
+    if (customers.data.length > 0) {
+      customer_id = customers.data[0].id;
+      console.log('Existing customer found:', customer_id);
+    } else {
+      console.log('No existing customer found, will create new');
     }
 
-    console.log('Customer ID:', customerId);
-
     let sessionConfig;
-    if (mode === 'subscription' && plan) {
-      const priceId = plan === 'Premium' 
+    if (plan) {
+      const priceId = plan.toUpperCase() === 'PREMIUM' 
         ? Deno.env.get('PREMIUM_PLAN_PRICE')
         : Deno.env.get('STANDARD_PLAN_PRICE');
 
       if (!priceId) {
         console.error(`No price ID found for plan: ${plan}`);
-        return new Response(
-          JSON.stringify({ error: `Invalid plan configuration for ${plan}` }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        throw new Error(`Invalid plan configuration for ${plan}`);
       }
 
       console.log(`Using price ID for ${plan} plan:`, priceId);
       sessionConfig = {
-        line_items: [{ price: priceId, quantity: 1 }],
         mode: 'subscription',
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          type: 'subscription',
+          plan,
+          userId: user.id,
+        },
       };
     } else {
       sessionConfig = {
-        line_items: [{
-          price_data: {
-            currency: 'brl',
-            product_data: {
-              name: 'Document Translation',
-            },
-            unit_amount: Math.round(amount * 100),
-          },
-          quantity: 1,
-        }],
         mode: 'payment',
+        line_items: [
+          {
+            price_data: {
+              currency: 'brl',
+              product_data: {
+                name: `Translation Service - ${words} words`,
+              },
+              unit_amount: Math.round(parseFloat(amount) * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          type: 'translation',
+          translationId,
+          documentName,
+          userId: user.id,
+          words,
+        },
       };
     }
 
-    console.log('Creating checkout session...');
+    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+      customer: customer_id,
+      customer_email: customer_id ? undefined : user.email,
       ...sessionConfig,
-      success_url: `${req.headers.get('origin')}/dashboard`,
-      cancel_url: `${req.headers.get('origin')}/dashboard`,
+      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
+      cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
     });
 
-    console.log('Checkout session created:', session.id);
+    console.log('Payment session created:', session.id);
     return new Response(
       JSON.stringify({ url: session.url }),
       { 

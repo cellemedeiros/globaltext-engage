@@ -6,13 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AuthDialog from "@/components/auth/AuthDialog";
 import { useNavigate } from "react-router-dom";
-import { calculatePrice } from "@/utils/documentUtils";
 
 interface PendingDocument {
   fileName: string;
   wordCount: number;
   price: number;
-  content: string;
 }
 
 const DocumentUploadSection = () => {
@@ -27,67 +25,68 @@ const DocumentUploadSection = () => {
       const newAuthState = !!session;
       setIsAuthenticated(newAuthState);
       
+      // If user just logged in and there's a pending document, redirect to payment
       if (newAuthState && !isAuthenticated && pendingDocument) {
         navigate(`/payment?amount=${pendingDocument.price}&words=${pendingDocument.wordCount}`);
       }
     });
   }, [isAuthenticated, pendingDocument, navigate]);
 
-  const handleTranslateClick = () => {
+  const handleUploadClick = () => {
     if (!isAuthenticated) {
       setShowAuthDialog(true);
-    } else if (pendingDocument) {
-      navigate(`/payment?amount=${pendingDocument.price}&words=${pendingDocument.wordCount}`);
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in or create an account to upload documents.",
+      });
+    } else {
+      // Handle document upload logic for authenticated users
+      navigate('/dashboard');
     }
+  };
+
+  const calculateWordCount = (text: string) => {
+    return text.trim().split(/\s+/).length;
+  };
+
+  const calculatePrice = (wordCount: number) => {
+    return wordCount * 0.2; // R$0.20 per word
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!['text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
         .includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a .doc or .docx file",
+        description: "Please upload a .txt, .doc, .docx, or .pdf file",
         variant: "destructive"
       });
       return;
     }
 
-    try {
-      console.log('Processing file:', file.name, 'Type:', file.type);
-      const formData = new FormData();
-      formData.append('file', file);
+    // For demonstration, using simple text file reader
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const words = calculateWordCount(text);
+      const price = calculatePrice(words);
 
-      const { data, error } = await supabase.functions.invoke('process-document', {
-        body: formData
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to process document');
-      }
-
-      if (!data || !data.wordCount || !data.text) {
-        throw new Error('Invalid response from document processing');
-      }
-
-      const price = calculatePrice(data.wordCount);
       setPendingDocument({
         fileName: file.name,
-        wordCount: data.wordCount,
-        price: price,
-        content: data.text
+        wordCount: words,
+        price: price
       });
 
-    } catch (error: any) {
-      console.error('File processing error:', error);
-      toast({
-        title: "Error processing file",
-        description: error.message || "Please try again with a different file",
-        variant: "destructive"
-      });
-    }
+      if (!isAuthenticated) {
+        setShowAuthDialog(true);
+      } else {
+        navigate(`/payment?amount=${price}&words=${words}`);
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -95,7 +94,7 @@ const DocumentUploadSection = () => {
       <div className="container mx-auto px-4">
         <h2 className="text-4xl font-bold mb-4 text-center">Single Document Translation</h2>
         <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-          Upload your document and get an instant estimate. Our professional translators ensure quality with a maximum delivery time of 48 hours.
+          Upload your document and get an instant estimate. Our professional translators ensure quality at R$0,20 per word, with a maximum delivery time of 48 hours.
         </p>
         
         <Card className="max-w-2xl mx-auto glass">
@@ -105,7 +104,7 @@ const DocumentUploadSection = () => {
               <ol className="text-left space-y-4">
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">1.</span>
-                  <span className="text-gray-700">Upload your document (.doc or .docx only)</span>
+                  <span className="text-gray-700">Upload your document (.txt, .doc, .docx, or .pdf)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">2.</span>
@@ -133,7 +132,7 @@ const DocumentUploadSection = () => {
                   <input
                     type="file"
                     className="hidden"
-                    accept=".doc,.docx"
+                    accept=".txt,.doc,.docx,.pdf"
                     onChange={handleFileUpload}
                   />
                 </label>
@@ -144,12 +143,6 @@ const DocumentUploadSection = () => {
                   <p className="text-sm text-gray-600 mb-2">Selected file: {pendingDocument.fileName}</p>
                   <p className="font-medium">Word count: {pendingDocument.wordCount}</p>
                   <p className="font-medium mb-4">Estimated price: R${pendingDocument.price.toFixed(2)}</p>
-                  <Button 
-                    onClick={handleTranslateClick}
-                    className="w-full"
-                  >
-                    Translate Now
-                  </Button>
                 </div>
               )}
             </div>

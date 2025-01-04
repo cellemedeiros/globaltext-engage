@@ -1,30 +1,19 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
+import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 interface PaymentProcessorProps {
   amount: string | null;
   words: string | null;
   plan: string | null;
+  session: Session | null;
 }
 
-const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
+const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-  const navigate = useNavigate();
-
-  const { data: session, isLoading: isCheckingAuth } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      return session;
-    },
-  });
 
   const handlePayment = async () => {
     if (!session) {
@@ -33,40 +22,25 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
         description: "Please log in to continue with the payment.",
         variant: "destructive",
       });
-      navigate('/?auth=true');
-      return;
-    }
-
-    if (!amount) {
-      toast({
-        title: "Error",
-        description: "Invalid payment amount",
-        variant: "destructive",
-      });
       return;
     }
 
     setIsProcessing(true);
     try {
-      console.log('Starting payment process...');
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        throw new Error('No active session');
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          amount: parseFloat(amount),
-          words,
-          plan,
-          mode: plan ? 'subscription' : 'payment'
-        },
+        body: { amount, words, plan },
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${currentSession.access_token}`
         }
       });
 
-      if (error) {
-        console.error('Checkout error:', error);
-        throw error;
-      }
-
-      console.log('Checkout response:', data);
+      if (error) throw error;
 
       if (data?.url) {
         window.location.href = data.url;
@@ -85,17 +59,6 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
     }
   };
 
-  if (isCheckingAuth) {
-    return (
-      <div className="p-6">
-        <Button disabled className="w-full">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Loading...
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6">
       <Button 
@@ -103,14 +66,7 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
         className="w-full"
         disabled={isProcessing}
       >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          `Proceed to Payment - R$${amount}`
-        )}
+        {isProcessing ? "Processing..." : `Proceed to Payment - R$${amount}`}
       </Button>
     </div>
   );

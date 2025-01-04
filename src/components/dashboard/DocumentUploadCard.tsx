@@ -22,14 +22,10 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const { data: session, isLoading: sessionLoading } = useQuery({
+  const { data: session } = useQuery({
     queryKey: ['session'],
     queryFn: async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Session error:', error);
-        throw error;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
       return session;
     },
   });
@@ -70,6 +66,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     }
 
     try {
+      // Create translation record first
       const { data: translation, error: insertError } = await supabase
         .from('translations')
         .insert({
@@ -77,7 +74,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           document_name: fileName,
           content: fileContent,
           word_count: wordCount,
-          status: hasActiveSubscription ? 'pending' : 'awaiting_payment',
+          status: 'awaiting_payment',
           amount_paid: 0,
           subscription_id: hasActiveSubscription ? session.user.id : null,
           source_language: 'en',
@@ -90,15 +87,27 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       if (insertError) throw insertError;
 
       if (!hasActiveSubscription) {
+        // Redirect to payment with translation ID
         navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}&translationId=${translation.id}&documentName=${encodeURIComponent(fileName)}`);
       } else if (wordsRemaining && wordCount > wordsRemaining) {
         navigate('/payment');
       } else {
+        // If using subscription, update status directly
+        const { error: updateError } = await supabase
+          .from('translations')
+          .update({
+            status: 'pending',
+          })
+          .eq('id', translation.id);
+
+        if (updateError) throw updateError;
+
         toast({
           title: "Success",
           description: "Your document has been submitted for translation",
         });
         
+        // Refresh the page to update the translations list
         window.location.reload();
       }
     } catch (error) {
@@ -110,16 +119,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       });
     }
   };
-
-  if (sessionLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Loading...</CardTitle>
-        </CardHeader>
-      </Card>
-    );
-  }
 
   return (
     <Card>

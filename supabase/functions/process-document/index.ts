@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import * as zip from "https://deno.land/x/zipjs/index.js";
 
 const corsHeaders = {
@@ -68,23 +69,6 @@ serve(async (req) => {
   try {
     console.log('Processing document request received');
     
-    // Get and validate content type
-    const contentType = req.headers.get('content-type') || '';
-    console.log('Content-Type:', contentType);
-
-    if (!contentType.includes('multipart/form-data')) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid content type',
-          message: 'Content type must be multipart/form-data'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
@@ -130,8 +114,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Processing error',
-        message: 'Unable to process the file. Please try a different format or contact support.',
-        details: error.message
+        message: 'Unable to process the file. Please try a different format or contact support.'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
