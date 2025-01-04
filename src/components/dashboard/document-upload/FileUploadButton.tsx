@@ -30,12 +30,9 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
     }
 
     try {
-      console.log('Processing file:', file.name);
+      console.log('Processing file:', file.name, 'Type:', file.type);
       const formData = new FormData();
-      
-      // Create blob from file to ensure proper content type
-      const blob = new Blob([await file.arrayBuffer()], { type: file.type });
-      formData.append('file', blob, file.name);
+      formData.append('file', file);
 
       const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData,
