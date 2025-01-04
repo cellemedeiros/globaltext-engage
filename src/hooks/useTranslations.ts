@@ -11,6 +11,7 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
       let query = supabase
         .from('translations')
         .select('*')
+        .neq('status', 'awaiting_payment')  // Add this line to filter out awaiting_payment
         .order('created_at', { ascending: false });
 
       if (role === 'translator') {

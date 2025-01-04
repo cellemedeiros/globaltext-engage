@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
+import TranslationStatus from "./TranslationStatus";
+import TranslationContent from "./TranslationContent";
 
 interface Translation {
   id: string;
@@ -28,36 +29,6 @@ interface TranslationItemProps {
 const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
   const [reviewNotes, setReviewNotes] = useState("");
   const { toast } = useToast();
-
-  const getStatusDisplay = (status: string) => {
-    switch (status) {
-      case 'awaiting_payment':
-        return {
-          label: 'Awaiting Payment',
-          className: 'bg-yellow-100 text-yellow-800'
-        };
-      case 'pending':
-        return {
-          label: 'Pending Translation',
-          className: 'bg-blue-100 text-blue-800'
-        };
-      case 'pending_review':
-        return {
-          label: 'Under Review',
-          className: 'bg-purple-100 text-purple-800'
-        };
-      case 'completed':
-        return {
-          label: 'Completed',
-          className: 'bg-green-100 text-green-800'
-        };
-      default:
-        return {
-          label: status,
-          className: 'bg-gray-100 text-gray-800'
-        };
-    }
-  };
 
   const handleReviewSubmit = async (translationId: string, reviewedContent: string) => {
     try {
@@ -113,8 +84,6 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
     }
   };
 
-  const statusDisplay = getStatusDisplay(translation.status);
-
   return (
     <div className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
       <div className="flex justify-between items-start">
@@ -128,20 +97,12 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
           
           {(role === 'translator' || role === 'admin') && (
             <div className="space-y-4">
-              {translation.content && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">Original Content</h4>
-                  <p className="text-sm whitespace-pre-wrap">{translation.content}</p>
-                </div>
-              )}
+              <TranslationContent 
+                content={translation.content}
+                aiTranslatedContent={translation.ai_translated_content}
+                title={translation.document_name}
+              />
               
-              {translation.ai_translated_content && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">AI Translation</h4>
-                  <p className="text-sm whitespace-pre-wrap">{translation.ai_translated_content}</p>
-                </div>
-              )}
-
               {role === 'translator' && translation.status === 'pending_review' && (
                 <>
                   <textarea
@@ -192,25 +153,11 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             </div>
           )}
         </div>
-        <div className="text-right ml-4">
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusDisplay.className}`}>
-            {statusDisplay.label}
-          </span>
-          <p className="text-sm text-muted-foreground mt-1">
-            {translation.word_count} words
-          </p>
-          {translation.admin_review_status && (
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-2 ${
-              translation.admin_review_status === 'approved' 
-                ? 'bg-green-100 text-green-800'
-                : translation.admin_review_status === 'rejected'
-                ? 'bg-red-100 text-red-800'
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              {translation.admin_review_status}
-            </span>
-          )}
-        </div>
+        <TranslationStatus 
+          status={translation.status}
+          wordCount={translation.word_count}
+          adminReviewStatus={translation.admin_review_status}
+        />
       </div>
     </div>
   );
