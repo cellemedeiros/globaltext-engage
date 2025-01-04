@@ -16,13 +16,14 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
 
     const allowedTypes = [
       'text/plain',
+      'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a .txt or .docx file",
+        description: "Please upload a .txt, .doc, or .docx file",
         variant: "destructive"
       });
       return;
@@ -70,7 +71,7 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
         <input
           type="file"
           className="hidden"
-          accept=".txt,.docx"
+          accept=".txt,.doc,.docx"
           onChange={handleFileChange}
         />
       </label>

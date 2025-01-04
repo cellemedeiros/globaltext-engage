@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import * as zip from "https://deno.land/x/zipjs/index.js";
+import * as mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,29 +24,24 @@ function calculateWordCount(text: string): number {
 async function processDocx(file: File): Promise<{ text: string; wordCount: number }> {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const reader = new zip.ZipReader(new zip.Uint8ArrayReader(new Uint8Array(arrayBuffer)));
-    const entries = await reader.getEntries();
     
-    // Find the document.xml file
-    const documentXml = entries.find(entry => entry.filename === "word/document.xml");
-    if (!documentXml) {
-      throw new Error("Could not find document.xml in DOCX file");
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      // Process .docx file using mammoth
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      const text = result.value;
+      const wordCount = calculateWordCount(text);
+      return { text, wordCount };
+    } else {
+      // Process .doc file (older format)
+      // For .doc files, we'll extract text in a simpler way
+      const decoder = new TextDecoder('utf-8');
+      const text = decoder.decode(arrayBuffer);
+      const wordCount = calculateWordCount(text);
+      return { text, wordCount };
     }
-
-    // Get the XML content
-    const xmlContent = await documentXml.getData(new zip.TextWriter());
-    
-    // Extract text from XML (simple approach - can be improved)
-    const textContent = xmlContent
-      .replace(/<[^>]+>/g, ' ') // Remove XML tags
-      .replace(/\s+/g, ' ')     // Normalize whitespace
-      .trim();
-
-    const wordCount = calculateWordCount(textContent);
-    return { text: textContent, wordCount };
   } catch (error) {
-    console.error('DOCX processing error:', error);
-    throw new Error('Failed to process DOCX file');
+    console.error('Document processing error:', error);
+    throw new Error('Failed to process document file');
   }
 }
 
@@ -83,7 +79,8 @@ serve(async (req) => {
     console.log(`Processing file: ${file.name} (${file.type})`);
 
     let result;
-    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.type === 'application/msword') {
       result = await processDocx(file);
     } else if (file.type === 'text/plain') {
       result = await processTextFile(file);
@@ -92,7 +89,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Unsupported file type',
-          message: 'Please upload a DOCX or text file.'
+          message: 'Please upload a .txt, .doc, or .docx file.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
