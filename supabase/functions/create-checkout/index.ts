@@ -42,11 +42,11 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words, plan, translationId, documentName } = await req.json();
+    const { amount, words, plan, mode } = await req.json();
     
-    if (!amount && !plan) {
-      console.error('Either amount or plan is required');
-      throw new Error('Either amount or plan is required');
+    if (!amount) {
+      console.error('Amount is required');
+      throw new Error('Amount is required');
     }
 
     console.log('Creating Stripe instance...');
@@ -69,7 +69,7 @@ serve(async (req) => {
     }
 
     let sessionConfig;
-    if (plan) {
+    if (mode === 'subscription' && plan) {
       const priceId = plan.toUpperCase() === 'PREMIUM' 
         ? Deno.env.get('PREMIUM_PLAN_PRICE')
         : Deno.env.get('STANDARD_PLAN_PRICE');
@@ -111,8 +111,6 @@ serve(async (req) => {
         ],
         metadata: {
           type: 'translation',
-          translationId,
-          documentName,
           userId: user.id,
           words,
         },

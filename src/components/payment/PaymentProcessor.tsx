@@ -37,10 +37,24 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
       return;
     }
 
+    if (!amount) {
+      toast({
+        title: "Error",
+        description: "Invalid payment amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount, words, plan },
+        body: { 
+          amount: parseFloat(amount),
+          words,
+          plan,
+          mode: plan ? 'subscription' : 'payment'
+        },
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
