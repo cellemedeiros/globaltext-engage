@@ -11,23 +11,23 @@ export const getStatusDisplay = (status: string) => {
     case 'completed':
       return {
         label: 'Completed',
-        className: 'bg-green-100 text-green-800'
+        className: 'bg-green-500 text-white'
       };
     case 'pending_admin_review':
       return {
         label: 'Under Admin Review',
-        className: 'bg-purple-100 text-purple-800'
+        className: 'bg-purple-500 text-white'
       };
     case 'pending':
     case 'pending_review':
       return {
         label: 'Pending Review',
-        className: 'bg-blue-100 text-blue-800'
+        className: 'bg-blue-500 text-white'
       };
     default:
       return {
         label: 'Pending Review',
-        className: 'bg-blue-100 text-blue-800'
+        className: 'bg-blue-500 text-white'
       };
   }
 };
@@ -36,23 +36,23 @@ const TranslationStatus = ({ status, wordCount, adminReviewStatus }: Translation
   const statusDisplay = getStatusDisplay(status);
 
   return (
-    <div className="text-right ml-4">
-      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusDisplay.className}`}>
+    <div className="flex flex-col items-end gap-2">
+      <Badge variant="secondary" className={`${statusDisplay.className}`}>
         {statusDisplay.label}
+      </Badge>
+      <span className="text-sm text-muted-foreground">
+        {wordCount.toLocaleString()} words
       </span>
-      <p className="text-sm text-muted-foreground mt-1">
-        {wordCount} words
-      </p>
       {adminReviewStatus && (
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-2 ${
+        <Badge variant="outline" className={
           adminReviewStatus === 'approved' 
-            ? 'bg-green-100 text-green-800'
+            ? 'border-green-500 text-green-700'
             : adminReviewStatus === 'rejected'
-            ? 'bg-red-100 text-red-800'
-            : 'bg-yellow-100 text-yellow-800'
-        }`}>
-          {adminReviewStatus}
-        </span>
+            ? 'border-red-500 text-red-700'
+            : 'border-yellow-500 text-yellow-700'
+        }>
+          {adminReviewStatus.charAt(0).toUpperCase() + adminReviewStatus.slice(1)}
+        </Badge>
       )}
     </div>
   );
