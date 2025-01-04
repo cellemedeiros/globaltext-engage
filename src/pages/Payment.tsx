@@ -51,7 +51,6 @@ const Payment = () => {
               amount={effectiveAmount}
               words={effectiveWords}
               plan={effectivePlan}
-              session={session}
             />
           </Card>
           <PaymentSummary 
