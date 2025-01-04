@@ -41,7 +41,7 @@ serve(async (req) => {
       throw new Error('User email not found');
     }
 
-    console.log('User authenticated successfully');
+    console.log('User authenticated successfully:', user.id);
 
     const { amount, words, plan, mode } = await req.json();
     
