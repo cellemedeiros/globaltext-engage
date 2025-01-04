@@ -10,7 +10,6 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-// Initialize Supabase client with service role key
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
@@ -39,18 +38,18 @@ serve(async (req) => {
         const paymentIntent = event.data.object;
         const metadata = paymentIntent.metadata || {};
         
-        if (metadata.type === 'translation') {
-          const translationId = metadata.translationId;
-          console.log('Updating translation status for ID:', translationId);
+        if (metadata.type === 'translation' && metadata.translationId) {
+          console.log('Updating translation status for ID:', metadata.translationId);
 
           // Update translation status to pending (available for translators)
           const { error: updateError } = await supabaseAdmin
             .from('translations')
             .update({
               status: 'pending',
-              amount_paid: paymentIntent.amount / 100, // Convert from cents to dollars
+              amount_paid: paymentIntent.amount / 100,
+              price_offered: paymentIntent.amount / 100
             })
-            .eq('id', translationId);
+            .eq('id', metadata.translationId);
 
           if (updateError) {
             console.error('Error updating translation:', updateError);
@@ -94,7 +93,7 @@ serve(async (req) => {
         const paymentIntent = event.data.object;
         const metadata = paymentIntent.metadata || {};
         
-        if (metadata.type === 'translation') {
+        if (metadata.type === 'translation' && metadata.translationId) {
           console.log('Updating failed payment status for translation:', metadata.translationId);
           
           const { error } = await supabaseAdmin
