@@ -36,7 +36,7 @@ const AvailableTranslations = () => {
         throw error;
       }
 
-      return data;
+      return data || [];
     },
   });
 
