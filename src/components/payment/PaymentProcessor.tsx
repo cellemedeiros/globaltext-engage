@@ -3,17 +3,26 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 
 interface PaymentProcessorProps {
   amount: string | null;
   words: string | null;
   plan: string | null;
-  session: Session | null;
 }
 
-const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProps) => {
+const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const { data: session, isLoading: isCheckingAuth } = useQuery({
+    queryKey: ['auth-session'],
+    queryFn: async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return session;
+    },
+  });
 
   const handlePayment = async () => {
     if (!session) {
@@ -27,16 +36,10 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
 
     setIsProcessing(true);
     try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession) {
-        throw new Error('No active session');
-      }
-
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { amount, words, plan },
         headers: {
-          Authorization: `Bearer ${currentSession.access_token}`
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -58,6 +61,14 @@ const PaymentProcessor = ({ amount, words, plan, session }: PaymentProcessorProp
       setIsProcessing(false);
     }
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="p-6">
+        <Button disabled className="w-full">Loading...</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
