@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import { Database } from "@/integrations/supabase/types";
 
 type Translation = Database['public']['Tables']['translations']['Row'] & {
-  profiles?: {
+  profiles: {
     first_name: string | null;
     last_name: string | null;
   } | null;
@@ -44,7 +44,7 @@ const AvailableTranslations = () => {
         throw error;
       }
 
-      return (data || []) as Translation[];
+      return (data as Translation[]) || [];
     },
   });
 
