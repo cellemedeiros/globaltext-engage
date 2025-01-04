@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationCard from "./TranslationCard";
 import { Database } from "@/integrations/supabase/types";
 
-type TranslationWithProfile = Database['public']['Tables']['translations']['Row'] & {
+type Translation = Database['public']['Tables']['translations']['Row'] & {
   profiles: {
     first_name: string | null;
     last_name: string | null;
@@ -42,7 +42,7 @@ const AvailableTranslations = () => {
         throw error;
       }
 
-      return (data as unknown as TranslationWithProfile[]) || [];
+      return data as Translation[];
     },
   });
 
