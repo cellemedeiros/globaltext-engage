@@ -29,19 +29,28 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
     }
 
     try {
+      console.log('Processing file:', file.name);
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await supabase.functions.invoke('process-document', {
+      const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to process document');
+      console.log('Response:', data, error);
+
+      if (error) {
+        throw new Error(error.message || 'Failed to process document');
       }
 
-      const { wordCount, text } = response.data;
-      onFileSelect(file, wordCount, text);
+      if (!data || !data.wordCount || !data.text) {
+        throw new Error('Invalid response from document processing');
+      }
+
+      onFileSelect(file, data.wordCount, data.text);
 
     } catch (error) {
       console.error('File processing error:', error);
