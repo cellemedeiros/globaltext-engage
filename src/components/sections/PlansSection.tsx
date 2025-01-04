@@ -24,8 +24,6 @@ const PlansSection = () => {
         { text: "48-hour delivery", available: true },
         { text: "1 language pair", available: true },
         { text: "Basic quality assurance", available: true },
-        { text: "Glossary management", available: false },
-        { text: "API access", available: false },
         { text: "Custom delivery times", available: false },
         { text: "Dedicated account manager", available: false }
       ]
@@ -42,8 +40,6 @@ const PlansSection = () => {
         { text: "24-hour delivery", available: true },
         { text: "3 language pairs", available: true },
         { text: "Enhanced quality assurance", available: true },
-        { text: "Glossary management", available: true },
-        { text: "API access", available: true },
         { text: "Custom delivery times", available: false },
         { text: "Dedicated account manager", available: false }
       ]
@@ -59,7 +55,6 @@ const PlansSection = () => {
         { text: "Unlimited language pairs", available: true },
         { text: "Premium quality assurance", available: true },
         { text: "Custom glossary & style guides", available: true },
-        { text: "Full API integration", available: true },
         { text: "Custom workflows", available: true },
         { text: "Training & onboarding", available: true }
       ]
@@ -71,7 +66,7 @@ const PlansSection = () => {
       <div className="container mx-auto px-4">
         <h2 className="text-4xl font-bold mb-4 text-center">Choose Your Plan</h2>
         <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-          Select the perfect plan for your translation needs. All plans include translations at R$0.20 per word.
+          Select the perfect plan for your translation needs.
         </p>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">

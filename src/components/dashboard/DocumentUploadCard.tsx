@@ -66,7 +66,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     }
 
     try {
-      // Create translation record first
       const { data: translation, error: insertError } = await supabase
         .from('translations')
         .insert({
@@ -87,12 +86,10 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       if (insertError) throw insertError;
 
       if (!hasActiveSubscription) {
-        // Redirect to payment with translation ID
         navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}&translationId=${translation.id}&documentName=${encodeURIComponent(fileName)}`);
       } else if (wordsRemaining && wordCount > wordsRemaining) {
         navigate('/payment');
       } else {
-        // If using subscription, update status directly
         const { error: updateError } = await supabase
           .from('translations')
           .update({
@@ -107,7 +104,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           description: "Your document has been submitted for translation",
         });
         
-        // Refresh the page to update the translations list
         window.location.reload();
       }
     } catch (error) {
