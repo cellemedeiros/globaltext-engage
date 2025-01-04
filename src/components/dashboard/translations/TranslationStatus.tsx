@@ -18,6 +18,12 @@ export const getStatusDisplay = (status: string) => {
         label: 'Under Admin Review',
         className: 'bg-purple-100 text-purple-800'
       };
+    case 'pending':
+    case 'pending_review':
+      return {
+        label: 'Pending Review',
+        className: 'bg-blue-100 text-blue-800'
+      };
     default:
       return {
         label: 'Pending Review',
