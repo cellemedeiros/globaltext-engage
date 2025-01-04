@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface Translation {
   id: string;
@@ -27,6 +28,36 @@ interface TranslationItemProps {
 const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
   const [reviewNotes, setReviewNotes] = useState("");
   const { toast } = useToast();
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'awaiting_payment':
+        return {
+          label: 'Awaiting Payment',
+          className: 'bg-yellow-100 text-yellow-800'
+        };
+      case 'pending':
+        return {
+          label: 'Pending Translation',
+          className: 'bg-blue-100 text-blue-800'
+        };
+      case 'pending_review':
+        return {
+          label: 'Under Review',
+          className: 'bg-purple-100 text-purple-800'
+        };
+      case 'completed':
+        return {
+          label: 'Completed',
+          className: 'bg-green-100 text-green-800'
+        };
+      default:
+        return {
+          label: status,
+          className: 'bg-gray-100 text-gray-800'
+        };
+    }
+  };
 
   const handleReviewSubmit = async (translationId: string, reviewedContent: string) => {
     try {
@@ -81,6 +112,8 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
       });
     }
   };
+
+  const statusDisplay = getStatusDisplay(translation.status);
 
   return (
     <div className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
@@ -160,8 +193,8 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
           )}
         </div>
         <div className="text-right ml-4">
-          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-            {translation.status}
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusDisplay.className}`}>
+            {statusDisplay.label}
           </span>
           <p className="text-sm text-muted-foreground mt-1">
             {translation.word_count} words
