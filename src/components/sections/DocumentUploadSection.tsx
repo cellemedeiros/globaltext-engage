@@ -27,7 +27,6 @@ const DocumentUploadSection = () => {
       const newAuthState = !!session;
       setIsAuthenticated(newAuthState);
       
-      // If user just logged in and there's a pending document, redirect to payment
       if (newAuthState && !isAuthenticated && pendingDocument) {
         navigate(`/payment?amount=${pendingDocument.price}&words=${pendingDocument.wordCount}`);
       }
@@ -57,18 +56,13 @@ const DocumentUploadSection = () => {
     }
 
     try {
-      console.log('Processing file:', file.name);
+      console.log('Processing file:', file.name, 'Type:', file.type);
       const formData = new FormData();
       formData.append('file', file);
 
       const { data, error } = await supabase.functions.invoke('process-document', {
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        body: formData
       });
-
-      console.log('Response:', data, error);
 
       if (error) {
         throw new Error(error.message || 'Failed to process document');
@@ -86,7 +80,7 @@ const DocumentUploadSection = () => {
         content: data.text
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('File processing error:', error);
       toast({
         title: "Error processing file",
