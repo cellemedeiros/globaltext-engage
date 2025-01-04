@@ -32,18 +32,13 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
     try {
       console.log('Processing file:', file.name);
       const formData = new FormData();
-      formData.append('file', file);
-
+      
       // Create blob from file to ensure proper content type
       const blob = new Blob([await file.arrayBuffer()], { type: file.type });
       formData.append('file', blob, file.name);
 
       const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData,
-        headers: {
-          // Remove content-type header to let browser set it with boundary
-          // 'Content-Type': 'multipart/form-data',
-        },
       });
 
       console.log('Response:', data, error);
