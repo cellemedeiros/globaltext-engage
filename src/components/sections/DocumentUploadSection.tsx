@@ -107,6 +107,14 @@ const DocumentUploadSection = () => {
     <section className="py-12 bg-background">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold tracking-tight">
+              Start Your Translation
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              Upload your document and get an instant quote for professional translation services
+            </p>
+          </div>
           <Card className="p-6">
             <div className="space-y-4">
               <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg border-gray-300 hover:border-primary transition-colors">
