@@ -163,7 +163,7 @@ const DocumentUploadSection = () => {
       </div>
 
       <AuthDialog
-        open={showAuthDialog}
+        isOpen={showAuthDialog}
         onOpenChange={setShowAuthDialog}
       />
     </section>
