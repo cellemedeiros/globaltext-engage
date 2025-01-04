@@ -8,25 +8,20 @@ interface TranslationStatusProps {
 
 export const getStatusDisplay = (status: string) => {
   switch (status) {
-    case 'pending':
-      return {
-        label: 'Pending Translation',
-        className: 'bg-blue-100 text-blue-800'
-      };
-    case 'pending_review':
-      return {
-        label: 'Under Review',
-        className: 'bg-purple-100 text-purple-800'
-      };
     case 'completed':
       return {
         label: 'Completed',
         className: 'bg-green-100 text-green-800'
       };
+    case 'pending_admin_review':
+      return {
+        label: 'Under Admin Review',
+        className: 'bg-purple-100 text-purple-800'
+      };
     default:
       return {
-        label: status,
-        className: 'bg-gray-100 text-gray-800'
+        label: 'Pending Review',
+        className: 'bg-blue-100 text-blue-800'
       };
   }
 };

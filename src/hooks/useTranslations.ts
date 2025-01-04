@@ -20,10 +20,8 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
       } else if (role === 'admin') {
         query = query.eq('status', 'pending_admin_review');
       } else {
-        // For clients, show all their translations that have been paid for
-        query = query
-          .eq('user_id', session.user.id)
-          .neq('status', 'awaiting_payment');
+        // For clients, show all their translations
+        query = query.eq('user_id', session.user.id);
       }
 
       const { data, error } = await query;
@@ -33,7 +31,7 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
         throw error;
       }
       
-      console.log('Fetched translations:', data); // Add this for debugging
+      console.log('Fetched translations:', data);
       return data;
     },
   });
