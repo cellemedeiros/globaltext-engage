@@ -34,14 +34,6 @@ const DocumentUploadSection = () => {
     });
   }, [isAuthenticated, pendingDocument, navigate]);
 
-  const handleTranslateClick = () => {
-    if (!isAuthenticated) {
-      setShowAuthDialog(true);
-    } else if (pendingDocument) {
-      navigate(`/payment?amount=${pendingDocument.price}&words=${pendingDocument.wordCount}`);
-    }
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -63,9 +55,6 @@ const DocumentUploadSection = () => {
 
       const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
       });
 
       console.log('Response:', data, error);
@@ -93,6 +82,14 @@ const DocumentUploadSection = () => {
         description: error.message || "Please try again with a different file",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleTranslateClick = () => {
+    if (!isAuthenticated) {
+      setShowAuthDialog(true);
+    } else if (pendingDocument) {
+      navigate(`/payment?amount=${pendingDocument.price}&words=${pendingDocument.wordCount}`);
     }
   };
 
