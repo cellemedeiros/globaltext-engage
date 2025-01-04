@@ -48,6 +48,7 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
 
     setIsProcessing(true);
     try {
+      console.log('Creating checkout session with token:', session.access_token);
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           amount: parseFloat(amount),

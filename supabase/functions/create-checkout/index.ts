@@ -20,6 +20,7 @@ serve(async (req) => {
   );
 
   try {
+    // Get auth header and validate
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('No authorization header found');
