@@ -5,14 +5,21 @@ interface PaymentSummaryProps {
   words?: string | null;
   plan?: string | null;
   amount?: string | null;
+  documentName?: string | null;
 }
 
-const PaymentSummary = ({ words, plan, amount }: PaymentSummaryProps) => {
+const PaymentSummary = ({ words, plan, amount, documentName }: PaymentSummaryProps) => {
   return (
     <div className="space-y-6">
       <Card className="p-6">
         <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
         <div className="space-y-2 text-sm">
+          {documentName && (
+            <div className="flex justify-between">
+              <span>Document:</span>
+              <span className="font-medium">{documentName}</span>
+            </div>
+          )}
           {words && (
             <div className="flex justify-between">
               <span>Word count:</span>

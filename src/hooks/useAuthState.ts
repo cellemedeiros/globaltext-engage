@@ -3,10 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 
-export const useAuthState = (onOpenChange: (open: boolean) => void) => {
+export const useAuthState = (onOpenChange?: (open: boolean) => void) => {
   const [selectedRole, setSelectedRole] = useState<'client' | 'translator' | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Check authentication status when the hook is initialized
+  useState(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+  });
 
   const handleTranslatorAccess = async (session: any) => {
     const { data: application } = await supabase
@@ -16,7 +24,7 @@ export const useAuthState = (onOpenChange: (open: boolean) => void) => {
       .maybeSingle();
 
     if (!application) {
-      onOpenChange(false);
+      if (onOpenChange) onOpenChange(false);
       navigate('/?apply=true');
       toast({
         title: "Application Required",
@@ -24,7 +32,7 @@ export const useAuthState = (onOpenChange: (open: boolean) => void) => {
       });
       return true;
     } else {
-      onOpenChange(false);
+      if (onOpenChange) onOpenChange(false);
       navigate('/translator-dashboard');
       return true;
     }
@@ -88,6 +96,7 @@ export const useAuthState = (onOpenChange: (open: boolean) => void) => {
   return {
     selectedRole,
     setSelectedRole,
-    handleRoleSelect
+    handleRoleSelect,
+    isAuthenticated
   };
 };
