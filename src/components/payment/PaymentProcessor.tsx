@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface PaymentProcessorProps {
   amount: string | null;
@@ -14,6 +15,7 @@ interface PaymentProcessorProps {
 const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
 
   const { data: session, isLoading: isCheckingAuth } = useQuery({
     queryKey: ['auth-session'],
@@ -31,6 +33,7 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
         description: "Please log in to continue with the payment.",
         variant: "destructive",
       });
+      navigate('/?auth=true');
       return;
     }
 
