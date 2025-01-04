@@ -36,7 +36,8 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
       const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          // Remove the Content-Type header to let the browser set it with the boundary
+          // 'Content-Type': 'multipart/form-data',
         },
       });
 
