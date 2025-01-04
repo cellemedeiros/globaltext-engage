@@ -9,7 +9,7 @@ import TranslationCard from "./TranslationCard";
 import { Database } from "@/integrations/supabase/types";
 
 type Translation = Database['public']['Tables']['translations']['Row'] & {
-  profiles: {
+  profiles?: {
     first_name: string | null;
     last_name: string | null;
   } | null;
@@ -22,13 +22,20 @@ const AvailableTranslations = () => {
     queryKey: ['available-translations'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
+      if (!session) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to view available translations",
+          variant: "destructive"
+        });
+        return [];
+      }
 
       const { data, error } = await supabase
         .from('translations')
         .select(`
           *,
-          profiles:user_id (
+          profiles (
             first_name,
             last_name
           )
@@ -39,11 +46,17 @@ const AvailableTranslations = () => {
 
       if (error) {
         console.error('Error fetching translations:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch available translations",
+          variant: "destructive"
+        });
         throw error;
       }
 
-      return data as Translation[];
+      return (data || []) as Translation[];
     },
+    retry: false
   });
 
   useEffect(() => {
@@ -61,7 +74,7 @@ const AvailableTranslations = () => {
           toast({
             title: "Translation Update",
             description: payload.eventType === 'INSERT' 
-              ? `New translation available: ${payload.new.document_name}`
+              ? `New translation available: ${(payload.new as any).document_name}`
               : "Translations list updated",
           });
           refetch();
@@ -76,7 +89,14 @@ const AvailableTranslations = () => {
 
   const handleClaimTranslation = async (translationId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      toast({
+        title: "Authentication Error",
+        description: "Please sign in to claim translations",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const { error } = await supabase
       .from('translations')
@@ -143,7 +163,7 @@ const AvailableTranslations = () => {
                 onClaim={handleClaimTranslation}
               />
             ))}
-            {translations?.length === 0 && (
+            {(!translations || translations.length === 0) && (
               <div className="text-center py-8 text-gray-500">
                 <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                 <p>No available translations at the moment</p>
