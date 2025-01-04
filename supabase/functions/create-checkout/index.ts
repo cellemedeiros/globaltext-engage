@@ -23,11 +23,16 @@ serve(async (req) => {
     // Get auth header and validate
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header found');
-      throw new Error('No authorization header');
+      console.error('No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    console.log('Authorization header found, getting user...');
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
@@ -55,7 +60,8 @@ serve(async (req) => {
 
     console.log('User authenticated successfully:', user.id);
 
-    const { amount, words, plan, mode } = await req.json();
+    // Get request body
+    const { amount, plan, mode } = await req.json();
     
     if (!amount) {
       console.error('Amount is required');
@@ -73,23 +79,25 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    console.log('Looking up customer for email:', user.email);
+    // Get or create customer
     const customers = await stripe.customers.list({
       email: user.email,
       limit: 1,
     });
 
-    let customer_id = undefined;
-    if (customers.data.length > 0) {
-      customer_id = customers.data[0].id;
-      console.log('Existing customer found:', customer_id);
-    } else {
-      console.log('No existing customer found, will create new');
+    let customerId = customers.data[0]?.id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+      });
+      customerId = customer.id;
     }
+
+    console.log('Customer ID:', customerId);
 
     let sessionConfig;
     if (mode === 'subscription' && plan) {
-      const priceId = plan.toUpperCase() === 'PREMIUM' 
+      const priceId = plan === 'Premium' 
         ? Deno.env.get('PREMIUM_PLAN_PRICE')
         : Deno.env.get('STANDARD_PLAN_PRICE');
 
@@ -106,52 +114,34 @@ serve(async (req) => {
 
       console.log(`Using price ID for ${plan} plan:`, priceId);
       sessionConfig = {
+        line_items: [{ price: priceId, quantity: 1 }],
         mode: 'subscription',
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          type: 'subscription',
-          plan,
-          userId: user.id,
-        },
       };
     } else {
       sessionConfig = {
-        mode: 'payment',
-        line_items: [
-          {
-            price_data: {
-              currency: 'brl',
-              product_data: {
-                name: `Translation Service - ${words} words`,
-              },
-              unit_amount: Math.round(parseFloat(amount) * 100),
+        line_items: [{
+          price_data: {
+            currency: 'brl',
+            product_data: {
+              name: 'Document Translation',
             },
-            quantity: 1,
+            unit_amount: Math.round(amount * 100),
           },
-        ],
-        metadata: {
-          type: 'translation',
-          userId: user.id,
-          words,
-        },
+          quantity: 1,
+        }],
+        mode: 'payment',
       };
     }
 
-    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
+    console.log('Creating checkout session...');
     const session = await stripe.checkout.sessions.create({
-      customer: customer_id,
-      customer_email: customer_id ? undefined : user.email,
+      customer: customerId,
       ...sessionConfig,
-      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
-      cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
+      success_url: `${req.headers.get('origin')}/dashboard`,
+      cancel_url: `${req.headers.get('origin')}/dashboard`,
     });
 
-    console.log('Payment session created:', session.id);
+    console.log('Checkout session created:', session.id);
     return new Response(
       JSON.stringify({ url: session.url }),
       { 

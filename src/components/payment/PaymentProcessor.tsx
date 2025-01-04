@@ -61,7 +61,11 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Checkout error:', error);
+        throw error;
+      }
+
       console.log('Checkout response:', data);
 
       if (data?.url) {
