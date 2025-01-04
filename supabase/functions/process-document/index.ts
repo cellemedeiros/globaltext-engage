@@ -7,14 +7,12 @@ const corsHeaders = {
 }
 
 function calculateWordCount(text: string): number {
-  // Remove special characters and extra whitespace
   const cleanText = text
-    .replace(/[\r\n]+/g, " ") // Replace multiple newlines with space
-    .replace(/[^\w\s]/g, " ") // Replace special characters with space
-    .replace(/\s+/g, " ") // Replace multiple spaces with single space
+    .replace(/[\r\n]+/g, " ")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 
-  // Split by whitespace and filter out empty strings
   const words = cleanText.split(" ").filter(word => word.length > 0);
   return words.length;
 }
@@ -35,7 +33,6 @@ async function processDocx(file: File): Promise<{ text: string; wordCount: numbe
       console.log('Successfully processed .docx file. Word count:', wordCount);
       return { text, wordCount };
     } else {
-      // Process .doc file (older format)
       console.log('Processing .doc file');
       const decoder = new TextDecoder('utf-8');
       const text = decoder.decode(arrayBuffer);
@@ -63,7 +60,6 @@ async function processTextFile(file: File): Promise<{ text: string; wordCount: n
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -122,4 +118,4 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
-})
+});

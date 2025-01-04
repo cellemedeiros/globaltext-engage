@@ -36,6 +36,9 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
 
       const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData,
+        headers: {
+          // Remove explicit Content-Type to let browser handle it
+        },
       });
 
       console.log('Response:', data, error);
