@@ -17,14 +17,25 @@ const AvailableTranslations = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
 
+      // Fetch translations that are pending and have no assigned translator
       const { data, error } = await supabase
         .from('translations')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            first_name,
+            last_name
+          )
+        `)
         .eq('status', 'pending')
         .is('translator_id', null)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching translations:', error);
+        throw error;
+      }
+
       return data;
     },
   });
@@ -35,15 +46,17 @@ const AvailableTranslations = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'translations',
           filter: 'status=eq.pending'
         },
         (payload) => {
           toast({
-            title: "New Translation Available",
-            description: `A new translation project has been added: ${payload.new.document_name}`,
+            title: "Translation Update",
+            description: payload.eventType === 'INSERT' 
+              ? `New translation available: ${payload.new.document_name}`
+              : "Translations list updated",
           });
           refetch();
         }
@@ -68,6 +81,7 @@ const AvailableTranslations = () => {
       .eq('id', translationId);
 
     if (error) {
+      console.error('Error claiming translation:', error);
       toast({
         title: "Error",
         description: "Failed to claim translation. Please try again.",
@@ -118,36 +132,49 @@ const AvailableTranslations = () => {
           <div className="space-y-4">
             {translations?.map((translation) => (
               <Card key={translation.id} className="p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-lg">{translation.document_name}</h3>
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        {translation.word_count} words
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Languages className="h-4 w-4" />
-                        {translation.source_language} → {translation.target_language}
-                      </span>
-                      {translation.deadline && (
+                <div className="flex flex-col space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-lg">{translation.document_name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Client: {translation.profiles?.first_name} {translation.profiles?.last_name}
+                      </p>
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          Due: {format(new Date(translation.deadline), 'PPP')}
+                          <FileText className="h-4 w-4" />
+                          {translation.word_count} words
                         </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4" />
-                        ${translation.price_offered}
-                      </span>
+                        <span className="flex items-center gap-1">
+                          <Languages className="h-4 w-4" />
+                          {translation.source_language} → {translation.target_language}
+                        </span>
+                        {translation.deadline && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            Due: {format(new Date(translation.deadline), 'PPP')}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          ${translation.price_offered}
+                        </span>
+                      </div>
                     </div>
+                    <Button
+                      onClick={() => handleClaimTranslation(translation.id)}
+                      className="ml-4"
+                    >
+                      Claim Project
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => handleClaimTranslation(translation.id)}
-                    className="ml-4"
-                  >
-                    Claim Project
-                  </Button>
+                  {translation.content && (
+                    <div className="mt-2 p-3 bg-muted rounded-md">
+                      <p className="text-sm font-medium mb-1">Preview:</p>
+                      <p className="text-sm text-muted-foreground">
+                        {translation.content.slice(0, 200)}...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Card>
             ))}
