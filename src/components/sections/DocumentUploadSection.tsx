@@ -45,11 +45,11 @@ const DocumentUploadSection = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!['text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
         .includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a .txt, .doc, .docx, or .pdf file",
+        description: "Please upload a .doc or .docx file",
         variant: "destructive"
       });
       return;
@@ -105,7 +105,7 @@ const DocumentUploadSection = () => {
               <ol className="text-left space-y-4">
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">1.</span>
-                  <span className="text-gray-700">Upload your document (.txt, .doc, .docx, or .pdf)</span>
+                  <span className="text-gray-700">Upload your document (.doc or .docx only)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">2.</span>
@@ -133,7 +133,7 @@ const DocumentUploadSection = () => {
                   <input
                     type="file"
                     className="hidden"
-                    accept=".txt,.doc,.docx,.pdf"
+                    accept=".doc,.docx"
                     onChange={handleFileUpload}
                   />
                 </label>

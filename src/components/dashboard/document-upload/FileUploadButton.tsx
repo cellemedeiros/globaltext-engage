@@ -15,14 +15,14 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
     if (!file) return;
 
     const allowedTypes = [
-      'text/plain',
+      'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a .txt or .docx file",
+        description: "Please upload a .doc or .docx file",
         variant: "destructive"
       });
       return;
@@ -33,7 +33,6 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Let the browser handle the Content-Type header with boundary
       const { data, error } = await supabase.functions.invoke('process-document', {
         body: formData
       });
@@ -68,7 +67,7 @@ const FileUploadButton = ({ onFileSelect }: FileUploadButtonProps) => {
         <input
           type="file"
           className="hidden"
-          accept=".txt,.docx"
+          accept=".doc,.docx"
           onChange={handleFileChange}
         />
       </label>
