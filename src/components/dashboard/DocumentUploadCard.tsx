@@ -22,10 +22,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const { data: session } = useQuery({
+  const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ['session'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Session error:', error);
+        throw error;
+      }
       return session;
     },
   });
@@ -106,6 +110,16 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       });
     }
   };
+
+  if (sessionLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading...</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card>
