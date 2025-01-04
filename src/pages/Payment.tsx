@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentNavigation from "@/components/payment/PaymentNavigation";
 import PaymentProcessor from "@/components/payment/PaymentProcessor";
-import { usePaymentAuth } from "@/hooks/usePaymentAuth";
 import { useEffect } from "react";
 
 const Payment = () => {
@@ -12,8 +11,6 @@ const Payment = () => {
   const plan = searchParams.get("plan");
   const amount = searchParams.get("amount");
   
-  const { session, isCheckingAuth } = usePaymentAuth();
-
   // Store parameters in sessionStorage to persist them during navigation
   useEffect(() => {
     if (amount) sessionStorage.setItem('payment_amount', amount);
@@ -25,10 +22,6 @@ const Payment = () => {
   const effectiveAmount = amount || sessionStorage.getItem('payment_amount');
   const effectiveWords = words || sessionStorage.getItem('payment_words');
   const effectivePlan = plan || sessionStorage.getItem('payment_plan');
-
-  if (isCheckingAuth) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-  }
 
   return (
     <div className="container mx-auto px-4 py-12">

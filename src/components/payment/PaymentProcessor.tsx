@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
-import { Session } from "@supabase/supabase-js";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 interface PaymentProcessorProps {
   amount: string | null;
@@ -65,7 +65,10 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
   if (isCheckingAuth) {
     return (
       <div className="p-6">
-        <Button disabled className="w-full">Loading...</Button>
+        <Button disabled className="w-full">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Loading...
+        </Button>
       </div>
     );
   }
@@ -77,7 +80,14 @@ const PaymentProcessor = ({ amount, words, plan }: PaymentProcessorProps) => {
         className="w-full"
         disabled={isProcessing}
       >
-        {isProcessing ? "Processing..." : `Proceed to Payment - R$${amount}`}
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          `Proceed to Payment - R$${amount}`
+        )}
       </Button>
     </div>
   );
