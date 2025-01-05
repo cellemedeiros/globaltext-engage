@@ -26,6 +26,7 @@ interface Translation {
   deadline?: string;
   translator_id?: string;
   file_path?: string;
+  translated_file_path?: string;
 }
 
 interface TranslationItemProps {
@@ -104,16 +105,16 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
           <div className="flex items-center gap-2">
             {(role === 'admin') && (
               <>
-                {translation.file_path && (
+                {translation.translated_file_path && (
                   <TranslationDownload 
-                    filePath={translation.file_path}
-                    documentName={`translated_${translation.document_name}`}
+                    filePath={translation.translated_file_path}
+                    documentName={`translated_${translation.document_name.replace(/\.[^/.]+$/, '')}.pdf`}
                     label="Download Translation"
                   />
                 )}
-                {translation.content && (
+                {translation.file_path && (
                   <TranslationDownload 
-                    filePath={`original_${translation.file_path}`}
+                    filePath={translation.file_path}
                     documentName={translation.document_name}
                     label="Download Original"
                   />
