@@ -14,11 +14,13 @@ interface TranslatorTabsProps {
 
 const TranslatorTabs = ({ translations, role, onUpdate }: TranslatorTabsProps) => {
   const inProgressTranslations = translations.filter(t => 
-    t.status === 'in_progress' || t.status === 'pending_admin_review'
+    t.status === 'in_progress' || 
+    (t.status === 'pending_admin_review' && t.admin_review_status !== 'approved')
   );
   
   const completedTranslations = translations.filter(t => 
-    t.status === 'completed'
+    t.status === 'completed' || 
+    (t.status === 'pending_admin_review' && t.admin_review_status === 'approved')
   );
 
   return (
