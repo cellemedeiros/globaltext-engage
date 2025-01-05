@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import TranslationStatus from "./TranslationStatus";
 import TranslationContent from "./TranslationContent";
+import TranslationActions from "./TranslationActions";
 import { Card } from "@/components/ui/card";
 import { Calendar, FileText, Languages, Clock } from "lucide-react";
 import { format } from "date-fns";
@@ -92,60 +92,6 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
     }
   };
 
-  const handleReviewSubmit = async (translationId: string, reviewedContent: string) => {
-    try {
-      const { error } = await supabase
-        .from('translations')
-        .update({
-          translator_review: reviewedContent,
-          status: 'pending_admin_review',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', translationId);
-
-      if (error) throw error;
-      onUpdate();
-      
-      toast({
-        title: "Success",
-        description: "Translation submitted for admin review",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit review",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleAdminReview = async (translationId: string, status: 'approved' | 'rejected') => {
-    try {
-      const { error } = await supabase
-        .from('translations')
-        .update({
-          admin_review_status: status,
-          admin_review_notes: reviewNotes,
-          status: status === 'approved' ? 'completed' : 'pending_review'
-        })
-        .eq('id', translationId);
-
-      if (error) throw error;
-      onUpdate();
-      
-      toast({
-        title: "Success",
-        description: `Translation ${status}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to review translation",
-        variant: "destructive"
-      });
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'MMM dd, yyyy');
   };
@@ -191,44 +137,14 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
               title={translation.document_name}
             />
             
-            {role === 'translator' && translation.status === 'pending' && !translation.translator_id && (
-              <div className="flex gap-4">
-                <Button 
-                  onClick={handleAcceptTranslation}
-                  className="flex-1"
-                  variant="default"
-                >
-                  Accept Translation
-                </Button>
-                <Button 
-                  onClick={handleDeclineTranslation}
-                  className="flex-1"
-                  variant="outline"
-                >
-                  Decline
-                </Button>
-              </div>
-            )}
-
-            {role === 'translator' && translation.status === 'pending_review' && (
-              <div className="space-y-4">
-                <textarea
-                  className="w-full min-h-[200px] p-4 rounded-lg border resize-y focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  placeholder="Review and edit the translation..."
-                  defaultValue={translation.ai_translated_content}
-                />
-                <Button 
-                  onClick={(e) => {
-                    const textarea = e.currentTarget.parentElement?.querySelector('textarea');
-                    if (textarea) {
-                      handleReviewSubmit(translation.id, textarea.value);
-                    }
-                  }}
-                  className="w-full"
-                >
-                  Submit Review
-                </Button>
-              </div>
+            {role === 'translator' && (
+              <TranslationActions
+                translationId={translation.id}
+                status={translation.status}
+                onUpdate={onUpdate}
+                onAccept={handleAcceptTranslation}
+                onDecline={handleDeclineTranslation}
+              />
             )}
 
             {role === 'admin' && translation.status === 'pending_admin_review' && (
