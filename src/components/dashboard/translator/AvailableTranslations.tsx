@@ -7,10 +7,55 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationCard from "./TranslationCard";
 import LoadingTranslations from "./LoadingTranslations";
 import { useAvailableTranslations } from "@/hooks/useAvailableTranslations";
+import { Button } from "@/components/ui/button";
 
 const AvailableTranslations = () => {
   const { toast } = useToast();
   const { data: translations, isLoading, refetch } = useAvailableTranslations();
+
+  const createTestTranslation = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to create a test translation",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('translations')
+        .insert({
+          user_id: session.user.id,
+          document_name: "Test Document",
+          source_language: "English",
+          target_language: "Spanish",
+          word_count: 500,
+          status: "pending",
+          amount_paid: 25.00,
+          content: "This is a test document for translation.",
+          price_offered: 50.00
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Test translation created successfully",
+      });
+
+      refetch();
+    } catch (error) {
+      console.error('Error creating test translation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create test translation",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleClaimTranslation = async (translationId: string) => {
     try {
@@ -50,7 +95,6 @@ const AvailableTranslations = () => {
     }
   };
 
-  // Set up real-time subscription for new translations
   useEffect(() => {
     const channel = supabase
       .channel('available_translations')
@@ -90,9 +134,18 @@ const AvailableTranslations = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
-          Available Translations
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Available Translations
+          </div>
+          <Button 
+            onClick={createTestTranslation}
+            variant="outline"
+            size="sm"
+          >
+            Create Test Translation
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
