@@ -12,9 +12,9 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const navigate = useNavigate();
 
   const handleUpgrade = () => {
-    // If user has no subscription, redirect to pricing section
+    // If user has no subscription, navigate to payment with Premium plan
     if (!subscription) {
-      navigate('/#pricing');
+      navigate('/payment?plan=Premium&amount=199.99');
       return;
     }
     
@@ -22,7 +22,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
     if (subscription.plan_name === 'Standard') {
       navigate('/payment?plan=Premium&amount=199.99');
     } else {
-      // For all other cases, show pricing options
+      // For Premium users or other cases, show pricing options
       navigate('/#pricing');
     }
   };
@@ -54,7 +54,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            Upgrade Plan
+            {subscription.plan_name === 'Premium' ? 'Manage Subscription' : 'Upgrade to Premium'}
           </Button>
         </div>
       ) : (
@@ -62,9 +62,9 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           <p className="text-muted-foreground">No active subscription</p>
           <Button 
             className="w-full" 
-            onClick={() => navigate('/#pricing')}
+            onClick={handleUpgrade}
           >
-            Get Started
+            Get Premium
           </Button>
         </div>
       )}
