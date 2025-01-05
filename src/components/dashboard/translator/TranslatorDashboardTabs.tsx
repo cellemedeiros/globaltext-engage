@@ -2,8 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TranslationsList from "../TranslationsList";
 import AvailableTranslations from "./AvailableTranslations";
+import TranslationCanvas from "./TranslationCanvas";
 import { motion } from "framer-motion";
-import TranslationForm from "./canvas/TranslationForm";
 
 interface TranslatorDashboardTabsProps {
   isLoading: boolean;
@@ -73,7 +73,7 @@ const TranslatorDashboardTabs = ({ isLoading }: TranslatorDashboardTabsProps) =>
             transition={{ duration: 0.3 }}
           >
             <Card className="p-6 hover:shadow-lg transition-shadow duration-300">
-              <TranslationForm />
+              <TranslationCanvas />
             </Card>
           </motion.div>
         </TabsContent>

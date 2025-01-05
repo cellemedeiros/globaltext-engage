@@ -1,20 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEditor from "./TranslationEditor";
 import TranslationActions from "./TranslationActions";
-import { useNavigate } from "react-router-dom";
-import TranslationSubmitSection from "./TranslationSubmitSection";
+import AdminReviewPanel from "./AdminReviewPanel";
 
-interface TranslationCanvasProps {
-  translationId?: string;
-}
-
-const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
+const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("pt");
   const [sourceText, setSourceText] = useState("");
@@ -23,35 +17,23 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
-  // Fetch translation data if translationId is provided
-  const { data: translation } = useQuery({
-    queryKey: ['translation', translationId],
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
     queryFn: async () => {
-      if (!translationId) return null;
-      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
       const { data, error } = await supabase
-        .from('translations')
+        .from('profiles')
         .select('*')
-        .eq('id', translationId)
+        .eq('id', session.user.id)
         .single();
       
       if (error) throw error;
       return data;
-    },
-    enabled: !!translationId
-  });
-
-  // Update state when translation data is loaded
-  useEffect(() => {
-    if (translation) {
-      setSourceLanguage(translation.source_language);
-      setTargetLanguage(translation.target_language);
-      setSourceText(translation.content || '');
-      setTargetText(translation.ai_translated_content || '');
     }
-  }, [translation]);
+  });
 
   const handleSourceTextChange = async (text: string) => {
     setSourceText(text);
@@ -87,8 +69,24 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
     }
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
   const handleSubmit = async () => {
-    if (!sourceText.trim() || !targetText.trim()) {
+    if (!selectedFile || !sourceText.trim() || !targetText.trim()) {
       toast({
         title: "Missing content",
         description: "Please provide both source and target text",
@@ -102,55 +100,44 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      if (translationId) {
-        // Update existing translation
-        const { error: updateError } = await supabase
-          .from('translations')
-          .update({
-            content: sourceText,
-            ai_translated_content: targetText,
-            status: 'pending_admin_review',
-          })
-          .eq('id', translationId);
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('translations')
+        .upload(filePath, selectedFile);
 
-        if (updateError) throw updateError;
+      if (uploadError) throw uploadError;
 
-        toast({
-          title: "Success",
-          description: "Translation updated and submitted for review",
+      const { error: insertError } = await supabase
+        .from('translations')
+        .insert({
+          user_id: session.user.id,
+          document_name: selectedFile.name,
+          source_language: sourceLanguage,
+          target_language: targetLanguage,
+          content: sourceText,
+          ai_translated_content: targetText,
+          status: 'pending_admin_review',
+          word_count: sourceText.split(/\s+/).length,
+          amount_paid: 0,
+          translator_id: session.user.id,
+          admin_review_status: 'pending'
         });
 
-        // Navigate back to the dashboard
-        navigate('/translator-dashboard');
-      } else {
-        // Create new translation
-        const fileExt = selectedFile.name.split('.').pop();
-        const filePath = `${crypto.randomUUID()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('translations')
-          .upload(filePath, selectedFile);
+      if (insertError) throw insertError;
 
-        if (uploadError) throw uploadError;
+      toast({
+        title: "Success",
+        description: "Translation submitted for admin review",
+      });
 
-        const { error: insertError } = await supabase
-          .from('translations')
-          .insert({
-            user_id: session.user.id,
-            document_name: selectedFile.name,
-            source_language: sourceLanguage,
-            target_language: targetLanguage,
-            content: sourceText,
-            ai_translated_content: targetText,
-            status: 'pending_admin_review',
-            word_count: sourceText.split(/\s+/).length,
-            amount_paid: 0,
-            translator_id: session.user.id,
-            admin_review_status: 'pending'
-          });
-      }
+      // Reset form
+      setSelectedFile(null);
+      setSourceText("");
+      setTargetText("");
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('Upload error:', error);
       toast({
         title: "Error",
         description: "Failed to submit translation",
@@ -160,6 +147,8 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
       setIsSubmitting(false);
     }
   };
+
+  const isAdmin = profile?.id === "37665cdd-1fdd-40d0-b485-35148c159bed";
 
   return (
     <motion.div
@@ -173,7 +162,6 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
         targetLanguage={targetLanguage}
         onSourceChange={setSourceLanguage}
         onTargetChange={setTargetLanguage}
-        isReadOnly={!!translationId}
       />
 
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
@@ -183,18 +171,22 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
           onSourceChange={handleSourceTextChange}
           onTargetChange={setTargetText}
           isTranslating={isTranslating}
-          isReadOnly={false}
         />
 
-        <TranslationSubmitSection 
-          translationId={translationId}
+        <TranslationActions
+          selectedFile={selectedFile}
           isSubmitting={isSubmitting}
-          sourceText={sourceText}
-          targetText={targetText}
+          onFileSelect={handleFileSelect}
           onSubmit={handleSubmit}
-          onCancel={() => navigate('/translator-dashboard')}
+          disabled={!selectedFile || !sourceText.trim() || !targetText.trim()}
         />
       </div>
+
+      {isAdmin && (
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <AdminReviewPanel />
+        </div>
+      )}
     </motion.div>
   );
 };
