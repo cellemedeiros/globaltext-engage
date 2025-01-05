@@ -30,10 +30,12 @@ const PaymentProcessor = ({ amount, words, plan, session, documentName }: Paymen
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
-      if (!currentSession) {
+      if (!currentSession?.access_token) {
         throw new Error('No active session');
       }
 
+      console.log('Creating checkout session with token:', currentSession.access_token);
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           amount, 
