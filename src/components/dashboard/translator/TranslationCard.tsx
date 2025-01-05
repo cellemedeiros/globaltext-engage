@@ -16,7 +16,11 @@ interface TranslationCardProps {
   onClaim: (translationId: string) => void;
 }
 
+const RATE_PER_WORD = 0.08; // R$0.08 per word
+
 const TranslationCard = ({ translation, onClaim }: TranslationCardProps) => {
+  const calculatedEarnings = translation.word_count * RATE_PER_WORD;
+
   return (
     <Card key={translation.id} className="p-4 hover:shadow-md transition-shadow">
       <div className="flex flex-col space-y-4">
@@ -31,6 +35,10 @@ const TranslationCard = ({ translation, onClaim }: TranslationCardProps) => {
                 <FileText className="h-4 w-4" />
                 {translation.word_count} words
               </span>
+              <span className="flex items-center gap-1 text-green-600 font-medium">
+                <DollarSign className="h-4 w-4" />
+                R${calculatedEarnings.toFixed(2)} (R${RATE_PER_WORD.toFixed(2)}/word)
+              </span>
               <span className="flex items-center gap-1">
                 <Languages className="h-4 w-4" />
                 {translation.source_language} → {translation.target_language}
@@ -41,10 +49,6 @@ const TranslationCard = ({ translation, onClaim }: TranslationCardProps) => {
                   Due: {format(new Date(translation.deadline), 'PPP')}
                 </span>
               )}
-              <span className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4" />
-                ${translation.price_offered}
-              </span>
             </div>
           </div>
           <Button
