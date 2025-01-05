@@ -6,7 +6,7 @@ import TranslationContent from "./TranslationContent";
 import TranslationActions from "./TranslationActions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, FileText, Languages, Clock } from "lucide-react";
+import { Calendar, FileText, Languages, Clock, Download } from "lucide-react";
 import { format } from "date-fns";
 
 interface Translation {
@@ -24,6 +24,7 @@ interface Translation {
   admin_review_notes?: string;
   deadline?: string;
   translator_id?: string;
+  file_path?: string;
 }
 
 interface TranslationItemProps {
@@ -34,7 +35,52 @@ interface TranslationItemProps {
 
 const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
   const [reviewNotes, setReviewNotes] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
+
+  const handleDownload = async () => {
+    if (!translation.file_path) {
+      toast({
+        title: "Error",
+        description: "No file available for download",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      const { data, error } = await supabase.storage
+        .from('translations')
+        .download(translation.file_path);
+
+      if (error) throw error;
+
+      // Create a download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = translation.document_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Document downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download document",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleAcceptTranslation = async () => {
     try {
@@ -151,11 +197,25 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
               )}
             </div>
           </div>
-          <TranslationStatus 
-            status={translation.status}
-            wordCount={translation.word_count}
-            adminReviewStatus={translation.admin_review_status}
-          />
+          <div className="flex items-center gap-2">
+            {translation.file_path && (role === 'translator' || role === 'admin') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {isDownloading ? "Downloading..." : "Download"}
+              </Button>
+            )}
+            <TranslationStatus 
+              status={translation.status}
+              wordCount={translation.word_count}
+              adminReviewStatus={translation.admin_review_status}
+            />
+          </div>
         </div>
 
         {(role === 'translator' || role === 'admin') && (
