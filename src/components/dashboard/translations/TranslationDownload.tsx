@@ -25,6 +25,7 @@ const TranslationDownload = ({ filePath, documentName }: TranslationDownloadProp
 
     try {
       setIsDownloading(true);
+      console.log('Downloading file:', filePath);
       const { data, error } = await supabase.storage
         .from('translations')
         .download(filePath);
