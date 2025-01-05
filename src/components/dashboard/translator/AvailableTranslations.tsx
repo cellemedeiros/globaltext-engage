@@ -33,6 +33,30 @@ const AvailableTranslations = () => {
 
       console.log('Fetching translations with session:', session.user.id);
 
+      // First, verify the user is a translator
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, is_approved_translator')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return [];
+      }
+
+      console.log('User profile:', profile);
+
+      if (!profile || (profile.role !== 'translator' && !profile.is_approved_translator)) {
+        console.log('User is not an approved translator');
+        toast({
+          title: "Access Denied",
+          description: "You must be an approved translator to view available translations",
+          variant: "destructive"
+        });
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('translations')
         .select(`
