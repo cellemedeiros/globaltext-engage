@@ -1,13 +1,15 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import TranslationEditor from "../TranslationEditor";
 import TranslationHeader from "../TranslationHeader";
 import TranslationSubmitSection from "../TranslationSubmitSection";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 const TranslationCanvas = () => {
   const { translationId } = useParams();
@@ -32,7 +34,6 @@ const TranslationCanvas = () => {
       
       if (error) throw error;
       
-      // Update local state with translation data
       setSourceText(data.content || '');
       setTargetText(data.ai_translated_content || '');
       
@@ -139,8 +140,27 @@ const TranslationCanvas = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gray-50 p-6"
+    >
       <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/translator-dashboard')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-2xl font-semibold text-gray-900">{translation.document_name}</h1>
+            <p className="text-sm text-gray-500">Translation ID: {translationId}</p>
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
           <TranslationHeader
             sourceLanguage={translation.source_language}
@@ -169,7 +189,7 @@ const TranslationCanvas = () => {
           />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
