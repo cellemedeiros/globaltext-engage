@@ -20,6 +20,30 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
   const { toast } = useToast();
   const { data: translations, isLoading: translationsLoading } = useTranslations(role);
 
+  // Subscribe to real-time updates for translations
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('translations_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'translations',
+        },
+        (payload) => {
+          console.log('Translation update:', payload);
+          // Refresh translations data when changes occur
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   if (isLoading || translationsLoading) {
     return (
       <Card className="p-6">
