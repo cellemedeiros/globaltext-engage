@@ -11,6 +11,22 @@ interface Subscription {
 const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null }) => {
   const navigate = useNavigate();
 
+  const handleUpgrade = () => {
+    // If user has no subscription, redirect to pricing section
+    if (!subscription) {
+      navigate('/#pricing');
+      return;
+    }
+    
+    // If upgrading from Standard to Premium
+    if (subscription.plan_name === 'Standard') {
+      navigate('/payment?plan=Premium&amount=199.99');
+    } else {
+      // For all other cases, show pricing options
+      navigate('/#pricing');
+    }
+  };
+
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Subscription Status</h2>
@@ -36,7 +52,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
           <Button 
             className="w-full" 
-            onClick={() => navigate('/payment?plan=upgrade')}
+            onClick={handleUpgrade}
           >
             Upgrade Plan
           </Button>
