@@ -46,8 +46,7 @@ const PlansSection = () => {
     },
     {
       name: "Business",
-      price: "R$2500",
-      period: "/month",
+      price: "Custom",
       features: [
         { text: "Unlimited words", available: true },
         { text: "Dedicated account manager", available: true },
