@@ -4,10 +4,11 @@ import { useToast } from "@/hooks/use-toast";
 import TranslationStatus from "./TranslationStatus";
 import TranslationContent from "./TranslationContent";
 import TranslationActions from "./TranslationActions";
+import TranslationHeader from "./TranslationHeader";
+import TranslationEarnings from "./TranslationEarnings";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, FileText, Languages, Clock, Download } from "lucide-react";
-import { format } from "date-fns";
+import { Download } from "lucide-react";
 
 interface Translation {
   id: string;
@@ -56,7 +57,6 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
 
       if (error) throw error;
 
-      // Create a download link
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -139,7 +139,7 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
     }
   };
 
-  const handleAdminReview = async (translationId: string, status: 'approved' | 'rejected') => {
+  const handleAdminReview = async (status: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
         .from('translations')
@@ -148,7 +148,7 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
           admin_review_notes: reviewNotes,
           admin_reviewed_at: new Date().toISOString()
         })
-        .eq('id', translationId);
+        .eq('id', translation.id);
 
       if (error) throw error;
 
@@ -167,36 +167,17 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM dd, yyyy');
-  };
-
   return (
     <Card className="p-6 hover:shadow-md transition-all duration-200">
       <div className="space-y-6">
         <div className="flex justify-between items-start">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              {translation.document_name}
-            </h3>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {formatDate(translation.created_at)}
-              </div>
-              <div className="flex items-center gap-1">
-                <Languages className="w-4 h-4" />
-                {translation.source_language} → {translation.target_language}
-              </div>
-              {translation.deadline && (
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  Due: {formatDate(translation.deadline)}
-                </div>
-              )}
-            </div>
-          </div>
+          <TranslationHeader
+            documentName={translation.document_name}
+            createdAt={translation.created_at}
+            sourceLanguage={translation.source_language}
+            targetLanguage={translation.target_language}
+            deadline={translation.deadline}
+          />
           <div className="flex items-center gap-2">
             {translation.file_path && (role === 'translator' || role === 'admin') && (
               <Button
@@ -217,6 +198,10 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             />
           </div>
         </div>
+
+        {role === 'translator' && (
+          <TranslationEarnings wordCount={translation.word_count} />
+        )}
 
         {(role === 'translator' || role === 'admin') && (
           <div className="space-y-6 border-t pt-4 mt-4">
@@ -246,14 +231,14 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
                 />
                 <div className="flex gap-4">
                   <Button 
-                    onClick={() => handleAdminReview(translation.id, 'approved')}
+                    onClick={() => handleAdminReview('approved')}
                     className="flex-1"
                     variant="default"
                   >
                     Approve
                   </Button>
                   <Button 
-                    onClick={() => handleAdminReview(translation.id, 'rejected')}
+                    onClick={() => handleAdminReview('rejected')}
                     className="flex-1"
                     variant="destructive"
                   >
