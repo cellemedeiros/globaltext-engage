@@ -8,6 +8,7 @@ import TranslationHeader from "./TranslationHeader";
 import TranslationEarnings from "./TranslationEarnings";
 import TranslationDownload from "./TranslationDownload";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface Translation {
   id: string;
@@ -36,6 +37,59 @@ interface TranslationItemProps {
 const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
   const [reviewNotes, setReviewNotes] = useState("");
   const { toast } = useToast();
+
+  const handleAcceptTranslation = async () => {
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          translator_id: (await supabase.auth.getUser()).data.user?.id,
+          status: 'in_progress'
+        })
+        .eq('id', translation.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation accepted successfully",
+      });
+      onUpdate();
+    } catch (error) {
+      console.error('Error accepting translation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept translation",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeclineTranslation = async () => {
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          status: 'declined'
+        })
+        .eq('id', translation.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation declined successfully",
+      });
+      onUpdate();
+    } catch (error) {
+      console.error('Error declining translation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to decline translation",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleAdminReview = async (status: 'approved' | 'rejected') => {
     try {
@@ -108,6 +162,8 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
                 translationId={translation.id}
                 status={translation.status}
                 onUpdate={onUpdate}
+                onAccept={handleAcceptTranslation}
+                onDecline={handleDeclineTranslation}
               />
             )}
 
