@@ -22,22 +22,6 @@ export const useAvailableTranslations = () => {
           throw new Error("Not authenticated");
         }
 
-        // First, verify the user is a translator
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, is_approved_translator')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          throw new Error("Failed to verify translator status");
-        }
-
-        if (!profile || (profile.role !== 'translator' && !profile.is_approved_translator)) {
-          throw new Error("Not an approved translator");
-        }
-
         // Fetch all pending translations that haven't been claimed
         const { data, error } = await supabase
           .from('translations')
