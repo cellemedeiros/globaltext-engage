@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Upload, Loader2 } from "lucide-react";
 
 interface TranslationActionsProps {
   translationId: string;
@@ -18,31 +20,73 @@ const TranslationActions = ({
   onDecline,
 }: TranslationActionsProps) => {
   const { toast } = useToast();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
 
   const handleFinishProject = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No file selected",
+        description: "Please upload the translated document before finishing",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
+      setIsUploading(true);
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('translations')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      // Update translation status and file path
+      const { error: updateError } = await supabase
         .from('translations')
         .update({
-          status: 'completed',
+          status: 'pending_admin_review',
+          file_path: filePath,
           completed_at: new Date().toISOString()
         })
         .eq('id', translationId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       toast({
         title: "Success",
-        description: "Project marked as completed",
+        description: "Translation submitted for review",
       });
       onUpdate();
     } catch (error) {
       console.error('Error finishing project:', error);
       toast({
         title: "Error",
-        description: "Failed to complete project",
+        description: "Failed to submit translation",
         variant: "destructive"
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -69,13 +113,36 @@ const TranslationActions = ({
 
   if (status === 'in_progress') {
     return (
-      <Button 
-        onClick={handleFinishProject}
-        className="w-full"
-        variant="default"
-      >
-        Finish Project
-      </Button>
+      <div className="space-y-4">
+        <Button asChild variant="outline" className="w-full">
+          <label className="cursor-pointer flex items-center justify-center gap-2">
+            <Upload className="w-4 h-4" />
+            {selectedFile ? selectedFile.name : "Upload Translated Document (PDF)"}
+            <input
+              type="file"
+              className="hidden"
+              accept=".pdf"
+              onChange={handleFileSelect}
+            />
+          </label>
+        </Button>
+        
+        <Button 
+          onClick={handleFinishProject}
+          className="w-full"
+          variant="default"
+          disabled={isUploading || !selectedFile}
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            'Submit Translation'
+          )}
+        </Button>
+      </div>
     );
   }
 
