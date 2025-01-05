@@ -17,7 +17,16 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const [targetLanguage, setTargetLanguage] = useState("");
   const [wordCount, setWordCount] = useState(0);
 
-  const handleUpload = async (file: File) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setFile(file);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!file || !sourceLanguage || !targetLanguage) return;
+
     try {
       setIsUploading(true);
       
@@ -44,7 +53,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      const { data: translation, error: translationError } = await supabase
+      const { error } = await supabase
         .from('translations')
         .insert({
           user_id: session.user.id,
@@ -55,11 +64,9 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           status: 'pending',
           content: fileContent,
           amount_paid: calculatePrice(calculatedWordCount)
-        })
-        .select()
-        .single();
+        });
 
-      if (translationError) throw translationError;
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -69,12 +76,16 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       setFile(null);
       setSourceLanguage("");
       setTargetLanguage("");
-      setWordCount(0);
-    } catch (error) {
-      console.error('Upload error:', error);
+      
+      // Reset the form
+      if (event.target instanceof HTMLFormElement) {
+        event.target.reset();
+      }
+    } catch (error: any) {
+      console.error('Error uploading document:', error);
       toast({
         title: "Error",
-        description: "Failed to upload document",
+        description: error.message || "Failed to upload document",
         variant: "destructive"
       });
     } finally {
@@ -82,25 +93,38 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-    }
-  };
-
   return (
-    <div className="p-6 border rounded-lg shadow-md">
-      <h2 className="text-lg font-semibold mb-4">Upload Document</h2>
-      <input type="file" onChange={handleFileChange} />
-      <div className="mt-4">
-        <Button 
-          onClick={() => file && handleUpload(file)} 
-          disabled={isUploading || !file}
-        >
-          {isUploading ? "Uploading..." : "Upload"}
+    <div className="p-6 bg-white rounded-lg shadow-sm">
+      <h2 className="text-xl font-semibold mb-4">Upload Document</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <input
+            type="file"
+            onChange={handleFileUpload}
+            accept=".txt,.doc,.docx"
+            className="w-full p-2 border rounded"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            type="text"
+            placeholder="Source Language"
+            value={sourceLanguage}
+            onChange={(e) => setSourceLanguage(e.target.value)}
+            className="p-2 border rounded"
+          />
+          <input
+            type="text"
+            placeholder="Target Language"
+            value={targetLanguage}
+            onChange={(e) => setTargetLanguage(e.target.value)}
+            className="p-2 border rounded"
+          />
+        </div>
+        <Button type="submit" disabled={isUploading || !file}>
+          {isUploading ? "Uploading..." : "Upload Document"}
         </Button>
-      </div>
+      </form>
     </div>
   );
 };

@@ -31,8 +31,6 @@ const AvailableTranslations = () => {
         return [];
       }
 
-      console.log('Fetching translations with session:', session.user.id);
-
       // First, verify the user is a translator
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -45,10 +43,7 @@ const AvailableTranslations = () => {
         return [];
       }
 
-      console.log('User profile:', profile);
-
       if (!profile || (profile.role !== 'translator' && !profile.is_approved_translator)) {
-        console.log('User is not an approved translator');
         toast({
           title: "Access Denied",
           description: "You must be an approved translator to view available translations",
@@ -57,6 +52,7 @@ const AvailableTranslations = () => {
         return [];
       }
 
+      // Fetch all pending translations that haven't been claimed
       const { data, error } = await supabase
         .from('translations')
         .select(`
@@ -80,10 +76,8 @@ const AvailableTranslations = () => {
         return [];
       }
 
-      console.log('Fetched translations:', data);
       return data as Translation[];
     },
-    retry: false
   });
 
   // Set up real-time subscription for new translations
@@ -100,13 +94,11 @@ const AvailableTranslations = () => {
         },
         (payload) => {
           console.log('Realtime update received:', payload);
+          refetch();
           toast({
             title: "New Translation Available",
-            description: payload.eventType === 'INSERT' 
-              ? `New translation available: ${(payload.new as any).document_name}`
-              : "Translations list updated",
+            description: "A new translation has been added to the queue",
           });
-          refetch();
         }
       )
       .subscribe();
@@ -114,7 +106,7 @@ const AvailableTranslations = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [toast, refetch]);
+  }, [refetch, toast]);
 
   const handleClaimTranslation = async (translationId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -139,7 +131,7 @@ const AvailableTranslations = () => {
       console.error('Error claiming translation:', error);
       toast({
         title: "Error",
-        description: "Failed to claim translation. Please try again.",
+        description: "Failed to claim translation",
         variant: "destructive"
       });
       return;
@@ -154,12 +146,9 @@ const AvailableTranslations = () => {
 
   if (isLoading) {
     return (
-      <Card className="col-span-2">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Available Translations
-          </CardTitle>
+          <CardTitle>Available Translations</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -175,7 +164,7 @@ const AvailableTranslations = () => {
   }
 
   return (
-    <Card className="col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
