@@ -1,16 +1,13 @@
 import React, { useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { BookOpen, FileX, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationItem from "./translations/TranslationItem";
 import { useTranslations } from "@/hooks/useTranslations";
-import { Database } from "@/integrations/supabase/types";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-type Translation = Database['public']['Tables']['translations']['Row'];
+import EmptyTranslationState from "./translations/EmptyTranslationState";
+import TranslatorTabs from "./translations/TranslatorTabs";
 
 interface TranslationsListProps {
   role?: 'client' | 'translator' | 'admin';
@@ -79,26 +76,10 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
             {title}
           </h2>
         </div>
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <FileX className="w-12 h-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No translations yet</h3>
-          <p className="text-muted-foreground max-w-sm">
-            {role === 'translator' 
-              ? "You haven't been assigned any translations yet. Check back later."
-              : "You haven't submitted any translations yet. Start by uploading a document."}
-          </p>
-        </div>
+        <EmptyTranslationState type="default" />
       </Card>
     );
   }
-
-  const inProgressTranslations = translations.filter(t => 
-    t.status === 'in_progress' || t.status === 'pending_admin_review'
-  );
-  
-  const completedTranslations = translations.filter(t => 
-    t.status === 'completed'
-  );
 
   if (role === 'translator') {
     return (
@@ -109,74 +90,17 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
             {title}
           </h2>
         </div>
-        <Tabs defaultValue="in-progress" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="in-progress">
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-4">
-                {inProgressTranslations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <FileX className="w-12 h-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No translations in progress</h3>
-                    <p className="text-muted-foreground max-w-sm">
-                      You don't have any translations in progress at the moment.
-                    </p>
-                  </div>
-                ) : (
-                  inProgressTranslations.map((translation) => (
-                    <TranslationItem 
-                      key={translation.id}
-                      translation={translation}
-                      role={role}
-                      onUpdate={() => {
-                        toast({
-                          title: "Success",
-                          description: "Translation updated successfully",
-                        });
-                        refetch();
-                      }}
-                    />
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-          
-          <TabsContent value="completed">
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-4">
-                {completedTranslations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <CheckCircle className="w-12 h-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No completed translations</h3>
-                    <p className="text-muted-foreground max-w-sm">
-                      You haven't completed any translations yet.
-                    </p>
-                  </div>
-                ) : (
-                  completedTranslations.map((translation) => (
-                    <TranslationItem 
-                      key={translation.id}
-                      translation={translation}
-                      role={role}
-                      onUpdate={() => {
-                        toast({
-                          title: "Success",
-                          description: "Translation updated successfully",
-                        });
-                        refetch();
-                      }}
-                    />
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+        <TranslatorTabs 
+          translations={translations}
+          role={role}
+          onUpdate={() => {
+            toast({
+              title: "Success",
+              description: "Translation updated successfully",
+            });
+            refetch();
+          }}
+        />
       </Card>
     );
   }
