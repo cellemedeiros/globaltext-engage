@@ -1,101 +1,54 @@
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationCard from "./TranslationCard";
-import { Database } from "@/integrations/supabase/types";
-
-type Translation = Database['public']['Tables']['translations']['Row'] & {
-  profiles: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
-};
+import LoadingTranslations from "./LoadingTranslations";
+import { useAvailableTranslations } from "@/hooks/useAvailableTranslations";
 
 const AvailableTranslations = () => {
   const { toast } = useToast();
+  const { data: translations, isLoading, refetch } = useAvailableTranslations();
 
-  const { data: translations, isLoading, refetch } = useQuery({
-    queryKey: ['available-translations'],
-    queryFn: async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          toast({
-            title: "Authentication Error",
-            description: "Please sign in to view available translations",
-            variant: "destructive"
-          });
-          return [];
-        }
-
-        // First, verify the user is a translator
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, is_approved_translator')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          toast({
-            title: "Error",
-            description: "Failed to verify translator status",
-            variant: "destructive"
-          });
-          return [];
-        }
-
-        if (!profile || (profile.role !== 'translator' && !profile.is_approved_translator)) {
-          toast({
-            title: "Access Denied",
-            description: "You must be an approved translator to view available translations",
-            variant: "destructive"
-          });
-          return [];
-        }
-
-        // Fetch all pending translations that haven't been claimed
-        const { data, error } = await supabase
-          .from('translations')
-          .select(`
-            *,
-            profiles:user_id (
-              first_name,
-              last_name
-            )
-          `)
-          .eq('status', 'pending')
-          .is('translator_id', null)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching translations:', error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch available translations",
-            variant: "destructive"
-          });
-          return [];
-        }
-
-        console.log('Fetched available translations:', data);
-        return data as Translation[];
-      } catch (error) {
-        console.error('Error in queryFn:', error);
+  const handleClaimTranslation = async (translationId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         toast({
-          title: "Error",
-          description: "An unexpected error occurred",
+          title: "Authentication Error",
+          description: "Please sign in to claim translations",
           variant: "destructive"
         });
-        return [];
+        return;
       }
-    },
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
+
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          translator_id: session.user.id,
+          status: 'in_progress'
+        })
+        .eq('id', translationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation claimed successfully",
+      });
+
+      refetch();
+    } catch (error) {
+      console.error('Error claiming translation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to claim translation",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Set up real-time subscription for new translations
   useEffect(() => {
@@ -121,47 +74,6 @@ const AvailableTranslations = () => {
     };
   }, [refetch]);
 
-  const handleClaimTranslation = async (translationId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in to claim translations",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('translations')
-        .update({
-          translator_id: session.user.id,
-          status: 'in_progress'
-        })
-        .eq('id', translationId);
-
-      if (error) {
-        console.error('Error claiming translation:', error);
-        throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Translation claimed successfully",
-      });
-
-      refetch();
-    } catch (error) {
-      console.error('Error claiming translation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to claim translation",
-        variant: "destructive"
-      });
-    }
-  };
-
   if (isLoading) {
     return (
       <Card>
@@ -169,13 +81,7 @@ const AvailableTranslations = () => {
           <CardTitle>Available Translations</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-24 bg-muted rounded-lg" />
-              </div>
-            ))}
-          </div>
+          <LoadingTranslations />
         </CardContent>
       </Card>
     );
