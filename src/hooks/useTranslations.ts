@@ -16,7 +16,7 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
       if (role === 'translator') {
         query = query
           .eq('translator_id', session.user.id)
-          .eq('status', 'pending_review');
+          .in('status', ['in_progress', 'pending_review']);
       } else if (role === 'admin') {
         query = query.eq('status', 'pending_admin_review');
       } else {
