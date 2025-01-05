@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import TranslationForm from "./TranslationForm";
+import TranslationCanvasLayout from "./TranslationCanvasLayout";
 
 interface TranslationCanvasProps {
   translationId?: string;
@@ -27,24 +27,21 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[600px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      <TranslationCanvasLayout>
+        <div className="flex items-center justify-center h-[600px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </TranslationCanvasLayout>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6 bg-gray-50 p-6 rounded-lg"
-    >
+    <TranslationCanvasLayout>
       <TranslationForm
         translationId={translationId}
         initialData={translation}
       />
-    </motion.div>
+    </TranslationCanvasLayout>
   );
 };
 

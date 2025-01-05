@@ -20,18 +20,20 @@ const TranslationEditor = ({
   isTranslating = false
 }: TranslationEditorProps) => {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         className="space-y-2"
       >
-        <label className="text-sm font-medium">Source Text</label>
-        <ScrollArea className="h-[400px] w-full rounded-md border">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-gray-700">Source Text</label>
+        </div>
+        <ScrollArea className="h-[500px] w-full rounded-lg border border-gray-200">
           <textarea
             value={sourceText}
             onChange={(e) => onSourceChange(e.target.value)}
-            className="w-full h-full min-h-[380px] p-4 bg-white resize-none focus:outline-none"
+            className="w-full h-full min-h-[480px] p-4 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-300"
             placeholder="Enter source text..."
             readOnly={isReadOnly}
           />
@@ -44,19 +46,19 @@ const TranslationEditor = ({
         className="space-y-2"
       >
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Target Text</label>
+          <label className="text-sm font-medium text-gray-700">Target Text</label>
           {isTranslating && (
-            <div className="flex items-center text-sm text-muted-foreground">
+            <div className="flex items-center text-sm text-primary">
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Translating...
             </div>
           )}
         </div>
-        <ScrollArea className="h-[400px] w-full rounded-md border">
+        <ScrollArea className="h-[500px] w-full rounded-lg border border-gray-200">
           <textarea
             value={targetText}
             onChange={(e) => onTargetChange(e.target.value)}
-            className="w-full h-full min-h-[380px] p-4 bg-white resize-none focus:outline-none"
+            className="w-full h-full min-h-[480px] p-4 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-300"
             placeholder="Enter translation..."
             readOnly={isReadOnly || isTranslating}
           />
