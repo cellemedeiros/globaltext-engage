@@ -30,12 +30,14 @@ const Dashboard = () => {
     },
   });
 
-  const { data: subscription } = useQuery({
-    queryKey: ['subscription'],
+  const { data: subscription, isLoading: subscriptionLoading } = useQuery({
+    queryKey: ['active-subscription'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
+      console.log('Fetching subscription for user:', session.user.id);
+      
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -43,7 +45,12 @@ const Dashboard = () => {
         .eq('status', 'active')
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        throw error;
+      }
+
+      console.log('Fetched subscription:', data);
       return data;
     },
   });
