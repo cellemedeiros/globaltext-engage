@@ -145,6 +145,9 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
               content={translation.content}
               aiTranslatedContent={translation.ai_translated_content}
               title={translation.document_name}
+              documentName={translation.document_name}
+              filePath={translation.file_path}
+              translatedFilePath={translation.translated_file_path}
             />
             
             {role === 'translator' && (
