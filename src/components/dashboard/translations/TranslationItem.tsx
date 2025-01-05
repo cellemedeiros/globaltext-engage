@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import TranslationStatus from "./TranslationStatus";
 import TranslationContent from "./TranslationContent";
 import { Card } from "@/components/ui/card";
-import { Calendar, FileText, Languages } from "lucide-react";
+import { Calendar, FileText, Languages, Clock } from "lucide-react";
+import { format } from "date-fns";
 
 interface Translation {
   id: string;
@@ -20,6 +21,8 @@ interface Translation {
   content?: string;
   admin_review_status?: string;
   admin_review_notes?: string;
+  deadline?: string;
+  translator_id?: string;
 }
 
 interface TranslationItemProps {
@@ -31,6 +34,63 @@ interface TranslationItemProps {
 const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
   const [reviewNotes, setReviewNotes] = useState("");
   const { toast } = useToast();
+
+  const handleAcceptTranslation = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          translator_id: session.user.id,
+          status: 'in_progress'
+        })
+        .eq('id', translation.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation accepted successfully",
+      });
+      onUpdate();
+    } catch (error) {
+      console.error('Error accepting translation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept translation",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeclineTranslation = async () => {
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          translator_id: null,
+          status: 'pending'
+        })
+        .eq('id', translation.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Translation declined",
+      });
+      onUpdate();
+    } catch (error) {
+      console.error('Error declining translation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to decline translation",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleReviewSubmit = async (translationId: string, reviewedContent: string) => {
     try {
@@ -87,17 +147,12 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return format(new Date(dateString), 'MMM dd, yyyy');
   };
 
   return (
     <Card className="p-6 hover:shadow-md transition-all duration-200">
       <div className="space-y-6">
-        {/* Header Section */}
         <div className="flex justify-between items-start">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -113,6 +168,12 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
                 <Languages className="w-4 h-4" />
                 {translation.source_language} → {translation.target_language}
               </div>
+              {translation.deadline && (
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  Due: {formatDate(translation.deadline)}
+                </div>
+              )}
             </div>
           </div>
           <TranslationStatus 
@@ -122,7 +183,6 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
           />
         </div>
 
-        {/* Content Section */}
         {(role === 'translator' || role === 'admin') && (
           <div className="space-y-6 border-t pt-4 mt-4">
             <TranslationContent 
@@ -131,6 +191,25 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
               title={translation.document_name}
             />
             
+            {role === 'translator' && translation.status === 'pending' && !translation.translator_id && (
+              <div className="flex gap-4">
+                <Button 
+                  onClick={handleAcceptTranslation}
+                  className="flex-1"
+                  variant="default"
+                >
+                  Accept Translation
+                </Button>
+                <Button 
+                  onClick={handleDeclineTranslation}
+                  className="flex-1"
+                  variant="outline"
+                >
+                  Decline
+                </Button>
+              </div>
+            )}
+
             {role === 'translator' && translation.status === 'pending_review' && (
               <div className="space-y-4">
                 <textarea

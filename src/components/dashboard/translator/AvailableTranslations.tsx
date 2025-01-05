@@ -108,42 +108,6 @@ const AvailableTranslations = () => {
     };
   }, [refetch, toast]);
 
-  const handleClaimTranslation = async (translationId: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      toast({
-        title: "Authentication Error",
-        description: "Please sign in to claim translations",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const { error } = await supabase
-      .from('translations')
-      .update({ 
-        translator_id: session.user.id,
-        status: 'in_progress'
-      })
-      .eq('id', translationId);
-
-    if (error) {
-      console.error('Error claiming translation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to claim translation",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Translation claimed successfully!",
-    });
-    refetch();
-  };
-
   if (isLoading) {
     return (
       <Card>
@@ -178,7 +142,7 @@ const AvailableTranslations = () => {
               <TranslationCard
                 key={translation.id}
                 translation={translation}
-                onClaim={handleClaimTranslation}
+                onClaim={() => refetch()}
               />
             ))}
             {(!translations || translations.length === 0) && (
