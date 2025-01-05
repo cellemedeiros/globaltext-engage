@@ -7,9 +7,10 @@ import { useToast } from "@/hooks/use-toast";
 interface TranslationDownloadProps {
   filePath?: string;
   documentName: string;
+  label?: string;
 }
 
-const TranslationDownload = ({ filePath, documentName }: TranslationDownloadProps) => {
+const TranslationDownload = ({ filePath, documentName, label }: TranslationDownloadProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
@@ -66,7 +67,7 @@ const TranslationDownload = ({ filePath, documentName }: TranslationDownloadProp
       className="flex items-center gap-2"
     >
       <Download className="w-4 h-4" />
-      {isDownloading ? "Downloading..." : "Download"}
+      {isDownloading ? "Downloading..." : label || "Download"}
     </Button>
   );
 };

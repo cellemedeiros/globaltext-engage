@@ -102,7 +102,25 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             deadline={translation.deadline}
           />
           <div className="flex items-center gap-2">
-            {(role === 'admin' || role === 'translator') && translation.file_path && (
+            {(role === 'admin') && (
+              <>
+                {translation.file_path && (
+                  <TranslationDownload 
+                    filePath={translation.file_path}
+                    documentName={`translated_${translation.document_name}`}
+                    label="Download Translation"
+                  />
+                )}
+                {translation.content && (
+                  <TranslationDownload 
+                    filePath={`original_${translation.file_path}`}
+                    documentName={translation.document_name}
+                    label="Download Original"
+                  />
+                )}
+              </>
+            )}
+            {(role === 'translator' && translation.file_path) && (
               <TranslationDownload 
                 filePath={translation.file_path}
                 documentName={translation.document_name}
