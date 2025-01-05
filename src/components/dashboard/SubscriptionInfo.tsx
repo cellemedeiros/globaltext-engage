@@ -12,17 +12,17 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const navigate = useNavigate();
 
   const handleUpgrade = () => {
-    // If user has no subscription, navigate to payment with Premium plan
+    // If user has no subscription, navigate to payment with Business plan
     if (!subscription) {
-      navigate('/payment?plan=Premium&amount=199.99');
+      navigate('/payment?plan=Business&amount=2500');
       return;
     }
     
-    // If upgrading from Standard to Premium
-    if (subscription.plan_name === 'Standard') {
-      navigate('/payment?plan=Premium&amount=199.99');
+    // If upgrading from Standard or Premium to Business
+    if (subscription.plan_name === 'Standard' || subscription.plan_name === 'Premium') {
+      navigate('/payment?plan=Business&amount=2500');
     } else {
-      // For Premium users or other cases, show pricing options
+      // For Business users or other cases, show pricing options
       navigate('/#pricing');
     }
   };
@@ -54,7 +54,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            {subscription.plan_name === 'Premium' ? 'Manage Subscription' : 'Upgrade to Premium'}
+            {subscription.plan_name === 'Business' ? 'Manage Subscription' : 'Upgrade to Business'}
           </Button>
         </div>
       ) : (
@@ -64,7 +64,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            Get Premium
+            Get Business Plan
           </Button>
         </div>
       )}

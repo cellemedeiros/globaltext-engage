@@ -32,7 +32,6 @@ const PlansSection = () => {
       name: "Premium",
       price: "R$1200",
       period: "/month",
-      popular: true,
       features: [
         { text: "Up to 15,000 words per month", available: true },
         { text: "Priority email & chat support", available: true },
@@ -46,7 +45,9 @@ const PlansSection = () => {
     },
     {
       name: "Business",
-      price: "Custom",
+      price: "R$2500",
+      period: "/month",
+      popular: true,
       features: [
         { text: "Unlimited words", available: true },
         { text: "Dedicated account manager", available: true },
