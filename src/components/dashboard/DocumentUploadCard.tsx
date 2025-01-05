@@ -24,6 +24,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     setFile(file);
   };
 
+  const sanitizeContent = (content: string): string => {
+    // Remove null bytes and invalid Unicode characters
+    return content
+      .replace(/\u0000/g, '') // Remove null bytes
+      .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove invalid Unicode characters
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove control characters
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!file || !sourceLanguage || !targetLanguage) return;
@@ -32,7 +40,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       setIsUploading(true);
       
       const fileContent = await file.text();
-      const calculatedWordCount = fileContent.split(/\s+/).length;
+      const sanitizedContent = sanitizeContent(fileContent);
+      const calculatedWordCount = sanitizedContent.split(/\s+/).length;
       setWordCount(calculatedWordCount);
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -54,6 +63,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
+      console.log('Uploading document with sanitized content length:', sanitizedContent.length);
+
       const { error } = await supabase
         .from('translations')
         .insert({
@@ -63,11 +74,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           target_language: targetLanguage,
           word_count: calculatedWordCount,
           status: 'pending',
-          content: fileContent,
+          content: sanitizedContent,
           amount_paid: calculatePrice(calculatedWordCount)
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
