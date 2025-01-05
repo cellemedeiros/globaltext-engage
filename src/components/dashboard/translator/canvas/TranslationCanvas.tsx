@@ -1,13 +1,12 @@
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import TranslationForm from "./TranslationForm";
 import TranslationCanvasLayout from "./TranslationCanvasLayout";
 
-interface TranslationCanvasProps {
-  translationId?: string;
-}
+const TranslationCanvas = () => {
+  const { translationId } = useParams();
 
-const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
   const { data: translation, isLoading } = useQuery({
     queryKey: ['translation', translationId],
     queryFn: async () => {

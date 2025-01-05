@@ -2,33 +2,14 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TranslationsList from "../TranslationsList";
 import AvailableTranslations from "./AvailableTranslations";
-import TranslationCanvas from "./TranslationCanvas";
 import { motion } from "framer-motion";
-import { useParams } from "react-router-dom";
+import TranslationForm from "./canvas/TranslationForm";
 
 interface TranslatorDashboardTabsProps {
   isLoading: boolean;
 }
 
 const TranslatorDashboardTabs = ({ isLoading }: TranslatorDashboardTabsProps) => {
-  const { translationId } = useParams();
-
-  // If we have a translationId, show the canvas directly
-  if (translationId) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full"
-      >
-        <Card className="p-6 hover:shadow-lg transition-shadow duration-300">
-          <TranslationCanvas translationId={translationId} />
-        </Card>
-      </motion.div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -92,7 +73,7 @@ const TranslatorDashboardTabs = ({ isLoading }: TranslatorDashboardTabsProps) =>
             transition={{ duration: 0.3 }}
           >
             <Card className="p-6 hover:shadow-lg transition-shadow duration-300">
-              <TranslationCanvas />
+              <TranslationForm />
             </Card>
           </motion.div>
         </TabsContent>
