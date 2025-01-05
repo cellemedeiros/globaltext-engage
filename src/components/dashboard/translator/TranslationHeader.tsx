@@ -6,13 +6,15 @@ interface TranslationHeaderProps {
   targetLanguage: string;
   onSourceChange: (lang: string) => void;
   onTargetChange: (lang: string) => void;
+  isReadOnly?: boolean;
 }
 
 const TranslationHeader = ({
   sourceLanguage,
   targetLanguage,
   onSourceChange,
-  onTargetChange
+  onTargetChange,
+  isReadOnly = false
 }: TranslationHeaderProps) => {
   return (
     <motion.div
@@ -29,6 +31,7 @@ const TranslationHeader = ({
           value={sourceLanguage}
           onChange={(e) => onSourceChange(e.target.value)}
           className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-primary/20"
+          disabled={isReadOnly}
         >
           <option value="en">English</option>
           <option value="es">Spanish</option>
@@ -42,6 +45,7 @@ const TranslationHeader = ({
           value={targetLanguage}
           onChange={(e) => onTargetChange(e.target.value)}
           className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-primary/20"
+          disabled={isReadOnly}
         >
           <option value="pt">Portuguese</option>
           <option value="en">English</option>

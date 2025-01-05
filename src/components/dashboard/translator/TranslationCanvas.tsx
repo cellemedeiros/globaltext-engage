@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEditor from "./TranslationEditor";
 import TranslationActions from "./TranslationActions";
-import AdminReviewPanel from "./AdminReviewPanel";
 import { useNavigate } from "react-router-dom";
+import TranslationSubmitSection from "./TranslationSubmitSection";
 
 interface TranslationCanvasProps {
   translationId?: string;
@@ -123,30 +124,30 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
         navigate('/translator-dashboard');
       } else {
         // Create new translation
-      const fileExt = selectedFile.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('translations')
-        .upload(filePath, selectedFile);
+        const fileExt = selectedFile.name.split('.').pop();
+        const filePath = `${crypto.randomUUID()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('translations')
+          .upload(filePath, selectedFile);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      const { error: insertError } = await supabase
-        .from('translations')
-        .insert({
-          user_id: session.user.id,
-          document_name: selectedFile.name,
-          source_language: sourceLanguage,
-          target_language: targetLanguage,
-          content: sourceText,
-          ai_translated_content: targetText,
-          status: 'pending_admin_review',
-          word_count: sourceText.split(/\s+/).length,
-          amount_paid: 0,
-          translator_id: session.user.id,
-          admin_review_status: 'pending'
-        });
+        const { error: insertError } = await supabase
+          .from('translations')
+          .insert({
+            user_id: session.user.id,
+            document_name: selectedFile.name,
+            source_language: sourceLanguage,
+            target_language: targetLanguage,
+            content: sourceText,
+            ai_translated_content: targetText,
+            status: 'pending_admin_review',
+            word_count: sourceText.split(/\s+/).length,
+            amount_paid: 0,
+            translator_id: session.user.id,
+            admin_review_status: 'pending'
+          });
       }
     } catch (error) {
       console.error('Submission error:', error);
@@ -185,22 +186,14 @@ const TranslationCanvas = ({ translationId }: TranslationCanvasProps) => {
           isReadOnly={false}
         />
 
-        <div className="mt-6 flex justify-end gap-4">
-          {translationId && (
-            <Button
-              variant="outline"
-              onClick={() => navigate('/translator-dashboard')}
-            >
-              Cancel
-            </Button>
-          )}
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !sourceText.trim() || !targetText.trim()}
-          >
-            {isSubmitting ? "Submitting..." : translationId ? "Update Translation" : "Submit Translation"}
-          </Button>
-        </div>
+        <TranslationSubmitSection 
+          translationId={translationId}
+          isSubmitting={isSubmitting}
+          sourceText={sourceText}
+          targetText={targetText}
+          onSubmit={handleSubmit}
+          onCancel={() => navigate('/translator-dashboard')}
+        />
       </div>
     </motion.div>
   );
