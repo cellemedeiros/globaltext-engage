@@ -86,6 +86,7 @@ const AvailableTranslations = () => {
     retry: false
   });
 
+  // Set up real-time subscription for new translations
   useEffect(() => {
     const channel = supabase
       .channel('translations_channel')
@@ -100,7 +101,7 @@ const AvailableTranslations = () => {
         (payload) => {
           console.log('Realtime update received:', payload);
           toast({
-            title: "Translation Update",
+            title: "New Translation Available",
             description: payload.eventType === 'INSERT' 
               ? `New translation available: ${(payload.new as any).document_name}`
               : "Translations list updated",
