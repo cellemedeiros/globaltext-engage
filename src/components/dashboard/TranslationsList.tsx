@@ -21,6 +21,11 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
   const { toast } = useToast();
   const { data: translations, isLoading: translationsLoading, refetch } = useTranslations(role);
 
+  useEffect(() => {
+    console.log('TranslationsList mounted with role:', role);
+    console.log('Current translations:', translations);
+  }, [role, translations]);
+
   // Subscribe to real-time updates for translations
   useEffect(() => {
     const channel = supabase
@@ -33,8 +38,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
           table: 'translations',
         },
         (payload) => {
-          console.log('Translation update:', payload);
-          // Refresh translations data when changes occur
+          console.log('Translation update received:', payload);
           refetch();
         }
       )
@@ -107,6 +111,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
                   title: "Success",
                   description: "Translation updated successfully",
                 });
+                refetch();
               }}
             />
           ))}

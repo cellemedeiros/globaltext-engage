@@ -10,10 +10,11 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
 
       let query = supabase
         .from('translations')
-        .select('*')
+        .select('*, profiles(first_name, last_name)')
         .order('created_at', { ascending: false });
 
       if (role === 'translator') {
+        console.log('Fetching translations for translator:', session.user.id);
         query = query
           .eq('translator_id', session.user.id)
           .in('status', ['in_progress', 'pending_review']);
@@ -31,7 +32,7 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
         throw error;
       }
       
-      console.log('Fetched translations:', data);
+      console.log('Fetched translations for role:', role, data);
       return data;
     },
   });
