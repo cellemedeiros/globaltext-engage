@@ -21,69 +21,86 @@ const AvailableTranslations = () => {
   const { data: translations, isLoading, refetch } = useQuery({
     queryKey: ['available-translations'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in to view available translations",
-          variant: "destructive"
-        });
-        return [];
-      }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast({
+            title: "Authentication Error",
+            description: "Please sign in to view available translations",
+            variant: "destructive"
+          });
+          return [];
+        }
 
-      // First, verify the user is a translator
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, is_approved_translator')
-        .eq('id', session.user.id)
-        .single();
+        // First, verify the user is a translator
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, is_approved_translator')
+          .eq('id', session.user.id)
+          .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        return [];
-      }
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          toast({
+            title: "Error",
+            description: "Failed to verify translator status",
+            variant: "destructive"
+          });
+          return [];
+        }
 
-      if (!profile || (profile.role !== 'translator' && !profile.is_approved_translator)) {
-        toast({
-          title: "Access Denied",
-          description: "You must be an approved translator to view available translations",
-          variant: "destructive"
-        });
-        return [];
-      }
+        if (!profile || (profile.role !== 'translator' && !profile.is_approved_translator)) {
+          toast({
+            title: "Access Denied",
+            description: "You must be an approved translator to view available translations",
+            variant: "destructive"
+          });
+          return [];
+        }
 
-      // Fetch all pending translations that haven't been claimed
-      const { data, error } = await supabase
-        .from('translations')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name
-          )
-        `)
-        .eq('status', 'pending')
-        .is('translator_id', null)
-        .order('created_at', { ascending: false });
+        // Fetch all pending translations that haven't been claimed
+        const { data, error } = await supabase
+          .from('translations')
+          .select(`
+            *,
+            profiles:user_id (
+              first_name,
+              last_name
+            )
+          `)
+          .eq('status', 'pending')
+          .is('translator_id', null)
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching translations:', error);
+        if (error) {
+          console.error('Error fetching translations:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch available translations",
+            variant: "destructive"
+          });
+          return [];
+        }
+
+        console.log('Fetched available translations:', data);
+        return data as Translation[];
+      } catch (error) {
+        console.error('Error in queryFn:', error);
         toast({
           title: "Error",
-          description: "Failed to fetch available translations",
+          description: "An unexpected error occurred",
           variant: "destructive"
         });
         return [];
       }
-
-      return data as Translation[];
     },
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Set up real-time subscription for new translations
   useEffect(() => {
     const channel = supabase
-      .channel('translations_channel')
+      .channel('available_translations')
       .on(
         'postgres_changes',
         {
@@ -95,10 +112,6 @@ const AvailableTranslations = () => {
         (payload) => {
           console.log('Realtime update received:', payload);
           refetch();
-          toast({
-            title: "New Translation Available",
-            description: "A new translation has been added to the queue",
-          });
         }
       )
       .subscribe();
@@ -106,7 +119,7 @@ const AvailableTranslations = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetch, toast]);
+  }, [refetch]);
 
   const handleClaimTranslation = async (translationId: string) => {
     try {
@@ -128,7 +141,10 @@ const AvailableTranslations = () => {
         })
         .eq('id', translationId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error claiming translation:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -136,7 +152,7 @@ const AvailableTranslations = () => {
       });
 
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error claiming translation:', error);
       toast({
         title: "Error",
@@ -176,14 +192,15 @@ const AvailableTranslations = () => {
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
-            {translations?.map((translation) => (
-              <TranslationCard
-                key={translation.id}
-                translation={translation}
-                onClaim={() => handleClaimTranslation(translation.id)}
-              />
-            ))}
-            {(!translations || translations.length === 0) && (
+            {translations && translations.length > 0 ? (
+              translations.map((translation) => (
+                <TranslationCard
+                  key={translation.id}
+                  translation={translation}
+                  onClaim={() => handleClaimTranslation(translation.id)}
+                />
+              ))
+            ) : (
               <div className="text-center py-8 text-gray-500">
                 <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                 <p>No available translations at the moment</p>
