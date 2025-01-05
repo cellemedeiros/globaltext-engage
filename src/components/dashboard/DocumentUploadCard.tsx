@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { calculatePrice } from "@/utils/documentUtils";
 import LanguageSelector from "@/components/dashboard/translator/LanguageSelector";
-import { FileText, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
+import WordCountDisplay from "./document-upload/WordCountDisplay";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
@@ -21,13 +21,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const [wordCount, setWordCount] = useState(0);
   const [isWordCountConfirmed, setIsWordCountConfirmed] = useState(false);
 
-  const sanitizeContent = (content: string): string => {
-    return content
-      .replace(/\u0000/g, '') // Remove null bytes
-      .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove invalid Unicode characters
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove control characters
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -36,15 +29,21 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     setIsProcessing(true);
     
     try {
-      const fileContent = await file.text();
-      const sanitizedContent = sanitizeContent(fileContent);
-      const calculatedWordCount = sanitizedContent.split(/\s+/).length;
-      setWordCount(calculatedWordCount);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data, error } = await supabase.functions.invoke('process-document', {
+        body: formData,
+      });
+
+      if (error) throw error;
+
+      setWordCount(data.wordCount);
       setIsWordCountConfirmed(false);
       
       toast({
         title: "Document processed",
-        description: `Word count: ${calculatedWordCount}. Please confirm to proceed.`,
+        description: `Word count: ${data.wordCount.toLocaleString()}. Please confirm to proceed.`,
       });
     } catch (error) {
       console.error('Error processing file:', error);
@@ -84,7 +83,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
       
@@ -92,13 +90,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         .from('translations')
         .upload(filePath, file);
 
-      if (storageError) {
-        throw storageError;
-      }
-
-      // Get file content for translation
-      const fileContent = await file.text();
-      const sanitizedContent = sanitizeContent(fileContent);
+      if (storageError) throw storageError;
 
       const { error } = await supabase
         .from('translations')
@@ -109,21 +101,18 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           target_language: targetLanguage,
           word_count: wordCount,
           status: 'pending',
-          content: sanitizedContent,
           amount_paid: calculatePrice(wordCount),
           file_path: filePath
         });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",
         description: "Document uploaded successfully",
       });
 
+      // Reset form
       setFile(null);
       setSourceLanguage("");
       setTargetLanguage("");
@@ -160,23 +149,10 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         </div>
         
         {wordCount > 0 && !isWordCountConfirmed && (
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-medium flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Document Analysis
-            </h3>
-            <p className="mt-2">Word count: {wordCount}</p>
-            <p className="text-sm text-gray-600 mt-1">
-              Estimated cost: ${calculatePrice(wordCount)}
-            </p>
-            <Button
-              type="button"
-              onClick={() => setIsWordCountConfirmed(true)}
-              className="mt-3"
-            >
-              Confirm and Continue
-            </Button>
-          </div>
+          <WordCountDisplay 
+            wordCount={wordCount}
+            onConfirm={() => setIsWordCountConfirmed(true)}
+          />
         )}
 
         {isWordCountConfirmed && (
