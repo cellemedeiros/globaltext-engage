@@ -2,8 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { calculatePrice } from "@/utils/documentUtils";
 
-const DocumentUploadCard = () => {
+interface DocumentUploadCardProps {
+  hasActiveSubscription: boolean;
+  wordsRemaining?: number;
+}
+
+const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentUploadCardProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -15,8 +21,8 @@ const DocumentUploadCard = () => {
     try {
       setIsUploading(true);
       
-      const fileContent = await file.text(); // Assuming the file is text-based
-      const calculatedWordCount = fileContent.split(/\s+/).length; // Simple word count logic
+      const fileContent = await file.text();
+      const calculatedWordCount = fileContent.split(/\s+/).length;
       setWordCount(calculatedWordCount);
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -24,6 +30,15 @@ const DocumentUploadCard = () => {
         toast({
           title: "Authentication Error",
           description: "Please sign in to upload documents",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!hasActiveSubscription && (!wordsRemaining || wordsRemaining < calculatedWordCount)) {
+        toast({
+          title: "Insufficient Words",
+          description: "Please upgrade your subscription or purchase more words",
           variant: "destructive"
         });
         return;
@@ -37,7 +52,7 @@ const DocumentUploadCard = () => {
           source_language: sourceLanguage,
           target_language: targetLanguage,
           word_count: calculatedWordCount,
-          status: 'pending', // Ensure status is set to pending
+          status: 'pending',
           content: fileContent,
           amount_paid: calculatePrice(calculatedWordCount)
         })
@@ -51,7 +66,6 @@ const DocumentUploadCard = () => {
         description: "Document uploaded successfully",
       });
 
-      // Reset the form or handle success as needed
       setFile(null);
       setSourceLanguage("");
       setTargetLanguage("");
