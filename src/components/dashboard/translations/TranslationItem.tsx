@@ -9,7 +9,6 @@ import TranslationEarnings from "./TranslationEarnings";
 import TranslationDownload from "./TranslationDownload";
 import AdminReviewSection from "./AdminReviewSection";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 interface Translation {
   id: string;
