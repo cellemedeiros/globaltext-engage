@@ -224,6 +224,7 @@ export type Database = {
           created_at: string | null
           deadline: string | null
           document_name: string
+          file_path: string | null
           id: string
           price_offered: number
           source_language: string
@@ -247,6 +248,7 @@ export type Database = {
           created_at?: string | null
           deadline?: string | null
           document_name: string
+          file_path?: string | null
           id?: string
           price_offered?: number
           source_language: string
@@ -270,6 +272,7 @@ export type Database = {
           created_at?: string | null
           deadline?: string | null
           document_name?: string
+          file_path?: string | null
           id?: string
           price_offered?: number
           source_language?: string
