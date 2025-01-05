@@ -31,11 +31,13 @@ const AvailableTranslations = () => {
         return [];
       }
 
+      console.log('Fetching translations with session:', session.user.id);
+
       const { data, error } = await supabase
         .from('translations')
         .select(`
           *,
-          profiles (
+          profiles:user_id (
             first_name,
             last_name
           )
@@ -54,6 +56,7 @@ const AvailableTranslations = () => {
         return [];
       }
 
+      console.log('Fetched translations:', data);
       return data as Translation[];
     },
     retry: false
@@ -71,6 +74,7 @@ const AvailableTranslations = () => {
           filter: 'status=eq.pending'
         },
         (payload) => {
+          console.log('Realtime update received:', payload);
           toast({
             title: "Translation Update",
             description: payload.eventType === 'INSERT' 

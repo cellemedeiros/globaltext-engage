@@ -24,7 +24,7 @@ const TranslationCard = ({ translation, onClaim }: TranslationCardProps) => {
           <div className="space-y-2">
             <h3 className="font-medium text-lg">{translation.document_name}</h3>
             <p className="text-sm text-muted-foreground">
-              Client: {translation.profiles?.first_name} {translation.profiles?.last_name}
+              Client: {translation.profiles?.first_name || 'Anonymous'} {translation.profiles?.last_name || ''}
             </p>
             <div className="flex flex-wrap gap-4 text-sm text-gray-500">
               <span className="flex items-center gap-1">
