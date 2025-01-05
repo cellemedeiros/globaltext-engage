@@ -7,6 +7,7 @@ import TranslationActions from "./TranslationActions";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEarnings from "./TranslationEarnings";
 import TranslationDownload from "./TranslationDownload";
+import AdminReviewSection from "./AdminReviewSection";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -35,7 +36,6 @@ interface TranslationItemProps {
 }
 
 const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
-  const [reviewNotes, setReviewNotes] = useState("");
   const { toast } = useToast();
 
   const handleAcceptTranslation = async () => {
@@ -91,34 +91,6 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
     }
   };
 
-  const handleAdminReview = async (status: 'approved' | 'rejected') => {
-    try {
-      const { error } = await supabase
-        .from('translations')
-        .update({
-          admin_review_status: status,
-          admin_review_notes: reviewNotes,
-          admin_reviewed_at: new Date().toISOString()
-        })
-        .eq('id', translation.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Translation ${status} successfully`,
-      });
-      onUpdate();
-    } catch (error) {
-      console.error('Error updating admin review:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update review status",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <Card className="p-6 hover:shadow-md transition-all duration-200">
       <div className="space-y-6">
@@ -131,7 +103,7 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             deadline={translation.deadline}
           />
           <div className="flex items-center gap-2">
-            {translation.file_path && (role === 'translator' || role === 'admin') && (
+            {translation.file_path && (
               <TranslationDownload 
                 filePath={translation.file_path}
                 documentName={translation.document_name}
@@ -168,30 +140,10 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             )}
 
             {role === 'admin' && translation.status === 'pending_admin_review' && (
-              <div className="space-y-4 border-t pt-4">
-                <textarea
-                  className="w-full min-h-[100px] p-4 rounded-lg border resize-y focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  placeholder="Add review notes (optional)..."
-                  value={reviewNotes}
-                  onChange={(e) => setReviewNotes(e.target.value)}
-                />
-                <div className="flex gap-4">
-                  <Button 
-                    onClick={() => handleAdminReview('approved')}
-                    className="flex-1"
-                    variant="default"
-                  >
-                    Approve
-                  </Button>
-                  <Button 
-                    onClick={() => handleAdminReview('rejected')}
-                    className="flex-1"
-                    variant="destructive"
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </div>
+              <AdminReviewSection
+                translationId={translation.id}
+                onUpdate={onUpdate}
+              />
             )}
           </div>
         )}
