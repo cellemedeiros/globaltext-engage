@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import TranslationStatus from "./TranslationStatus";
 import TranslationContent from "./TranslationContent";
 import TranslationActions from "./TranslationActions";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, FileText, Languages, Clock } from "lucide-react";
 import { format } from "date-fns";
@@ -87,6 +88,34 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
       toast({
         title: "Error",
         description: "Failed to decline translation",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAdminReview = async (translationId: string, status: 'approved' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({
+          admin_review_status: status,
+          admin_review_notes: reviewNotes,
+          admin_reviewed_at: new Date().toISOString()
+        })
+        .eq('id', translationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Translation ${status} successfully`,
+      });
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating admin review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update review status",
         variant: "destructive"
       });
     }
