@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { BookOpen, FileX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,10 +19,10 @@ interface TranslationsListProps {
 const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsListProps) => {
   const title = role === 'translator' ? 'Translations to Review' : 'Recent Translations';
   const { toast } = useToast();
-  const { data: translations, isLoading: translationsLoading } = useTranslations(role);
+  const { data: translations, isLoading: translationsLoading, refetch } = useTranslations(role);
 
   // Subscribe to real-time updates for translations
-  React.useEffect(() => {
+  useEffect(() => {
     const channel = supabase
       .channel('translations_changes')
       .on(
@@ -42,7 +43,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [refetch]);
 
   if (isLoading || translationsLoading) {
     return (
