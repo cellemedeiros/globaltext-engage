@@ -6,9 +6,8 @@ import TranslationContent from "./TranslationContent";
 import TranslationActions from "./TranslationActions";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEarnings from "./TranslationEarnings";
-import { Button } from "@/components/ui/button";
+import TranslationDownload from "./TranslationDownload";
 import { Card } from "@/components/ui/card";
-import { Download } from "lucide-react";
 
 interface Translation {
   id: string;
@@ -36,108 +35,7 @@ interface TranslationItemProps {
 
 const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
   const [reviewNotes, setReviewNotes] = useState("");
-  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
-
-  const handleDownload = async () => {
-    if (!translation.file_path) {
-      toast({
-        title: "Error",
-        description: "No file available for download",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setIsDownloading(true);
-      const { data, error } = await supabase.storage
-        .from('translations')
-        .download(translation.file_path);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = translation.document_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Success",
-        description: "Document downloaded successfully",
-      });
-    } catch (error) {
-      console.error('Download error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download document",
-        variant: "destructive"
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleAcceptTranslation = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from('translations')
-        .update({
-          translator_id: session.user.id,
-          status: 'in_progress'
-        })
-        .eq('id', translation.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Translation accepted successfully",
-      });
-      onUpdate();
-    } catch (error) {
-      console.error('Error accepting translation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to accept translation",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleDeclineTranslation = async () => {
-    try {
-      const { error } = await supabase
-        .from('translations')
-        .update({
-          translator_id: null,
-          status: 'pending'
-        })
-        .eq('id', translation.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Translation declined",
-      });
-      onUpdate();
-    } catch (error) {
-      console.error('Error declining translation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to decline translation",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleAdminReview = async (status: 'approved' | 'rejected') => {
     try {
@@ -180,16 +78,10 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
           />
           <div className="flex items-center gap-2">
             {translation.file_path && (role === 'translator' || role === 'admin') && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                {isDownloading ? "Downloading..." : "Download"}
-              </Button>
+              <TranslationDownload 
+                filePath={translation.file_path}
+                documentName={translation.document_name}
+              />
             )}
             <TranslationStatus 
               status={translation.status}
@@ -216,8 +108,6 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
                 translationId={translation.id}
                 status={translation.status}
                 onUpdate={onUpdate}
-                onAccept={handleAcceptTranslation}
-                onDecline={handleDeclineTranslation}
               />
             )}
 
