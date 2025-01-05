@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculatePrice } from "@/utils/documentUtils";
+import LanguageSelector from "@/components/dashboard/translator/LanguageSelector";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
@@ -106,19 +107,15 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Source Language"
+          <LanguageSelector
             value={sourceLanguage}
-            onChange={(e) => setSourceLanguage(e.target.value)}
-            className="p-2 border rounded"
+            onChange={setSourceLanguage}
+            label="Source"
           />
-          <input
-            type="text"
-            placeholder="Target Language"
+          <LanguageSelector
             value={targetLanguage}
-            onChange={(e) => setTargetLanguage(e.target.value)}
-            className="p-2 border rounded"
+            onChange={setTargetLanguage}
+            label="Target"
           />
         </div>
         <Button type="submit" disabled={isUploading || !file}>
