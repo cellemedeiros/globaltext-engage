@@ -103,14 +103,15 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           word_count: wordCount,
           status: 'pending',
           amount_paid: calculatePrice(wordCount),
-          file_path: filePath
+          file_path: filePath,
+          content: data.text // Store the extracted text for AI translation
         });
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Document uploaded successfully",
+        description: "Document uploaded successfully and available for translators",
       });
 
       // Reset form
