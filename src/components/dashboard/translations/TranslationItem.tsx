@@ -6,7 +6,6 @@ import TranslationContent from "./TranslationContent";
 import TranslationActions from "./TranslationActions";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEarnings from "./TranslationEarnings";
-import TranslationDownload from "./TranslationDownload";
 import AdminReviewSection from "./AdminReviewSection";
 import { Card } from "@/components/ui/card";
 
@@ -35,7 +34,7 @@ interface TranslationItemProps {
   onUpdate: () => void;
 }
 
-const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) => {
+const TranslationItem = ({ translation, role = 'client', onUpdate }: TranslationItemProps) => {
   const { toast } = useToast();
 
   const handleAcceptTranslation = async () => {
@@ -102,54 +101,42 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             targetLanguage={translation.target_language}
             deadline={translation.deadline}
           />
-          <div className="flex items-center gap-2">
-            {role === 'client' && translation.translated_file_path && (
-              <TranslationDownload 
-                filePath={translation.translated_file_path}
-                documentName={translation.document_name}
-                variant="translation"
-              />
-            )}
-            <TranslationStatus 
-              status={translation.status}
-              wordCount={translation.word_count}
-              adminReviewStatus={translation.admin_review_status}
-            />
-          </div>
+          <TranslationStatus 
+            status={translation.status}
+            wordCount={translation.word_count}
+            adminReviewStatus={translation.admin_review_status}
+          />
         </div>
 
         {role === 'translator' && (
           <TranslationEarnings wordCount={translation.word_count} />
         )}
 
-        {(role === 'translator' || role === 'admin') && (
-          <div className="space-y-6 border-t pt-4 mt-4">
-            <TranslationContent 
-              content={translation.content}
-              aiTranslatedContent={translation.ai_translated_content}
-              title={translation.document_name}
-              documentName={translation.document_name}
-              filePath={translation.file_path}
-              translatedFilePath={translation.translated_file_path}
-            />
-            
-            {role === 'translator' && (
-              <TranslationActions
-                translationId={translation.id}
-                status={translation.status}
-                onUpdate={onUpdate}
-                onAccept={handleAcceptTranslation}
-                onDecline={handleDeclineTranslation}
-              />
-            )}
+        <TranslationContent 
+          content={translation.content}
+          aiTranslatedContent={translation.ai_translated_content}
+          title={translation.document_name}
+          documentName={translation.document_name}
+          filePath={translation.file_path}
+          translatedFilePath={translation.translated_file_path}
+          role={role}
+        />
+        
+        {role === 'translator' && (
+          <TranslationActions
+            translationId={translation.id}
+            status={translation.status}
+            onUpdate={onUpdate}
+            onAccept={handleAcceptTranslation}
+            onDecline={handleDeclineTranslation}
+          />
+        )}
 
-            {role === 'admin' && translation.status === 'pending_admin_review' && (
-              <AdminReviewSection
-                translationId={translation.id}
-                onUpdate={onUpdate}
-              />
-            )}
-          </div>
+        {role === 'admin' && translation.status === 'pending_admin_review' && (
+          <AdminReviewSection
+            translationId={translation.id}
+            onUpdate={onUpdate}
+          />
         )}
       </div>
     </Card>

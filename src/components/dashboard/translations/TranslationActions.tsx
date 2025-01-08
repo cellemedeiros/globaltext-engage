@@ -66,7 +66,7 @@ const TranslationActions = ({
         .from('translations')
         .update({
           status: 'pending_admin_review',
-          file_path: filePath,
+          translated_file_path: filePath,
           completed_at: new Date().toISOString()
         })
         .eq('id', translationId);

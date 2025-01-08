@@ -9,6 +9,7 @@ interface TranslationContentProps {
   filePath?: string;
   translatedFilePath?: string;
   documentName: string;
+  role?: 'client' | 'translator' | 'admin';
 }
 
 const TranslationContent = ({ 
@@ -17,14 +18,15 @@ const TranslationContent = ({
   title,
   filePath,
   translatedFilePath,
-  documentName 
+  documentName,
+  role = 'client'
 }: TranslationContentProps) => {
-  if (!content && !aiTranslatedContent) return null;
+  if (!content && !aiTranslatedContent && !translatedFilePath) return null;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-end gap-4">
-        {filePath && (
+        {role !== 'client' && filePath && (
           <TranslationDownload 
             filePath={filePath}
             documentName={documentName}
