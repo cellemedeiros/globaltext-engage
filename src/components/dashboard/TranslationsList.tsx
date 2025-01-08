@@ -23,7 +23,6 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
     console.log('TranslationsList mounted with role:', role);
     console.log('Current translations:', translations);
 
-    // Subscribe to real-time updates for translations
     const channel = supabase
       .channel('translations_changes')
       .on(
@@ -35,10 +34,8 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
         },
         (payload) => {
           console.log('Translation update received:', payload);
-          // Refresh the translations list when changes occur
           refetch();
           
-          // Show toast notification for relevant events
           if (payload.eventType === 'INSERT' && role === 'translator') {
             toast({
               title: "New Translation Available",
@@ -48,15 +45,13 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
             const newStatus = payload.new.status;
             const translatedFilePath = payload.new.translated_file_path;
             
-            // Notify client when translation is completed and file is uploaded
-            if (role === 'client' && newStatus === 'completed' && translatedFilePath) {
+            if (role === 'client' && translatedFilePath && !payload.old.translated_file_path) {
               toast({
-                title: "Translation Completed",
-                description: "Your document has been translated and is ready for download",
+                title: "Translation Ready",
+                description: "Your translated document is now available for download",
               });
             }
             
-            // Notify translator when a translation is claimed
             if (role === 'translator' && payload.new.translator_id && !payload.old.translator_id) {
               toast({
                 title: "Translation Claimed",
