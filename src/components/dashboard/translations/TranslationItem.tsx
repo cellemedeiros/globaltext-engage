@@ -103,22 +103,20 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             deadline={translation.deadline}
           />
           <div className="flex items-center gap-2">
-            {translation.file_path && (
+            <div className="flex gap-2">
               <TranslationDownload 
                 filePath={translation.file_path}
-                translatedFilePath={translation.translated_file_path}
                 documentName={translation.document_name}
                 variant="original"
               />
-            )}
-            {translation.translated_file_path && (
-              <TranslationDownload 
-                filePath={translation.file_path}
-                translatedFilePath={translation.translated_file_path}
-                documentName={translation.document_name}
-                variant="translation"
-              />
-            )}
+              {translation.translated_file_path && (
+                <TranslationDownload 
+                  filePath={translation.translated_file_path}
+                  documentName={translation.document_name}
+                  variant="translation"
+                />
+              )}
+            </div>
             <TranslationStatus 
               status={translation.status}
               wordCount={translation.word_count}
