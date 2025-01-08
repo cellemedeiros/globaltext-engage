@@ -44,12 +44,23 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
               title: "New Translation Available",
               description: "A new document is available for translation",
             });
-          } else if (payload.eventType === 'UPDATE' && role === 'client') {
+          } else if (payload.eventType === 'UPDATE') {
             const newStatus = payload.new.status;
-            if (newStatus === 'completed') {
+            const translatedFilePath = payload.new.translated_file_path;
+            
+            // Notify client when translation is completed and file is uploaded
+            if (role === 'client' && newStatus === 'completed' && translatedFilePath) {
               toast({
                 title: "Translation Completed",
                 description: "Your document has been translated and is ready for download",
+              });
+            }
+            
+            // Notify translator when a translation is claimed
+            if (role === 'translator' && payload.new.translator_id && !payload.old.translator_id) {
+              toast({
+                title: "Translation Claimed",
+                description: "You have successfully claimed this translation",
               });
             }
           }
