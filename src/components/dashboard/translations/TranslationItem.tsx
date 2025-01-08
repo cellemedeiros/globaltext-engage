@@ -106,15 +106,17 @@ const TranslationItem = ({ translation, role, onUpdate }: TranslationItemProps) 
             {translation.file_path && (
               <TranslationDownload 
                 filePath={translation.file_path}
+                translatedFilePath={translation.translated_file_path}
                 documentName={translation.document_name}
-                label="Download Original"
+                variant="original"
               />
             )}
             {translation.translated_file_path && (
               <TranslationDownload 
-                filePath={translation.translated_file_path}
-                documentName={`translated_${translation.document_name.replace(/\.[^/.]+$/, '')}.pdf`}
-                label="Download Translation"
+                filePath={translation.file_path}
+                translatedFilePath={translation.translated_file_path}
+                documentName={translation.document_name}
+                variant="translation"
               />
             )}
             <TranslationStatus 
