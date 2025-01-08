@@ -28,14 +28,14 @@ const TranslationContent = ({
           <TranslationDownload 
             filePath={filePath}
             documentName={documentName}
-            label="Download Original"
+            variant="original"
           />
         )}
         {translatedFilePath && (
           <TranslationDownload 
             filePath={translatedFilePath}
-            documentName={`translated_${documentName.replace(/\.[^/.]+$/, '')}.pdf`}
-            label="Download Translation"
+            documentName={documentName}
+            variant="translation"
           />
         )}
       </div>
