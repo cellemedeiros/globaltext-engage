@@ -106,7 +106,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           status: 'pending',
           amount_paid: calculatePrice(wordCount),
           file_path: filePath,
-          content: extractedText // Use the stored extracted text
+          content: extractedText
         });
 
       if (error) throw error;

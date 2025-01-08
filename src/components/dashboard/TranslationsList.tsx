@@ -22,10 +22,8 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
   useEffect(() => {
     console.log('TranslationsList mounted with role:', role);
     console.log('Current translations:', translations);
-  }, [role, translations]);
 
-  // Subscribe to real-time updates for translations
-  useEffect(() => {
+    // Subscribe to real-time updates for translations
     const channel = supabase
       .channel('translations_changes')
       .on(
@@ -37,7 +35,24 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
         },
         (payload) => {
           console.log('Translation update received:', payload);
+          // Refresh the translations list when changes occur
           refetch();
+          
+          // Show toast notification for relevant events
+          if (payload.eventType === 'INSERT' && role === 'translator') {
+            toast({
+              title: "New Translation Available",
+              description: "A new document is available for translation",
+            });
+          } else if (payload.eventType === 'UPDATE' && role === 'client') {
+            const newStatus = payload.new.status;
+            if (newStatus === 'completed') {
+              toast({
+                title: "Translation Completed",
+                description: "Your document has been translated and is ready for download",
+              });
+            }
+          }
         }
       )
       .subscribe();
@@ -45,7 +60,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetch]);
+  }, [refetch, role, toast, translations]);
 
   if (isLoading || translationsLoading) {
     return (
