@@ -43,8 +43,14 @@ const TranslatorBadges = () => {
         throw error;
       }
 
+      // Transform the data to match the Badge interface
       return data.map(item => ({
-        ...item.badges,
+        id: item.badges.id,
+        name: item.badges.name,
+        description: item.badges.description,
+        type: item.badges.type,
+        threshold: item.badges.threshold,
+        image_url: item.badges.image_url,
         earned_at: item.earned_at
       })) as Badge[];
     },
