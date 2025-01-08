@@ -20,6 +20,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const [sourceLanguage, setSourceLanguage] = useState("");
   const [targetLanguage, setTargetLanguage] = useState("");
   const [wordCount, setWordCount] = useState(0);
+  const [extractedText, setExtractedText] = useState<string>("");
   const [isWordCountConfirmed, setIsWordCountConfirmed] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,6 +41,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       if (error) throw error;
 
       setWordCount(data.wordCount);
+      setExtractedText(data.text);
       setIsWordCountConfirmed(false);
       
       toast({
@@ -104,7 +106,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           status: 'pending',
           amount_paid: calculatePrice(wordCount),
           file_path: filePath,
-          content: data.text // Store the extracted text for AI translation
+          content: extractedText // Use the stored extracted text
         });
 
       if (error) throw error;
@@ -119,6 +121,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       setSourceLanguage("");
       setTargetLanguage("");
       setWordCount(0);
+      setExtractedText("");
       setIsWordCountConfirmed(false);
       
       if (event.target instanceof HTMLFormElement) {
