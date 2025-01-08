@@ -15,6 +15,19 @@ interface Badge {
   earned_at: string;
 }
 
+interface TranslatorBadgeResponse {
+  badge_id: string;
+  earned_at: string;
+  badges: {
+    id: string;
+    name: string;
+    description: string;
+    type: string;
+    threshold: number | null;
+    image_url: string | null;
+  }
+}
+
 const TranslatorBadges = () => {
   const { data: badges, isLoading } = useQuery({
     queryKey: ['translator-badges'],
@@ -44,7 +57,7 @@ const TranslatorBadges = () => {
       }
 
       // Transform the data to match the Badge interface
-      return data.map(item => ({
+      return (data as TranslatorBadgeResponse[]).map(item => ({
         id: item.badges.id,
         name: item.badges.name,
         description: item.badges.description,
