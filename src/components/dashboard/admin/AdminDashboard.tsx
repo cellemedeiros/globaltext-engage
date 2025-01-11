@@ -9,7 +9,6 @@ import TranslatorApplicationsList from "../admin/TranslatorApplicationsList";
 import TranslatorApprovals from "../TranslatorApprovals";
 import TranslationsList from "../TranslationsList";
 import TranslatorDashboardTabs from "../translator/TranslatorDashboardTabs";
-import { motion } from "framer-motion";
 
 interface DashboardStats {
   total_clients: bigint;
@@ -67,8 +66,8 @@ const AdminDashboard = () => {
             <Users className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Active Clients</p>
-              <p className="text-2xl font-bold">{Number(stats?.active_clients || 0)}</p>
-              <p className="text-sm text-muted-foreground">+{Number(stats?.new_clients_30d || 0)} this month</p>
+              <p className="text-2xl font-bold">{String(stats?.active_clients || 0)}</p>
+              <p className="text-sm text-muted-foreground">+{String(stats?.new_clients_30d || 0)} this month</p>
             </div>
           </div>
         </Card>
@@ -78,7 +77,7 @@ const AdminDashboard = () => {
             <FileText className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Total Words</p>
-              <p className="text-2xl font-bold">{Number(stats?.total_words || 0).toLocaleString()}</p>
+              <p className="text-2xl font-bold">{String(stats?.total_words || 0)}</p>
             </div>
           </div>
         </Card>
@@ -88,7 +87,7 @@ const AdminDashboard = () => {
             <TrendingUp className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Active Translators</p>
-              <p className="text-2xl font-bold">{Number(stats?.approved_translators || 0)}</p>
+              <p className="text-2xl font-bold">{String(stats?.approved_translators || 0)}</p>
             </div>
           </div>
         </Card>
