@@ -11,15 +11,15 @@ import TranslationsList from "../TranslationsList";
 import TranslatorDashboardTabs from "../translator/TranslatorDashboardTabs";
 
 interface DashboardStats {
-  total_clients: bigint;
-  active_clients: bigint;
-  new_clients_30d: bigint;
-  total_translators: bigint;
-  approved_translators: bigint;
-  total_translations: bigint;
-  completed_translations: bigint;
-  pending_translations: bigint;
-  total_words: bigint;
+  total_clients: number;
+  active_clients: number;
+  new_clients_30d: number;
+  total_translators: number;
+  approved_translators: number;
+  total_translations: number;
+  completed_translations: number;
+  pending_translations: number;
+  total_words: number;
   total_revenue: number;
   subscription_breakdown: Array<{
     plan_name: string;
@@ -66,8 +66,8 @@ const AdminDashboard = () => {
             <Users className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Active Clients</p>
-              <p className="text-2xl font-bold">{String(stats?.active_clients || 0)}</p>
-              <p className="text-sm text-muted-foreground">+{String(stats?.new_clients_30d || 0)} this month</p>
+              <p className="text-2xl font-bold">{stats?.active_clients || 0}</p>
+              <p className="text-sm text-muted-foreground">+{stats?.new_clients_30d || 0} this month</p>
             </div>
           </div>
         </Card>
@@ -77,7 +77,7 @@ const AdminDashboard = () => {
             <FileText className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Total Words</p>
-              <p className="text-2xl font-bold">{String(stats?.total_words || 0)}</p>
+              <p className="text-2xl font-bold">{stats?.total_words || 0}</p>
             </div>
           </div>
         </Card>
@@ -87,7 +87,7 @@ const AdminDashboard = () => {
             <TrendingUp className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Active Translators</p>
-              <p className="text-2xl font-bold">{String(stats?.approved_translators || 0)}</p>
+              <p className="text-2xl font-bold">{stats?.approved_translators || 0}</p>
             </div>
           </div>
         </Card>
