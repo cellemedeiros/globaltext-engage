@@ -20,11 +20,11 @@ interface DashboardStats {
   completed_translations: number;
   pending_translations: number;
   total_words: number;
-  total_revenue: number;
+  total_revenue: string;  // Changed from number to string since numeric from DB comes as string
   subscription_breakdown: Array<{
     plan_name: string;
     subscription_count: number;
-    plan_revenue: number;
+    plan_revenue: string;  // Changed from number to string
   }>;
 }
 
@@ -45,7 +45,7 @@ const AdminDashboard = () => {
     return <div>Loading dashboard stats...</div>;
   }
 
-  const mrr = stats?.subscription_breakdown?.reduce((acc, sub) => acc + sub.plan_revenue, 0) || 0;
+  const mrr = stats?.subscription_breakdown?.reduce((acc, sub) => acc + Number(sub.plan_revenue), 0) || 0;
 
   return (
     <div className="space-y-8">
@@ -139,7 +139,7 @@ const AdminDashboard = () => {
                     </p>
                   </div>
                   <p className="text-lg font-bold">
-                    R${sub.plan_revenue.toFixed(2)}
+                    R${Number(sub.plan_revenue).toFixed(2)}
                   </p>
                 </div>
               </Card>
