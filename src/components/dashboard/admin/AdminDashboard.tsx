@@ -20,11 +20,11 @@ interface DashboardStats {
   completed_translations: number;
   pending_translations: number;
   total_words: number;
-  total_revenue: string;  // Changed from number to string since numeric from DB comes as string
+  total_revenue: string;
   subscription_breakdown: Array<{
     plan_name: string;
     subscription_count: number;
-    plan_revenue: string;  // Changed from number to string
+    plan_revenue: string;
   }>;
 }
 
