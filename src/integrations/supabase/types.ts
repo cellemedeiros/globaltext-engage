@@ -344,6 +344,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_admin_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_clients: number
+          active_clients: number
+          new_clients_30d: number
+          total_translators: number
+          approved_translators: number
+          total_translations: number
+          completed_translations: number
+          pending_translations: number
+          total_words: number
+          total_revenue: number
+          subscription_breakdown: Json
+        }[]
+      }
     }
     Enums: {
       badge_type:
