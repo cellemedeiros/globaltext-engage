@@ -8,6 +8,7 @@ import TranslatorDashboardTabs from "@/components/dashboard/translator/Translato
 import TranslatorBadges from "@/components/dashboard/translator/TranslatorBadges";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import AdminDashboard from "@/components/dashboard/admin/AdminDashboard";
+import { motion } from "framer-motion";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
