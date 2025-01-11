@@ -8,6 +8,7 @@ import { ChevronDown, TrendingUp, Users, FileText, DollarSign } from "lucide-rea
 import TranslatorApplicationsList from "../admin/TranslatorApplicationsList";
 import TranslatorApprovals from "../TranslatorApprovals";
 import TranslationsList from "../TranslationsList";
+import TranslatorDashboardTabs from "../translator/TranslatorDashboardTabs";
 import { motion } from "framer-motion";
 
 interface DashboardStats {
@@ -96,6 +97,7 @@ const AdminDashboard = () => {
           <TabsTrigger value="translators" className="flex-1">Translator Management</TabsTrigger>
           <TabsTrigger value="translations" className="flex-1">Translation Management</TabsTrigger>
           <TabsTrigger value="applications" className="flex-1">Applications</TabsTrigger>
+          <TabsTrigger value="workspace" className="flex-1">Translation Workspace</TabsTrigger>
         </TabsList>
 
         <TabsContent value="translators" className="mt-6">
@@ -108,6 +110,10 @@ const AdminDashboard = () => {
 
         <TabsContent value="applications" className="mt-6">
           <TranslatorApplicationsList />
+        </TabsContent>
+
+        <TabsContent value="workspace" className="mt-6">
+          <TranslatorDashboardTabs isLoading={false} />
         </TabsContent>
       </Tabs>
 
