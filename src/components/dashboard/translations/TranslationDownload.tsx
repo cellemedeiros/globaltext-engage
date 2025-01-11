@@ -42,8 +42,16 @@ const TranslationDownload = ({
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
+      
+      // Extract the file extension from the original file path
+      const fileExtension = filePath.split('.').pop() || '';
       const prefix = variant === 'translation' ? 'translated_' : '';
-      a.download = `${prefix}${documentName}`;
+      // Ensure we keep the original file extension
+      const fileName = documentName.includes(`.${fileExtension}`) 
+        ? `${prefix}${documentName}`
+        : `${prefix}${documentName}.${fileExtension}`;
+      
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
