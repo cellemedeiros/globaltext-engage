@@ -12,15 +12,15 @@ import TranslatorDashboardTabs from "../translator/TranslatorDashboardTabs";
 import { motion } from "framer-motion";
 
 interface DashboardStats {
-  total_clients: number;
-  active_clients: number;
-  new_clients_30d: number;
-  total_translators: number;
-  approved_translators: number;
-  total_translations: number;
-  completed_translations: number;
-  pending_translations: number;
-  total_words: number;
+  total_clients: bigint;
+  active_clients: bigint;
+  new_clients_30d: bigint;
+  total_translators: bigint;
+  approved_translators: bigint;
+  total_translations: bigint;
+  completed_translations: bigint;
+  pending_translations: bigint;
+  total_words: bigint;
   total_revenue: number;
   subscription_breakdown: Array<{
     plan_name: string;
@@ -34,8 +34,23 @@ const AdminDashboard = () => {
     queryKey: ['admin-dashboard-stats'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching admin stats:', error);
+        throw error;
+      }
+      // Convert bigint to number for display purposes
+      return {
+        ...data,
+        total_clients: Number(data.total_clients),
+        active_clients: Number(data.active_clients),
+        new_clients_30d: Number(data.new_clients_30d),
+        total_translators: Number(data.total_translators),
+        approved_translators: Number(data.approved_translators),
+        total_translations: Number(data.total_translations),
+        completed_translations: Number(data.completed_translations),
+        pending_translations: Number(data.pending_translations),
+        total_words: Number(data.total_words),
+      };
     },
   });
 
