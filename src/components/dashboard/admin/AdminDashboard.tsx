@@ -38,19 +38,7 @@ const AdminDashboard = () => {
         console.error('Error fetching admin stats:', error);
         throw error;
       }
-      // Convert bigint to number for display purposes
-      return {
-        ...data,
-        total_clients: Number(data.total_clients),
-        active_clients: Number(data.active_clients),
-        new_clients_30d: Number(data.new_clients_30d),
-        total_translators: Number(data.total_translators),
-        approved_translators: Number(data.approved_translators),
-        total_translations: Number(data.total_translations),
-        completed_translations: Number(data.completed_translations),
-        pending_translations: Number(data.pending_translations),
-        total_words: Number(data.total_words),
-      };
+      return data;
     },
   });
 
@@ -79,8 +67,8 @@ const AdminDashboard = () => {
             <Users className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Active Clients</p>
-              <p className="text-2xl font-bold">{stats?.active_clients}</p>
-              <p className="text-sm text-muted-foreground">+{stats?.new_clients_30d} this month</p>
+              <p className="text-2xl font-bold">{Number(stats?.active_clients || 0)}</p>
+              <p className="text-sm text-muted-foreground">+{Number(stats?.new_clients_30d || 0)} this month</p>
             </div>
           </div>
         </Card>
@@ -90,7 +78,7 @@ const AdminDashboard = () => {
             <FileText className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Total Words</p>
-              <p className="text-2xl font-bold">{stats?.total_words.toLocaleString()}</p>
+              <p className="text-2xl font-bold">{Number(stats?.total_words || 0).toLocaleString()}</p>
             </div>
           </div>
         </Card>
@@ -100,7 +88,7 @@ const AdminDashboard = () => {
             <TrendingUp className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Active Translators</p>
-              <p className="text-2xl font-bold">{stats?.approved_translators}</p>
+              <p className="text-2xl font-bold">{Number(stats?.approved_translators || 0)}</p>
             </div>
           </div>
         </Card>
