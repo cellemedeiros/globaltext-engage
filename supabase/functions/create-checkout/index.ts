@@ -19,7 +19,33 @@ serve(async (req) => {
   }
 
   try {
-    // Ensure the request has a body
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    // Initialize Supabase client with service role key
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    // Verify the token and get user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !user) {
+      throw new Error('Invalid token');
+    }
+
+    // Parse request body
     const requestText = await req.text();
     if (!requestText) {
       throw new Error('Request body is empty');
@@ -27,7 +53,6 @@ serve(async (req) => {
 
     console.log('Request body:', requestText);
     
-    // Parse the request body
     const { amount, words, documentName, type = 'translation' } = JSON.parse(requestText);
     
     console.log('Parsed request:', { amount, words, documentName, type });
@@ -37,36 +62,7 @@ serve(async (req) => {
       throw new Error('Missing required fields');
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid token');
-    }
-
-    console.log('Creating payment intent for user:', user.id);
-
-    // Create payment intent for individual translation
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(parseFloat(amount) * 100),
-      currency: 'brl',
-      metadata: {
-        type: 'translation',
-        userId: user.id,
-        wordCount: words,
-        documentName
-      },
-    });
-
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
