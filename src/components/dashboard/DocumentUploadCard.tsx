@@ -77,55 +77,54 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      if (!hasActiveSubscription && (!wordsRemaining || wordsRemaining < wordCount)) {
+      // If user has subscription with enough words, proceed normally
+      if (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount) {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${crypto.randomUUID()}.${fileExt}`;
+        
+        const { error: storageError } = await supabase.storage
+          .from('translations')
+          .upload(filePath, file);
+
+        if (storageError) throw storageError;
+
+        const { error } = await supabase
+          .from('translations')
+          .insert({
+            user_id: session.user.id,
+            document_name: file.name,
+            source_language: sourceLanguage,
+            target_language: targetLanguage,
+            word_count: wordCount,
+            status: 'pending',
+            amount_paid: calculatePrice(wordCount),
+            file_path: filePath,
+            content: extractedText,
+            subscription_id: null // Set to null for pay-per-translation
+          });
+
+        if (error) throw error;
+
         toast({
-          title: "Insufficient Words",
-          description: "Please upgrade your subscription or purchase more words",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-      
-      const { error: storageError } = await supabase.storage
-        .from('translations')
-        .upload(filePath, file);
-
-      if (storageError) throw storageError;
-
-      const { error } = await supabase
-        .from('translations')
-        .insert({
-          user_id: session.user.id,
-          document_name: file.name,
-          source_language: sourceLanguage,
-          target_language: targetLanguage,
-          word_count: wordCount,
-          status: 'pending',
-          amount_paid: calculatePrice(wordCount),
-          file_path: filePath,
-          content: extractedText
+          title: "Success",
+          description: "Document uploaded successfully and available for translators",
         });
 
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Document uploaded successfully and available for translators",
-      });
-
-      // Reset form
-      setFile(null);
-      setSourceLanguage("");
-      setTargetLanguage("");
-      setWordCount(0);
-      setExtractedText("");
-      setIsWordCountConfirmed(false);
-      
-      if (event.target instanceof HTMLFormElement) {
-        event.target.reset();
+        // Reset form
+        setFile(null);
+        setSourceLanguage("");
+        setTargetLanguage("");
+        setWordCount(0);
+        setExtractedText("");
+        setIsWordCountConfirmed(false);
+        
+        if (event.target instanceof HTMLFormElement) {
+          event.target.reset();
+        }
+      } else {
+        // Redirect to payment page for pay-per-translation
+        const calculatedPrice = calculatePrice(wordCount);
+        window.location.href = `/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}`;
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
@@ -184,7 +183,9 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
               ) : (
                 <span className="flex items-center gap-2">
                   <Upload className="w-4 h-4" />
-                  Upload Document
+                  {hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount
+                    ? "Upload Document"
+                    : "Proceed to Payment"}
                 </span>
               )}
             </Button>
