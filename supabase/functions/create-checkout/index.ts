@@ -1,149 +1,110 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@14.21.0';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
+});
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  console.log('Starting checkout session creation...');
-
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  );
-
   try {
+    const { amount, words, plan, documentName, type, sourceLanguage, targetLanguage, content, filePath } = await req.json();
     const authHeader = req.headers.get('Authorization');
+
     if (!authHeader) {
-      console.error('No authorization header found');
-      throw new Error('No authorization header');
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    console.log('Authorization header found, getting user...');
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
-      console.error('Authentication failed:', userError);
-      throw new Error('Authentication failed');
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    if (!user.email) {
-      console.error('User email not found');
-      throw new Error('User email not found');
-    }
+    let session;
 
-    console.log('User authenticated successfully');
-
-    const { amount, words, plan, translationId, documentName } = await req.json();
-    
-    if (!amount && !plan) {
-      console.error('Either amount or plan is required');
-      throw new Error('Either amount or plan is required');
-    }
-
-    console.log('Creating Stripe instance...');
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-      apiVersion: '2023-10-16',
-    });
-
-    console.log('Looking up customer for email:', user.email);
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
-
-    let customer_id = undefined;
-    if (customers.data.length > 0) {
-      customer_id = customers.data[0].id;
-      console.log('Existing customer found:', customer_id);
-    } else {
-      console.log('No existing customer found, will create new');
-    }
-
-    let sessionConfig;
-    if (plan) {
-      const priceId = plan.toUpperCase() === 'PREMIUM' 
-        ? Deno.env.get('PREMIUM_PLAN_PRICE')
-        : Deno.env.get('STANDARD_PLAN_PRICE');
-
-      if (!priceId) {
-        console.error(`No price ID found for plan: ${plan}`);
-        throw new Error(`Invalid plan configuration for ${plan}`);
-      }
-
-      console.log(`Using price ID for ${plan} plan:`, priceId);
-      sessionConfig = {
-        mode: 'subscription',
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
+    if (type === 'translation') {
+      // Create payment intent for individual translation
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(parseFloat(amount) * 100),
+        currency: 'brl',
         metadata: {
-          type: 'subscription',
-          plan,
+          type: 'translation',
           userId: user.id,
+          wordCount: words,
+          documentName,
+          sourceLanguage,
+          targetLanguage,
+          content,
+          filePath
         },
-      };
-    } else {
-      sessionConfig = {
+      });
+
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
         mode: 'payment',
+        success_url: `${req.headers.get('origin')}/dashboard?success=true`,
+        cancel_url: `${req.headers.get('origin')}/dashboard?canceled=true`,
+        payment_intent_data: {
+          metadata: {
+            type: 'translation',
+            userId: user.id,
+            wordCount: words,
+            documentName,
+            sourceLanguage,
+            targetLanguage,
+            content,
+            filePath
+          },
+        },
         line_items: [
           {
             price_data: {
               currency: 'brl',
               product_data: {
-                name: `Translation Service - ${words} words`,
+                name: `Translation: ${documentName}`,
+                description: `${words} words`,
               },
               unit_amount: Math.round(parseFloat(amount) * 100),
             },
             quantity: 1,
           },
         ],
-        metadata: {
-          type: 'translation',
-          translationId,
-          documentName,
-          userId: user.id,
-          words,
-        },
+      });
+    } else if (type === 'subscription') {
+      // Handle subscription checkout
+      const subscription = await stripe.subscriptions.create({
+        customer: user.id,
+        items: [{ price: plan }],
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      session = {
+        url: subscription.latest_invoice.payment_intent?.next_action?.redirect_to_url?.url,
       };
     }
 
-    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
-    const session = await stripe.checkout.sessions.create({
-      customer: customer_id,
-      customer_email: customer_id ? undefined : user.email,
-      ...sessionConfig,
-      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
-      cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
+    return new Response(JSON.stringify({ url: session.url }), {
+      headers: { 'Content-Type': 'application/json' },
     });
-
-    console.log('Payment session created:', session.id);
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
   } catch (error) {
-    console.error('Error creating payment session:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
+    console.error('Error creating checkout session:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 400,
+    });
   }
 });

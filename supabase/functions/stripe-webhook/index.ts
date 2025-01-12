@@ -38,22 +38,28 @@ serve(async (req) => {
         const paymentIntent = event.data.object;
         const metadata = paymentIntent.metadata || {};
         
-        if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Updating translation status for ID:', metadata.translationId);
+        if (metadata.type === 'translation') {
+          console.log('Processing translation payment:', metadata);
 
-          // Update translation status to pending (available for translators)
-          const { error: updateError } = await supabaseAdmin
+          // Create the translation record
+          const { error: translationError } = await supabaseAdmin
             .from('translations')
-            .update({
+            .insert({
+              user_id: metadata.userId,
+              document_name: metadata.documentName,
+              source_language: metadata.sourceLanguage || 'en',
+              target_language: metadata.targetLanguage || 'pt',
+              word_count: parseInt(metadata.wordCount),
               status: 'pending',
               amount_paid: paymentIntent.amount / 100,
-              price_offered: paymentIntent.amount / 100
-            })
-            .eq('id', metadata.translationId);
+              price_offered: paymentIntent.amount / 100,
+              content: metadata.content,
+              file_path: metadata.filePath
+            });
 
-          if (updateError) {
-            console.error('Error updating translation:', updateError);
-            throw updateError;
+          if (translationError) {
+            console.error('Error creating translation:', translationError);
+            throw translationError;
           }
 
           // Get all approved translators
@@ -83,8 +89,6 @@ serve(async (req) => {
               }
             }
           }
-
-          console.log('Successfully updated translation and created notifications');
         }
         break;
       }
@@ -93,19 +97,20 @@ serve(async (req) => {
         const paymentIntent = event.data.object;
         const metadata = paymentIntent.metadata || {};
         
-        if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Updating failed payment status for translation:', metadata.translationId);
+        if (metadata.type === 'translation') {
+          console.log('Payment failed for translation:', metadata);
           
-          const { error } = await supabaseAdmin
-            .from('translations')
-            .update({
-              status: 'payment_failed'
-            })
-            .eq('id', metadata.translationId);
+          // You might want to create a failed payment record or notify the user
+          const { error: notificationError } = await supabaseAdmin
+            .from('notifications')
+            .insert({
+              user_id: metadata.userId,
+              title: 'Payment Failed',
+              message: `Payment failed for translation: ${metadata.documentName}`,
+            });
 
-          if (error) {
-            console.error('Error updating translation status:', error);
-            throw error;
+          if (notificationError) {
+            console.error('Error creating notification:', notificationError);
           }
         }
         break;
