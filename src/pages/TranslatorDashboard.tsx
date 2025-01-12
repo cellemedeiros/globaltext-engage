@@ -15,7 +15,7 @@ const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 const TranslatorDashboard = () => {
   const { toast } = useToast();
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -27,7 +27,14 @@ const TranslatorDashboard = () => {
         .eq('id', session.user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load profile data",
+          variant: "destructive",
+        });
+        throw error;
+      }
       return data;
     }
   });
@@ -47,7 +54,7 @@ const TranslatorDashboard = () => {
       if (error) {
         toast({
           title: "Error",
-          description: "Failed to load translations. Please try again.",
+          description: "Failed to load translations",
           variant: "destructive",
         });
         return [];
@@ -59,6 +66,7 @@ const TranslatorDashboard = () => {
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
+  const isLoading = profileLoading || translationsLoading;
 
   return (
     <TranslatorAccessControl>
@@ -109,7 +117,7 @@ const TranslatorDashboard = () => {
                   transition={{ delay: 0.5 }}
                 >
                   <TranslatorDashboardTabs 
-                    isLoading={translationsLoading}
+                    isLoading={isLoading}
                   />
                 </motion.div>
               </>
