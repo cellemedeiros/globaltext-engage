@@ -89,6 +89,19 @@ serve(async (req) => {
               }
             }
           }
+
+          // Create notification for the client
+          const { error: clientNotificationError } = await supabaseAdmin
+            .from('notifications')
+            .insert({
+              user_id: metadata.userId,
+              title: 'Translation Order Confirmed',
+              message: `Your translation order for ${metadata.documentName} has been confirmed and is now available for translators.`,
+            });
+
+          if (clientNotificationError) {
+            console.error('Error creating client notification:', clientNotificationError);
+          }
         }
         break;
       }
@@ -100,13 +113,12 @@ serve(async (req) => {
         if (metadata.type === 'translation') {
           console.log('Payment failed for translation:', metadata);
           
-          // You might want to create a failed payment record or notify the user
           const { error: notificationError } = await supabaseAdmin
             .from('notifications')
             .insert({
               user_id: metadata.userId,
               title: 'Payment Failed',
-              message: `Payment failed for translation: ${metadata.documentName}`,
+              message: `Payment failed for translation: ${metadata.documentName}. Please try again.`,
             });
 
           if (notificationError) {

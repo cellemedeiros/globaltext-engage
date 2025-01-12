@@ -53,7 +53,7 @@ serve(async (req) => {
 
     console.log('Request body:', requestText);
     
-    const { amount, words, documentName, type = 'translation' } = JSON.parse(requestText);
+    const { amount, words, documentName, type = 'translation', filePath, content, sourceLanguage, targetLanguage } = JSON.parse(requestText);
     
     console.log('Parsed request:', { amount, words, documentName, type });
 
@@ -73,9 +73,15 @@ serve(async (req) => {
           type: 'translation',
           userId: user.id,
           wordCount: words,
-          documentName
+          documentName,
+          filePath,
+          content,
+          sourceLanguage,
+          targetLanguage,
+          email: user.email
         },
       },
+      customer_email: user.email,
       line_items: [
         {
           price_data: {
