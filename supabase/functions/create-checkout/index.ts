@@ -7,104 +7,107 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
-  try {
-    const { amount, words, plan, documentName, type, sourceLanguage, targetLanguage, content, filePath } = await req.json();
-    const authHeader = req.headers.get('Authorization');
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+  try {
+    // Ensure the request has a body
+    const requestText = await req.text();
+    if (!requestText) {
+      throw new Error('Request body is empty');
     }
+
+    console.log('Request body:', requestText);
+    
+    // Parse the request body
+    const { amount, words, documentName, type = 'translation' } = JSON.parse(requestText);
+    
+    console.log('Parsed request:', { amount, words, documentName, type });
+
+    // Validate required fields
+    if (!amount || !words || !documentName) {
+      throw new Error('Missing required fields');
+    }
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      throw new Error('Invalid token');
     }
 
-    let session;
+    console.log('Creating payment intent for user:', user.id);
 
-    if (type === 'translation') {
-      // Create payment intent for individual translation
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(parseFloat(amount) * 100),
-        currency: 'brl',
+    // Create payment intent for individual translation
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(parseFloat(amount) * 100),
+      currency: 'brl',
+      metadata: {
+        type: 'translation',
+        userId: user.id,
+        wordCount: words,
+        documentName
+      },
+    });
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      success_url: `${req.headers.get('origin')}/dashboard?success=true`,
+      cancel_url: `${req.headers.get('origin')}/dashboard?canceled=true`,
+      payment_intent_data: {
         metadata: {
           type: 'translation',
           userId: user.id,
           wordCount: words,
-          documentName,
-          sourceLanguage,
-          targetLanguage,
-          content,
-          filePath
+          documentName
         },
-      });
-
-      session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        mode: 'payment',
-        success_url: `${req.headers.get('origin')}/dashboard?success=true`,
-        cancel_url: `${req.headers.get('origin')}/dashboard?canceled=true`,
-        payment_intent_data: {
-          metadata: {
-            type: 'translation',
-            userId: user.id,
-            wordCount: words,
-            documentName,
-            sourceLanguage,
-            targetLanguage,
-            content,
-            filePath
-          },
-        },
-        line_items: [
-          {
-            price_data: {
-              currency: 'brl',
-              product_data: {
-                name: `Translation: ${documentName}`,
-                description: `${words} words`,
-              },
-              unit_amount: Math.round(parseFloat(amount) * 100),
+      },
+      line_items: [
+        {
+          price_data: {
+            currency: 'brl',
+            product_data: {
+              name: `Translation: ${documentName}`,
+              description: `${words} words`,
             },
-            quantity: 1,
+            unit_amount: Math.round(parseFloat(amount) * 100),
           },
-        ],
-      });
-    } else if (type === 'subscription') {
-      // Handle subscription checkout
-      const subscription = await stripe.subscriptions.create({
-        customer: user.id,
-        items: [{ price: plan }],
-        expand: ['latest_invoice.payment_intent'],
-      });
+          quantity: 1,
+        },
+      ],
+    });
 
-      session = {
-        url: subscription.latest_invoice.payment_intent?.next_action?.redirect_to_url?.url,
-      };
-    }
+    console.log('Checkout session created:', session.id);
 
     return new Response(JSON.stringify({ url: session.url }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error creating checkout session:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 400,
-    });
+    return new Response(
+      JSON.stringify({ error: error.message || 'Failed to create checkout session' }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    );
   }
 });
