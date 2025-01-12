@@ -37,7 +37,10 @@ const AdminDashboard = () => {
         console.error('Error fetching admin stats:', error);
         throw error;
       }
-      return data;
+      return {
+        ...data,
+        subscription_breakdown: data?.subscription_breakdown || []
+      };
     },
   });
 
@@ -129,7 +132,7 @@ const AdminDashboard = () => {
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-4">
           <div className="space-y-4">
-            {stats?.subscription_breakdown.map((sub, index) => (
+            {(stats?.subscription_breakdown || []).map((sub, index) => (
               <Card key={index} className="p-4">
                 <div className="flex justify-between items-center">
                   <div>
