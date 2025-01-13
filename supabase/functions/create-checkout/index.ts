@@ -62,12 +62,16 @@ serve(async (req) => {
       throw new Error('Missing required fields');
     }
 
+    // Get the origin URL from the request headers
+    const origin = req.headers.get('origin') || 'http://localhost:5173';
+    console.log('Origin URL:', origin);
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/dashboard?success=true`,
-      cancel_url: `${req.headers.get('origin')}/dashboard?canceled=true`,
+      success_url: `${origin}/dashboard?success=true`,
+      cancel_url: `${origin}/dashboard?canceled=true`,
       payment_intent_data: {
         metadata: {
           type: 'translation',
