@@ -360,6 +360,18 @@ export type Database = {
           subscription_breakdown: Json
         }[]
       }
+      get_mrr_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          month_date: string
+          total_mrr: number
+          new_mrr: number
+          expansion_mrr: number
+          churned_mrr: number
+          total_customers: number
+          active_subscriptions: number
+        }[]
+      }
     }
     Enums: {
       badge_type:
