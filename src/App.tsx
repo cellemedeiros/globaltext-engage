@@ -124,51 +124,57 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
   return <>{children}</>;
 };
 
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute allowedRole="client">
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/translator-dashboard"
+        element={
+          <ProtectedRoute allowedRole="translator">
+            <TranslatorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/applications"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <TranslatorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payment"
+        element={
+          <ProtectedRoute allowedRole="client">
+            <Payment />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+};
+
 const App = () => {
   return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={0}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute allowedRole="client">
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/translator-dashboard"
-              element={
-                <ProtectedRoute allowedRole="translator">
-                  <TranslatorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/applications"
-              element={
-                <ProtectedRoute allowedRole="admin">
-                  <TranslatorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment"
-              element={
-                <ProtectedRoute allowedRole="client">
-                  <Payment />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <TooltipProvider>
+          <AppRoutes />
           <Toaster />
           <Sonner />
         </TooltipProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
