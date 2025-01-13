@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Users, Package, FileText } from "lucide-react";
 
 interface MRRMetric {
   month_date: string;
@@ -11,6 +11,11 @@ interface MRRMetric {
   churned_mrr: number;
   total_customers: number;
   active_subscriptions: number;
+  subscription_breakdown: {
+    plan_name: string;
+    subscription_count: number;
+    plan_revenue: number;
+  }[];
 }
 
 const MRRMetrics = () => {
@@ -26,6 +31,24 @@ const MRRMetrics = () => {
       }
 
       return data as MRRMetric[];
+    },
+  });
+
+  const { data: singleTranslations } = useQuery({
+    queryKey: ['single-translations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('translations')
+        .select('*')
+        .is('subscription_id', null)
+        .count();
+
+      if (error) {
+        console.error('Error fetching single translations:', error);
+        throw error;
+      }
+
+      return data;
     },
   });
 
@@ -86,15 +109,32 @@ const MRRMetrics = () => {
 
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <DollarSign className="w-8 h-8 text-primary" />
+            <FileText className="w-8 h-8 text-primary" />
             <div>
-              <p className="text-sm text-muted-foreground">New MRR</p>
+              <p className="text-sm text-muted-foreground">Single Translations</p>
               <p className="text-2xl font-bold">
-                R${currentMonth?.new_mrr.toFixed(2) || '0.00'}
+                {singleTranslations?.count || 0}
               </p>
             </div>
           </div>
         </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {currentMonth?.subscription_breakdown.map((plan) => (
+          <Card key={plan.plan_name} className="p-6">
+            <div className="flex items-center gap-4">
+              <Package className="w-8 h-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground capitalize">{plan.plan_name} Plan</p>
+                <p className="text-2xl font-bold">{plan.subscription_count}</p>
+                <p className="text-sm text-muted-foreground">
+                  Revenue: R${plan.plan_revenue.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );
