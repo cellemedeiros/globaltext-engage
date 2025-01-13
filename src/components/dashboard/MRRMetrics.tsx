@@ -34,21 +34,20 @@ const MRRMetrics = () => {
     },
   });
 
-  const { data: singleTranslations } = useQuery({
+  const { data: singleTranslationsCount } = useQuery({
     queryKey: ['single-translations'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('translations')
-        .select('*')
-        .is('subscription_id', null)
-        .count();
+        .select('*', { count: 'exact', head: true })
+        .is('subscription_id', null);
 
       if (error) {
         console.error('Error fetching single translations:', error);
         throw error;
       }
 
-      return data;
+      return count || 0;
     },
   });
 
@@ -113,7 +112,7 @@ const MRRMetrics = () => {
             <div>
               <p className="text-sm text-muted-foreground">Single Translations</p>
               <p className="text-2xl font-bold">
-                {singleTranslations?.count || 0}
+                {singleTranslationsCount || 0}
               </p>
             </div>
           </div>
