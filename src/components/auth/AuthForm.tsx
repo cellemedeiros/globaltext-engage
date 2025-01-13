@@ -1,11 +1,12 @@
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface AuthFormProps {
   selectedRole: 'client' | 'translator';
@@ -22,6 +23,29 @@ const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
     phone: '',
   });
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Handle auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Store the session in localStorage
+        localStorage.setItem('supabase.auth.token', session.access_token);
+        localStorage.setItem('supabase.auth.refreshToken', session.refresh_token);
+        
+        toast({
+          title: "Success",
+          description: "Successfully signed in!",
+        });
+        
+        navigate('/dashboard');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, toast]);
 
   const handleSignUp = async (event: any) => {
     event.preventDefault();
