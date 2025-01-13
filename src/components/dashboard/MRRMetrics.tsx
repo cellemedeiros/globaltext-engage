@@ -61,6 +61,14 @@ const MRRMetrics = () => {
 
   const mrrGrowth = getMRRGrowth();
 
+  const getSubscriptionsByPlan = (planName: string) => {
+    return currentMonth?.subscription_breakdown.find(plan => plan.plan_name.toLowerCase() === planName.toLowerCase());
+  };
+
+  const standardPlan = getSubscriptionsByPlan('standard');
+  const premiumPlan = getSubscriptionsByPlan('premium');
+  const businessPlan = getSubscriptionsByPlan('business');
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">MRR Analytics</h2>
@@ -120,20 +128,59 @@ const MRRMetrics = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {currentMonth?.subscription_breakdown.map((plan) => (
-          <Card key={plan.plan_name} className="p-6">
-            <div className="flex items-center gap-4">
-              <Package className="w-8 h-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground capitalize">{plan.plan_name} Plan</p>
-                <p className="text-2xl font-bold">{plan.subscription_count}</p>
+        {/* Standard Plan Card */}
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <Package className="w-8 h-8 text-primary" />
+            <div className="space-y-2">
+              <p className="text-lg font-semibold">Standard Plan</p>
+              <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">
-                  Revenue: R${plan.plan_revenue.toFixed(2)}
+                  Active Subscriptions: <span className="font-medium">{standardPlan?.subscription_count || 0}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Monthly Revenue: <span className="font-medium">R${standardPlan?.plan_revenue.toFixed(2) || '0.00'}</span>
                 </p>
               </div>
             </div>
-          </Card>
-        ))}
+          </div>
+        </Card>
+
+        {/* Premium Plan Card */}
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <Package className="w-8 h-8 text-primary" />
+            <div className="space-y-2">
+              <p className="text-lg font-semibold">Premium Plan</p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  Active Subscriptions: <span className="font-medium">{premiumPlan?.subscription_count || 0}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Monthly Revenue: <span className="font-medium">R${premiumPlan?.plan_revenue.toFixed(2) || '0.00'}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Business Plan Card */}
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <Package className="w-8 h-8 text-primary" />
+            <div className="space-y-2">
+              <p className="text-lg font-semibold">Business Plan</p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  Active Subscriptions: <span className="font-medium">{businessPlan?.subscription_count || 0}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Monthly Revenue: <span className="font-medium">R${businessPlan?.plan_revenue.toFixed(2) || '0.00'}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );
