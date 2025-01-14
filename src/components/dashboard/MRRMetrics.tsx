@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Users, Package, FileText } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Users, Package, FileText, Calendar } from "lucide-react";
 
 interface MRRMetric {
   month_date: string;
@@ -31,6 +31,28 @@ const MRRMetrics = () => {
       }
 
       return data as MRRMetric[];
+    },
+  });
+
+  const { data: monthlyTranslations } = useQuery({
+    queryKey: ['monthly-translations'],
+    queryFn: async () => {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('translations')
+        .select('amount_paid, subscription_id')
+        .gte('created_at', startOfMonth.toISOString())
+        .is('subscription_id', null);
+
+      if (error) {
+        console.error('Error fetching monthly translations:', error);
+        throw error;
+      }
+
+      return data;
     },
   });
 
@@ -69,6 +91,9 @@ const MRRMetrics = () => {
   const premiumPlan = getSubscriptionsByPlan('premium');
   const businessPlan = getSubscriptionsByPlan('business');
 
+  const monthlyTranslationRevenue = monthlyTranslations?.reduce((sum, t) => sum + (t.amount_paid || 0), 0) || 0;
+  const totalMonthlyRevenue = (currentMonth?.total_mrr || 0) + monthlyTranslationRevenue;
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">MRR Analytics</h2>
@@ -76,12 +101,20 @@ const MRRMetrics = () => {
       <div className="grid gap-6 md:grid-cols-4">
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <DollarSign className="w-8 h-8 text-primary" />
+            <Calendar className="w-8 h-8 text-primary" />
             <div>
-              <p className="text-sm text-muted-foreground">Total MRR</p>
+              <p className="text-sm text-muted-foreground">Monthly Revenue</p>
               <p className="text-2xl font-bold">
-                R${currentMonth?.total_mrr.toFixed(2) || '0.00'}
+                R${totalMonthlyRevenue.toFixed(2)}
               </p>
+              <div className="mt-1">
+                <p className="text-xs text-muted-foreground">
+                  Subscriptions: R${currentMonth?.total_mrr.toFixed(2) || '0.00'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Single Translations: R${monthlyTranslationRevenue.toFixed(2)}
+                </p>
+              </div>
             </div>
           </div>
         </Card>
