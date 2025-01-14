@@ -2,18 +2,27 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { Dispatch, SetStateAction } from "react";
 
 interface PlanCardProps {
   name: string;
   price: string;
-  features: string[];
+  period?: string;
+  features: { text: string; available: boolean; }[];
   popular?: boolean;
+  isAuthenticated: boolean;
+  onAuthChange: Dispatch<SetStateAction<boolean>>;
 }
 
-const PlanCard = ({ name, price, features, popular }: PlanCardProps) => {
+const PlanCard = ({ name, price, period, features, popular, isAuthenticated, onAuthChange }: PlanCardProps) => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
+    if (!isAuthenticated) {
+      onAuthChange(true);
+      return;
+    }
+
     if (!name || !price) {
       console.error("Plan name or price is missing");
       return;
@@ -41,14 +50,14 @@ const PlanCard = ({ name, price, features, popular }: PlanCardProps) => {
       <div className="text-center mb-6">
         <h3 className="text-2xl font-semibold mb-2">{name}</h3>
         <div className="text-3xl font-bold mb-2">{price}</div>
-        <p className="text-muted-foreground">per month</p>
+        {period && <p className="text-muted-foreground">{period}</p>}
       </div>
       
       <ul className="space-y-3 mb-6">
         {features.map((feature, index) => (
           <li key={index} className="flex items-center">
-            <Check className="h-4 w-4 text-primary mr-2" />
-            <span>{feature}</span>
+            <Check className={`h-4 w-4 mr-2 ${feature.available ? 'text-primary' : 'text-muted-foreground'}`} />
+            <span className={feature.available ? '' : 'text-muted-foreground'}>{feature.text}</span>
           </li>
         ))}
       </ul>
