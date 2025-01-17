@@ -79,11 +79,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      // Check if user is admin
-      const isAdmin = session.user.id === '37665cdd-1fdd-40d0-b485-35148c159bed';
-
-      // If user is admin or has an active subscription with sufficient words, proceed
-      if (isAdmin || (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount)) {
+      // If user has an active subscription with sufficient words, use it
+      if (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount) {
         const fileExt = file.name.split('.').pop();
         const filePath = `${crypto.randomUUID()}.${fileExt}`;
         
@@ -93,7 +90,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
 
         if (storageError) throw storageError;
 
-        const { data: translation, error } = await supabase
+        const { error } = await supabase
           .from('translations')
           .insert({
             user_id: session.user.id,
@@ -101,34 +98,26 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             source_language: sourceLanguage,
             target_language: targetLanguage,
             word_count: wordCount,
-            status: isAdmin ? 'pending' : 'awaiting_payment',
-            amount_paid: isAdmin ? 0 : calculatePrice(wordCount),
+            status: 'pending',
+            amount_paid: calculatePrice(wordCount),
             file_path: filePath,
-            content: extractedText,
-            price_offered: calculatePrice(wordCount)
-          })
-          .select()
-          .single();
+            content: extractedText
+          });
 
         if (error) throw error;
 
-        if (!isAdmin) {
-          // Redirect to payment page with translation ID
-          navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}&translationId=${translation.id}&documentName=${encodeURIComponent(file.name)}`);
-        } else {
-          toast({
-            title: "Success",
-            description: "Document uploaded successfully and available for translators",
-          });
+        toast({
+          title: "Success",
+          description: "Document uploaded successfully and available for translators",
+        });
 
-          // Reset form
-          setFile(null);
-          setSourceLanguage("");
-          setTargetLanguage("");
-          setWordCount(0);
-          setExtractedText("");
-          setIsWordCountConfirmed(false);
-        }
+        // Reset form
+        setFile(null);
+        setSourceLanguage("");
+        setTargetLanguage("");
+        setWordCount(0);
+        setExtractedText("");
+        setIsWordCountConfirmed(false);
       } else {
         // Redirect to payment page for single translation
         const amount = calculatePrice(wordCount);

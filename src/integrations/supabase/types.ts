@@ -117,39 +117,6 @@ export type Database = {
         }
         Relationships: []
       }
-      glossary_terms: {
-        Row: {
-          context: string | null
-          created_at: string | null
-          id: string
-          source_language: string
-          source_term: string
-          target_language: string
-          target_term: string
-          user_id: string
-        }
-        Insert: {
-          context?: string | null
-          created_at?: string | null
-          id?: string
-          source_language: string
-          source_term: string
-          target_language: string
-          target_term: string
-          user_id: string
-        }
-        Update: {
-          context?: string | null
-          created_at?: string | null
-          id?: string
-          source_language?: string
-          source_term?: string
-          target_language?: string
-          target_term?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           created_at: string
@@ -240,39 +207,6 @@ export type Database = {
           status?: string
           user_id?: string
           words_remaining?: number | null
-        }
-        Relationships: []
-      }
-      translation_memories: {
-        Row: {
-          created_at: string | null
-          id: string
-          last_used_at: string | null
-          source_language: string
-          source_segment: string
-          target_language: string
-          target_segment: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          last_used_at?: string | null
-          source_language: string
-          source_segment: string
-          target_language: string
-          target_segment: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          last_used_at?: string | null
-          source_language?: string
-          source_segment?: string
-          target_language?: string
-          target_segment?: string
-          user_id?: string
         }
         Relationships: []
       }

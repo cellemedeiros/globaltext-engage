@@ -34,19 +34,20 @@ serve(async (req) => {
     console.log(`Event type: ${event.type}`);
 
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        const metadata = session.metadata || {};
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Processing successful payment for translation:', metadata.translationId);
-          
-          // Update translation status to pending immediately after payment
+          console.log('Updating translation status for ID:', metadata.translationId);
+
+          // Update translation status to pending (available for translators)
           const { error: updateError } = await supabaseAdmin
             .from('translations')
             .update({
               status: 'pending',
-              amount_paid: session.amount_total ? session.amount_total / 100 : 0
+              amount_paid: paymentIntent.amount / 100,
+              price_offered: paymentIntent.amount / 100
             })
             .eq('id', metadata.translationId);
 
@@ -88,9 +89,9 @@ serve(async (req) => {
         break;
       }
 
-      case 'checkout.session.expired': {
-        const session = event.data.object;
-        const metadata = session.metadata || {};
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object;
+        const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
           console.log('Updating failed payment status for translation:', metadata.translationId);
