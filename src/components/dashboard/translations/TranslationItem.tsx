@@ -120,8 +120,6 @@ const TranslationItem = ({ translation, role = 'client', onUpdate }: Translation
           filePath={translation.file_path}
           translatedFilePath={translation.translated_file_path}
           role={role}
-          sourceLanguage={translation.source_language}
-          targetLanguage={translation.target_language}
         />
         
         {role === 'translator' && (
