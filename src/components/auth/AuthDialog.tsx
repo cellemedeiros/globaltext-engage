@@ -5,6 +5,8 @@ import RoleSelection from "./RoleSelection";
 import AuthForm from "./AuthForm";
 import { useAuthState } from "@/hooks/useAuthState";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -14,6 +16,19 @@ interface AuthDialogProps {
 
 const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
   const { selectedRole, setSelectedRole, handleRoleSelect } = useAuthState(onOpenChange);
+
+  // Handle auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        onOpenChange(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [onOpenChange]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
