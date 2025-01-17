@@ -79,17 +79,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', '37665cdd-1fdd-40d0-b485-35148c159bed')
-        .single();
-
-      const isAdmin = !!profile;
-
-      // If user is admin or has an active subscription with sufficient words, proceed
-      if (isAdmin || (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount)) {
+      // If user has an active subscription with sufficient words, use it
+      if (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount) {
         const fileExt = file.name.split('.').pop();
         const filePath = `${crypto.randomUUID()}.${fileExt}`;
         
@@ -108,10 +99,9 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             target_language: targetLanguage,
             word_count: wordCount,
             status: 'pending',
-            amount_paid: isAdmin ? 0 : calculatePrice(wordCount),
+            amount_paid: calculatePrice(wordCount),
             file_path: filePath,
-            content: extractedText,
-            price_offered: calculatePrice(wordCount)
+            content: extractedText
           });
 
         if (error) throw error;
