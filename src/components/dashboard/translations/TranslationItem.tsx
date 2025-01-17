@@ -17,8 +17,6 @@ interface Translation {
   status: string;
   created_at: string;
   word_count: number;
-  ai_translated_content?: string;
-  translator_review?: string;
   content?: string;
   admin_review_status?: string;
   admin_review_notes?: string;
@@ -114,7 +112,6 @@ const TranslationItem = ({ translation, role = 'client', onUpdate }: Translation
 
         <TranslationContent 
           content={translation.content}
-          aiTranslatedContent={translation.ai_translated_content}
           title={translation.document_name}
           documentName={translation.document_name}
           filePath={translation.file_path}
