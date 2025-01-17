@@ -1,14 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Database } from "@/integrations/supabase/types";
-
-type Translation = Database['public']['Tables']['translations']['Row'] & {
-  profiles: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
-};
 
 export const useAvailableTranslations = () => {
   const { toast } = useToast();
@@ -44,7 +36,7 @@ export const useAvailableTranslations = () => {
         }
 
         console.log('Available translations fetched:', data);
-        return data as Translation[];
+        return data;
       } catch (error) {
         const message = error instanceof Error ? error.message : "An unexpected error occurred";
         console.error('Error in useAvailableTranslations:', message);
