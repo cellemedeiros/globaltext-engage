@@ -18,6 +18,7 @@ serve(async (req) => {
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 
     if (!signature || !webhookSecret) {
+      console.error('Missing signature or webhook secret');
       return new Response('Missing signature or webhook secret', { status: 400 });
     }
 
@@ -31,7 +32,7 @@ serve(async (req) => {
       return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
     }
 
-    console.log(`Event type: ${event.type}`);
+    console.log(`Processing event type: ${event.type}`);
 
     switch (event.type) {
       case 'payment_intent.succeeded': {
@@ -39,29 +40,32 @@ serve(async (req) => {
         const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Updating translation status for ID:', metadata.translationId);
+          console.log('Processing translation payment for ID:', metadata.translationId);
 
           // Update translation status to pending (available for translators)
-          const { error: updateError } = await supabaseAdmin
+          const { data: translation, error: updateError } = await supabaseAdmin
             .from('translations')
             .update({
               status: 'pending',
               amount_paid: paymentIntent.amount / 100,
               price_offered: paymentIntent.amount / 100
             })
-            .eq('id', metadata.translationId);
+            .eq('id', metadata.translationId)
+            .select()
+            .single();
 
           if (updateError) {
             console.error('Error updating translation:', updateError);
             throw updateError;
           }
 
+          console.log('Translation updated successfully:', translation);
+
           // Get all approved translators
           const { data: translators, error: translatorError } = await supabaseAdmin
             .from('profiles')
             .select('id')
-            .eq('role', 'translator')
-            .eq('is_approved_translator', true);
+            .or('is_approved_translator.eq.true,role.eq.translator');
 
           if (translatorError) {
             console.error('Error fetching translators:', translatorError);
@@ -80,11 +84,11 @@ serve(async (req) => {
 
               if (notificationError) {
                 console.error('Error creating notifications:', notificationError);
+              } else {
+                console.log('Notifications created for translators:', notifications.length);
               }
             }
           }
-
-          console.log('Successfully updated translation and created notifications');
         }
         break;
       }
