@@ -66,6 +66,15 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No active session');
 
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
     const { error } = await supabase
       .from('translations')
       .insert({
@@ -75,10 +84,11 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         target_language: targetLanguage,
         word_count: wordCount,
         status: 'pending',
-        amount_paid: calculatedPrice,
+        amount_paid: isAdmin ? 0 : calculatedPrice, // Admin doesn't pay
         price_offered: calculatedPrice,
         file_path: filePath,
-        content: extractedText
+        content: extractedText,
+        payment_status: isAdmin ? 'completed' : (hasActiveSubscription ? 'completed' : 'pending')
       });
 
     if (error) throw error;
@@ -101,7 +111,15 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      const calculatedPrice = calculatePrice(wordCount);
+      // Check if user is admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      const isAdmin = profile?.role === 'admin';
+      const calculatedPrice = isAdmin ? 0 : calculatePrice(wordCount);
       const fileExt = file.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
@@ -112,8 +130,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
 
       if (storageError) throw storageError;
 
-      // If user has sufficient words in subscription, create translation directly
-      if (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount) {
+      // If user is admin or has sufficient words in subscription, create translation directly
+      if (isAdmin || (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount)) {
         await createTranslationRecord(filePath, calculatedPrice);
         
         toast({
@@ -128,6 +146,9 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         setWordCount(0);
         setExtractedText("");
         setIsWordCountConfirmed(false);
+        
+        // Redirect to dashboard
+        navigate('/dashboard');
       } else {
         // Redirect to payment page for single translation
         navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}&filePath=${filePath}&sourceLanguage=${sourceLanguage}&targetLanguage=${targetLanguage}&content=${encodeURIComponent(extractedText)}`);
