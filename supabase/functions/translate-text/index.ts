@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 // DeepL language code mapping
-// Reference: https://www.deepl.com/docs-api/translate-text/translate-text
 const languageMapping: { [key: string]: string } = {
   en: 'EN',    // DeepL uses just 'EN'
   es: 'ES',    // Spanish
@@ -20,6 +19,7 @@ const languageMapping: { [key: string]: string } = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -33,6 +33,7 @@ serve(async (req) => {
     }
 
     if (!deeplApiKey) {
+      console.error('DeepL API key not configured');
       throw new Error('DeepL API key not configured');
     }
 
