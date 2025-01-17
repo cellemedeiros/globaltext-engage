@@ -7,7 +7,6 @@ import { useToast } from "@/components/ui/use-toast";
 import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
-import TranslatorBadges from "@/components/dashboard/translator/TranslatorBadges";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
@@ -138,10 +137,9 @@ const TranslatorDashboard = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="grid gap-8 md:grid-cols-2"
+              className="grid gap-8"
             >
               <TranslatorEarnings />
-              <TranslatorBadges />
             </motion.div>
 
             <motion.div

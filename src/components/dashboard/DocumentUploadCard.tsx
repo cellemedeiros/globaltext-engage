@@ -62,6 +62,30 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     }
   };
 
+  const createTranslation = async (filePath: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+
+    const { data, error } = await supabase
+      .from('translations')
+      .insert({
+        user_id: session.user.id,
+        document_name: file!.name,
+        source_language: sourceLanguage,
+        target_language: targetLanguage,
+        word_count: wordCount,
+        status: 'draft', // Start as draft until payment is confirmed
+        amount_paid: calculatePrice(wordCount),
+        file_path: filePath,
+        content: extractedText
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!file || !sourceLanguage || !targetLanguage) return;
@@ -119,9 +143,23 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         setExtractedText("");
         setIsWordCountConfirmed(false);
       } else {
-        // Redirect to payment page for single translation
+        // Upload file first
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${crypto.randomUUID()}.${fileExt}`;
+        
+        const { error: storageError } = await supabase.storage
+          .from('translations')
+          .upload(filePath, file);
+
+        if (storageError) throw storageError;
+
+        // Create translation record and get its ID
+        const translation = await createTranslation(filePath);
+        console.log('Created translation:', translation);
+
+        // Redirect to payment page with translation ID
         const amount = calculatePrice(wordCount);
-        navigate(`/payment?words=${wordCount}&amount=${amount}&documentName=${encodeURIComponent(file.name)}`);
+        navigate(`/payment?words=${wordCount}&amount=${amount}&documentName=${encodeURIComponent(file.name)}&translationId=${translation.id}`);
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
