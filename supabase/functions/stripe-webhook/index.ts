@@ -51,50 +51,66 @@ serve(async (req) => {
         if (metadata.type === 'translation' && metadata.translationId) {
           console.log('Updating translation status for ID:', metadata.translationId);
 
-          // Update translation status to pending (available for translators)
-          const { error: updateError } = await supabaseAdmin
+          // First, get the translation to check its current status
+          const { data: translation, error: fetchError } = await supabaseAdmin
             .from('translations')
-            .update({
-              status: 'pending',
-              amount_paid: paymentIntent.amount / 100,
-              price_offered: paymentIntent.amount / 100
-            })
-            .eq('id', metadata.translationId);
+            .select('status')
+            .eq('id', metadata.translationId)
+            .single();
 
-          if (updateError) {
-            console.error('Error updating translation:', updateError);
-            throw updateError;
+          if (fetchError) {
+            console.error('Error fetching translation:', fetchError);
+            throw fetchError;
           }
 
-          // Get all approved translators
-          const { data: translators, error: translatorError } = await supabaseAdmin
-            .from('profiles')
-            .select('id')
-            .eq('role', 'translator')
-            .eq('is_approved_translator', true);
+          // Only update if the translation is not already in a different status
+          if (translation.status === 'payment_pending') {
+            // Update translation status to pending (available for translators)
+            const { error: updateError } = await supabaseAdmin
+              .from('translations')
+              .update({
+                status: 'pending',
+                amount_paid: paymentIntent.amount / 100,
+                price_offered: paymentIntent.amount / 100
+              })
+              .eq('id', metadata.translationId);
 
-          if (translatorError) {
-            console.error('Error fetching translators:', translatorError);
-          } else {
-            // Create notifications for all translators
-            const notifications = translators.map(translator => ({
-              title: 'New Translation Available',
-              message: `A new translation project is available: ${metadata.documentName}`,
-              user_id: translator.id,
-            }));
+            if (updateError) {
+              console.error('Error updating translation:', updateError);
+              throw updateError;
+            }
 
-            if (notifications.length > 0) {
-              const { error: notificationError } = await supabaseAdmin
-                .from('notifications')
-                .insert(notifications);
+            // Get all approved translators
+            const { data: translators, error: translatorError } = await supabaseAdmin
+              .from('profiles')
+              .select('id')
+              .eq('is_approved_translator', true);
 
-              if (notificationError) {
-                console.error('Error creating notifications:', notificationError);
+            if (translatorError) {
+              console.error('Error fetching translators:', translatorError);
+            } else {
+              // Create notifications for all translators
+              const notifications = translators.map(translator => ({
+                title: 'New Translation Available',
+                message: `A new translation project is available: ${metadata.documentName}`,
+                user_id: translator.id,
+              }));
+
+              if (notifications.length > 0) {
+                const { error: notificationError } = await supabaseAdmin
+                  .from('notifications')
+                  .insert(notifications);
+
+                if (notificationError) {
+                  console.error('Error creating notifications:', notificationError);
+                }
               }
             }
-          }
 
-          console.log('Successfully updated translation and created notifications');
+            console.log('Successfully updated translation and created notifications');
+          } else {
+            console.log('Translation already processed, current status:', translation.status);
+          }
         }
         break;
       }
