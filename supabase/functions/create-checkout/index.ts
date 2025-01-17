@@ -42,7 +42,7 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words, plan, documentName, translationId } = await req.json();
+    const { amount, words, plan, documentName } = await req.json();
     
     if (!amount) {
       console.error('Amount is required');
@@ -75,7 +75,8 @@ serve(async (req) => {
           price_data: {
             currency: 'brl',
             product_data: {
-              name: `Translation Service${words ? ` - ${words} words` : ''}`,
+              name: plan ? `${plan} Plan` : `Translation Service${words ? ` - ${words} words` : ''}`,
+              description: documentName ? `Document: ${documentName}` : undefined,
             },
             unit_amount: Math.round(parseFloat(amount) * 100),
           },
@@ -83,11 +84,11 @@ serve(async (req) => {
         },
       ],
       metadata: {
-        type: 'translation',
-        translationId,
-        documentName,
+        type: plan ? 'subscription' : 'translation',
         userId: user.id,
         words,
+        plan,
+        documentName,
       },
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,

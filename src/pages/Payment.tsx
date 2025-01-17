@@ -5,6 +5,7 @@ import PaymentNavigation from "@/components/payment/PaymentNavigation";
 import PaymentProcessor from "@/components/payment/PaymentProcessor";
 import { usePaymentAuth } from "@/hooks/usePaymentAuth";
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 const Payment = () => {
   const [searchParams] = useSearchParams();
@@ -28,7 +29,11 @@ const Payment = () => {
   const effectiveDocumentName = documentName || sessionStorage.getItem('payment_document_name');
 
   if (isCheckingAuth) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (

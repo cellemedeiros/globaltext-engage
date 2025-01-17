@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface PaymentProcessorProps {
   amount: string | null;
@@ -34,7 +35,7 @@ const PaymentProcessor = ({ amount, words, plan, session, documentName }: Paymen
         throw new Error('No active session');
       }
 
-      console.log('Creating checkout session with token:', currentSession.access_token);
+      console.log('Creating checkout session...');
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
@@ -75,7 +76,14 @@ const PaymentProcessor = ({ amount, words, plan, session, documentName }: Paymen
         className="w-full"
         disabled={isProcessing}
       >
-        {isProcessing ? "Processing..." : `Proceed to Payment - R$${amount}`}
+        {isProcessing ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Processing...
+          </div>
+        ) : (
+          `Proceed to Payment - R$${amount}`
+        )}
       </Button>
     </div>
   );

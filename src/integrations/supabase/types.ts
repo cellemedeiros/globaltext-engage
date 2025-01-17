@@ -292,9 +292,12 @@ export type Database = {
           document_name: string
           file_path: string | null
           id: string
+          payment_status: string | null
           price_offered: number
           source_language: string
           status: string
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
           subscription_id: string | null
           target_language: string
           translated_file_path: string | null
@@ -317,9 +320,12 @@ export type Database = {
           document_name: string
           file_path?: string | null
           id?: string
+          payment_status?: string | null
           price_offered?: number
           source_language: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
           subscription_id?: string | null
           target_language: string
           translated_file_path?: string | null
@@ -342,9 +348,12 @@ export type Database = {
           document_name?: string
           file_path?: string | null
           id?: string
+          payment_status?: string | null
           price_offered?: number
           source_language?: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
           subscription_id?: string | null
           target_language?: string
           translated_file_path?: string | null
