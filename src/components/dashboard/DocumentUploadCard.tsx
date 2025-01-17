@@ -84,7 +84,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         target_language: targetLanguage,
         word_count: wordCount,
         status: 'pending',
-        amount_paid: 0, // Always set to 0 for admin
+        amount_paid: 0,
         price_offered: calculatedPrice,
         file_path: filePath,
         content: extractedText,
@@ -164,6 +164,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       setIsUploading(false);
     }
   };
+
+  // ... keep existing code (render JSX)
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm">
