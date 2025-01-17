@@ -16,18 +16,17 @@ serve(async (req) => {
   try {
     console.log('Starting checkout session creation...');
 
-    // Initialize Supabase client
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    // Initialize Supabase client with env variables
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
-
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('No authorization header found');
-      throw new Error('No authorization header');
-    }
 
     // Get the JWT token
     const token = authHeader.replace('Bearer ', '');
@@ -35,6 +34,7 @@ serve(async (req) => {
 
     // Verify the user session
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    
     if (userError || !user) {
       console.error('Authentication error:', userError);
       throw new Error('Authentication failed');
