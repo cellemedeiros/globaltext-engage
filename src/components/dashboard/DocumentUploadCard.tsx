@@ -62,6 +62,28 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     }
   };
 
+  const createTranslationRecord = async (filePath: string, calculatedPrice: number) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+
+    const { error } = await supabase
+      .from('translations')
+      .insert({
+        user_id: session.user.id,
+        document_name: file!.name,
+        source_language: sourceLanguage,
+        target_language: targetLanguage,
+        word_count: wordCount,
+        status: 'pending',
+        amount_paid: calculatedPrice,
+        price_offered: calculatedPrice,
+        file_path: filePath,
+        content: extractedText
+      });
+
+    if (error) throw error;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!file || !sourceLanguage || !targetLanguage) return;
@@ -79,37 +101,21 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      const isAdmin = session.user.id === '37665cdd-1fdd-40d0-b485-35148c159bed';
       const calculatedPrice = calculatePrice(wordCount);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
-      // If user is admin or has an active subscription with sufficient words, proceed without payment
-      if (isAdmin || (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount)) {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${crypto.randomUUID()}.${fileExt}`;
+      // Upload file to storage
+      const { error: storageError } = await supabase.storage
+        .from('translations')
+        .upload(filePath, file);
+
+      if (storageError) throw storageError;
+
+      // If user has sufficient words in subscription, create translation directly
+      if (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount) {
+        await createTranslationRecord(filePath, calculatedPrice);
         
-        const { error: storageError } = await supabase.storage
-          .from('translations')
-          .upload(filePath, file);
-
-        if (storageError) throw storageError;
-
-        const { error } = await supabase
-          .from('translations')
-          .insert({
-            user_id: session.user.id,
-            document_name: file.name,
-            source_language: sourceLanguage,
-            target_language: targetLanguage,
-            word_count: wordCount,
-            status: 'pending',
-            amount_paid: isAdmin ? 0 : calculatedPrice, // Admin pays nothing
-            price_offered: calculatedPrice, // Store the calculated price for translators
-            file_path: filePath,
-            content: extractedText
-          });
-
-        if (error) throw error;
-
         toast({
           title: "Success",
           description: "Document uploaded successfully and available for translators",
@@ -124,7 +130,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         setIsWordCountConfirmed(false);
       } else {
         // Redirect to payment page for single translation
-        navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}`);
+        navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}&filePath=${filePath}&sourceLanguage=${sourceLanguage}&targetLanguage=${targetLanguage}&content=${encodeURIComponent(extractedText)}`);
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);

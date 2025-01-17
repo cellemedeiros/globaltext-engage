@@ -1,73 +1,109 @@
-import { useSearchParams } from "react-router-dom";
-import { Card } from "@/components/ui/card";
-import PaymentSummary from "@/components/payment/PaymentSummary";
-import PaymentNavigation from "@/components/payment/PaymentNavigation";
-import PaymentProcessor from "@/components/payment/PaymentProcessor";
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePaymentAuth } from "@/hooks/usePaymentAuth";
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import PaymentSummary from "@/components/payment/PaymentSummary";
+import PaymentProcessor from "@/components/payment/PaymentProcessor";
+import { useToast } from "@/hooks/use-toast";
 
 const Payment = () => {
   const [searchParams] = useSearchParams();
-  const words = searchParams.get("words");
-  const plan = searchParams.get("plan");
-  const amount = searchParams.get("amount");
-  const documentName = searchParams.get("documentName");
-  
   const { session, isCheckingAuth } = usePaymentAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const words = searchParams.get('words');
+  const amount = searchParams.get('amount');
+  const documentName = searchParams.get('documentName');
+  const filePath = searchParams.get('filePath');
+  const sourceLanguage = searchParams.get('sourceLanguage');
+  const targetLanguage = searchParams.get('targetLanguage');
+  const content = searchParams.get('content');
 
   useEffect(() => {
-    if (amount) sessionStorage.setItem('payment_amount', amount);
-    if (words) sessionStorage.setItem('payment_words', words);
-    if (plan) sessionStorage.setItem('payment_plan', plan);
-    if (documentName) sessionStorage.setItem('payment_document_name', documentName);
-  }, [amount, words, plan, documentName]);
+    const handlePaymentSuccess = async () => {
+      const status = searchParams.get('payment');
+      if (status === 'success') {
+        toast({
+          title: "Payment Successful",
+          description: "Your translation request has been submitted.",
+        });
+        navigate('/dashboard');
+      }
+    };
 
-  const effectiveAmount = amount || sessionStorage.getItem('payment_amount');
-  const effectiveWords = words || sessionStorage.getItem('payment_words');
-  const effectivePlan = plan || sessionStorage.getItem('payment_plan');
-  const effectiveDocumentName = documentName || sessionStorage.getItem('payment_document_name');
+    handlePaymentSuccess();
+  }, [searchParams, navigate, toast]);
+
+  const handlePayment = async () => {
+    if (!session?.user) return;
+
+    setIsProcessing(true);
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession?.access_token) {
+        throw new Error('No active session');
+      }
+
+      console.log('Creating checkout session...');
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          amount, 
+          words,
+          documentName,
+          type: 'translation',
+          filePath,
+          sourceLanguage,
+          targetLanguage,
+          content
+        },
+        headers: {
+          Authorization: `Bearer ${currentSession.access_token}`
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (isCheckingAuth) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <PaymentNavigation plan={effectivePlan} words={effectiveWords} />
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto space-y-8">
+        <h1 className="text-3xl font-bold">Complete Your Payment</h1>
+        
+        <PaymentSummary 
+          words={words}
+          amount={amount}
+          documentName={documentName}
+        />
 
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Complete Your Payment</h1>
-          <p className="text-gray-600">
-            {effectivePlan 
-              ? `Subscribe to ${effectivePlan} Plan` 
-              : `Translation Service Payment`
-            }
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-[1fr,300px] gap-8">
-          <Card>
-            <PaymentProcessor 
-              amount={effectiveAmount}
-              words={effectiveWords}
-              plan={effectivePlan}
-              session={session}
-              documentName={effectiveDocumentName}
-            />
-          </Card>
-          <PaymentSummary 
-            words={effectiveWords}
-            plan={effectivePlan}
-            amount={effectiveAmount}
-            documentName={effectiveDocumentName}
-          />
-        </div>
+        <PaymentProcessor
+          amount={amount}
+          isProcessing={isProcessing}
+          onSubmit={handlePayment}
+        />
       </div>
     </div>
   );
