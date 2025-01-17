@@ -14,7 +14,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const handleUpgrade = () => {
     // If user has no subscription, navigate to payment with Business plan
     if (!subscription) {
-      navigate('/payment?plan=Business&amount=2500');
+      navigate('/#pricing');
       return;
     }
     
@@ -64,7 +64,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            Get Business Plan
+            Subscribe
           </Button>
         </div>
       )}
