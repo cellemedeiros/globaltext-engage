@@ -36,6 +36,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
+      const isAdmin = session.user.email === 'bispomathews@gmail.com';
+
       // Upload file to storage
       const { error: storageError } = await supabase.storage
         .from('translations')
@@ -43,7 +45,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
 
       if (storageError) throw storageError;
 
-      const { isAdmin, calculatedPrice } = await createTranslationRecord(data);
+      const { calculatedPrice } = await createTranslationRecord(data);
 
       // If user is admin or has sufficient words in subscription, redirect to appropriate dashboard
       if (isAdmin || (hasActiveSubscription && wordsRemaining && wordsRemaining >= data.wordCount)) {

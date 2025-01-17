@@ -24,6 +24,38 @@ export const createTranslationRecord = async ({
   const isAdmin = session.user.email === 'bispomathews@gmail.com';
   const calculatedPrice = calculatePrice(wordCount);
 
+  // For admin users, create a business subscription if they don't have one
+  if (isAdmin) {
+    const { data: existingSubscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (!existingSubscription) {
+      const { error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: session.user.id,
+          plan_name: 'business',
+          status: 'active',
+          words_remaining: 999999999, // Effectively unlimited
+          expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+          amount_paid: 0
+        });
+
+      if (subscriptionError) throw subscriptionError;
+    }
+  }
+
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('id')
+    .eq('user_id', session.user.id)
+    .eq('status', 'active')
+    .single();
+
   const { error } = await supabase
     .from('translations')
     .insert({
@@ -37,7 +69,8 @@ export const createTranslationRecord = async ({
       price_offered: calculatedPrice,
       file_path: filePath,
       content: extractedText,
-      payment_status: isAdmin ? 'completed' : 'pending'
+      payment_status: isAdmin ? 'completed' : 'pending',
+      subscription_id: subscription?.id
     });
 
   if (error) throw error;
