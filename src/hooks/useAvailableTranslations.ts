@@ -1,6 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types";
+
+type Translation = Database['public']['Tables']['translations']['Row'] & {
+  profiles: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+};
 
 export const useAvailableTranslations = () => {
   const { toast } = useToast();
@@ -11,12 +19,10 @@ export const useAvailableTranslations = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          console.log('No session found');
           throw new Error("Not authenticated");
         }
 
-        console.log('Fetching available translations for translator:', session.user.id);
-        
+        // Fetch all pending translations that haven't been claimed
         const { data, error } = await supabase
           .from('translations')
           .select(`
@@ -35,11 +41,10 @@ export const useAvailableTranslations = () => {
           throw error;
         }
 
-        console.log('Available translations fetched:', data);
-        return data;
+        console.log('Fetched available translations:', data);
+        return data as Translation[];
       } catch (error) {
         const message = error instanceof Error ? error.message : "An unexpected error occurred";
-        console.error('Error in useAvailableTranslations:', message);
         toast({
           title: "Error",
           description: message,

@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,15 @@ import TranslatorDashboard from "./pages/TranslatorDashboard";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+    },
+  },
+});
+
 const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' | 'admin' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { toast } = useToast();
@@ -20,10 +30,7 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     queryFn: async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw sessionError;
-        }
+        if (sessionError) throw sessionError;
         
         if (!session) {
           setIsAuthenticated(false);
@@ -36,27 +43,11 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           .eq('id', session.user.id)
           .single();
         
-        if (error) {
-          console.error('Profile fetch error:', error);
-          throw error;
-        }
+        if (error) throw error;
         
         return data;
-      } catch (error: any) {
-        console.error('Error in profile query:', error);
-        
-        if (error.message?.includes('refresh_token_not_found') || 
-            error.error?.message?.includes('refresh_token_not_found')) {
-          await supabase.auth.signOut();
-          setIsAuthenticated(false);
-          toast({
-            title: "Session Expired",
-            description: "Please sign in again.",
-            variant: "destructive"
-          });
-          return null;
-        }
-
+      } catch (error) {
+        console.error('Error fetching profile:', error);
         toast({
           title: "Authentication Error",
           description: "Please try logging in again.",
@@ -77,13 +68,7 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Initial session check error:', error);
-          if (mounted) {
-            setIsAuthenticated(false);
-          }
-          return;
-        }
+        if (error) throw error;
         if (mounted) {
           setIsAuthenticated(!!session);
         }
@@ -91,18 +76,22 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         console.error('Session check error:', error);
         if (mounted) {
           setIsAuthenticated(false);
+          queryClient.clear();
         }
       }
     };
 
+    // Initial session check
     checkSession();
 
+    // Set up auth state change listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, !!session);
       if (mounted) {
+        setIsAuthenticated(!!session);
         if (event === 'SIGNED_OUT') {
+          queryClient.clear();
           setIsAuthenticated(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setIsAuthenticated(true);
@@ -177,13 +166,15 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <TooltipProvider>
-        <AppRoutes />
-        <Toaster />
-        <Sonner />
-      </TooltipProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <TooltipProvider>
+          <AppRoutes />
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 };
 
