@@ -27,6 +27,7 @@ serve(async (req) => {
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 
     if (!signature || !webhookSecret) {
+      console.error('Missing signature or webhook secret');
       return new Response('Missing signature or webhook secret', { status: 400 });
     }
 
@@ -40,7 +41,7 @@ serve(async (req) => {
       return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
     }
 
-    console.log(`Event type: ${event.type}`);
+    console.log(`Processing webhook event: ${event.type}`);
 
     switch (event.type) {
       case 'payment_intent.succeeded': {
@@ -48,15 +49,37 @@ serve(async (req) => {
         const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Processing payment for translation:', metadata.translationId);
+          console.log(`Processing successful payment for translation ${metadata.translationId}`);
           
-          // Update translation status to pending (available for translators)
+          // First verify the translation exists and is in the correct state
+          const { data: translation, error: fetchError } = await supabaseAdmin
+            .from('translations')
+            .select('status, amount_paid')
+            .eq('id', metadata.translationId)
+            .single();
+
+          if (fetchError) {
+            console.error('Error fetching translation:', fetchError);
+            throw fetchError;
+          }
+
+          if (!translation) {
+            throw new Error(`Translation ${metadata.translationId} not found`);
+          }
+
+          // Calculate the payment amount in the correct currency unit
+          const amountPaid = paymentIntent.amount / 100;
+          
+          console.log(`Updating translation ${metadata.translationId} to pending status`);
+          console.log(`Amount paid: ${amountPaid}`);
+
+          // Update the translation record
           const { error: updateError } = await supabaseAdmin
             .from('translations')
             .update({
               status: 'pending',
-              amount_paid: paymentIntent.amount / 100,
-              price_offered: paymentIntent.amount / 100
+              amount_paid: amountPaid,
+              price_offered: amountPaid
             })
             .eq('id', metadata.translationId);
 
@@ -65,7 +88,7 @@ serve(async (req) => {
             throw updateError;
           }
 
-          // Get all approved translators
+          // Notify translators about the new available translation
           const { data: translators, error: translatorError } = await supabaseAdmin
             .from('profiles')
             .select('id')
@@ -73,26 +96,25 @@ serve(async (req) => {
 
           if (translatorError) {
             console.error('Error fetching translators:', translatorError);
-          } else {
-            // Create notifications for all translators
+          } else if (translators && translators.length > 0) {
             const notifications = translators.map(translator => ({
               title: 'New Translation Available',
-              message: `A new translation project is available: ${metadata.documentName}`,
+              message: `A new translation project is available${metadata.documentName ? `: ${metadata.documentName}` : ''}`,
               user_id: translator.id,
             }));
 
-            if (notifications.length > 0) {
-              const { error: notificationError } = await supabaseAdmin
-                .from('notifications')
-                .insert(notifications);
+            const { error: notificationError } = await supabaseAdmin
+              .from('notifications')
+              .insert(notifications);
 
-              if (notificationError) {
-                console.error('Error creating notifications:', notificationError);
-              }
+            if (notificationError) {
+              console.error('Error creating notifications:', notificationError);
+            } else {
+              console.log(`Created notifications for ${notifications.length} translators`);
             }
           }
 
-          console.log('Successfully processed payment and updated translation');
+          console.log(`Successfully processed payment and updated translation ${metadata.translationId}`);
         }
         break;
       }
@@ -102,7 +124,7 @@ serve(async (req) => {
         const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Updating failed payment status for translation:', metadata.translationId);
+          console.log(`Processing failed payment for translation ${metadata.translationId}`);
           
           const { error } = await supabaseAdmin
             .from('translations')
@@ -115,6 +137,8 @@ serve(async (req) => {
             console.error('Error updating translation status:', error);
             throw error;
           }
+
+          console.log(`Updated translation ${metadata.translationId} to payment_failed status`);
         }
         break;
       }

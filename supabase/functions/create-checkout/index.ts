@@ -42,11 +42,11 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words, plan, translationId, documentName } = await req.json();
+    const { amount, words, plan, documentName, translationId } = await req.json();
     
-    if (!amount && !plan) {
-      console.error('Either amount or plan is required');
-      throw new Error('Either amount or plan is required');
+    if (!amount) {
+      console.error('Amount is required');
+      throw new Error('Amount is required');
     }
 
     console.log('Creating Stripe instance...');
@@ -68,65 +68,35 @@ serve(async (req) => {
       console.log('No existing customer found, will create new');
     }
 
-    let sessionConfig;
-    if (plan) {
-      const priceId = plan.toUpperCase() === 'PREMIUM' 
-        ? Deno.env.get('PREMIUM_PLAN_PRICE')
-        : Deno.env.get('STANDARD_PLAN_PRICE');
-
-      if (!priceId) {
-        console.error(`No price ID found for plan: ${plan}`);
-        throw new Error(`Invalid plan configuration for ${plan}`);
-      }
-
-      console.log(`Using price ID for ${plan} plan:`, priceId);
-      sessionConfig = {
-        mode: 'subscription',
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          type: 'subscription',
-          plan,
-          userId: user.id,
-        },
-      };
-    } else {
-      sessionConfig = {
-        mode: 'payment',
-        line_items: [
-          {
-            price_data: {
-              currency: 'brl',
-              product_data: {
-                name: `Translation Service - ${words} words`,
-              },
-              unit_amount: Math.round(parseFloat(amount) * 100),
+    const sessionConfig = {
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'brl',
+            product_data: {
+              name: `Translation Service${words ? ` - ${words} words` : ''}`,
             },
-            quantity: 1,
+            unit_amount: Math.round(parseFloat(amount) * 100),
           },
-        ],
-        metadata: {
-          type: 'translation',
-          translationId,
-          documentName,
-          userId: user.id,
-          words,
+          quantity: 1,
         },
-      };
-    }
-
-    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
-    const session = await stripe.checkout.sessions.create({
+      ],
+      metadata: {
+        type: 'translation',
+        translationId,
+        documentName,
+        userId: user.id,
+        words,
+      },
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
-      ...sessionConfig,
       success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
       cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
-    });
+    };
+
+    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     console.log('Payment session created:', session.id);
     return new Response(
