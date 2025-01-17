@@ -84,7 +84,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         target_language: targetLanguage,
         word_count: wordCount,
         status: 'pending',
-        amount_paid: isAdmin ? 0 : calculatedPrice, // Admin doesn't pay
+        amount_paid: isAdmin ? 0 : calculatedPrice,
         price_offered: calculatedPrice,
         file_path: filePath,
         content: extractedText,
@@ -150,8 +150,10 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         // Redirect to dashboard
         navigate('/dashboard');
       } else {
-        // Redirect to payment page for single translation
-        navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}&filePath=${filePath}&sourceLanguage=${sourceLanguage}&targetLanguage=${targetLanguage}&content=${encodeURIComponent(extractedText)}`);
+        // Only redirect non-admin users to payment
+        if (!isAdmin) {
+          navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}&filePath=${filePath}&sourceLanguage=${sourceLanguage}&targetLanguage=${targetLanguage}&content=${encodeURIComponent(extractedText)}`);
+        }
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
