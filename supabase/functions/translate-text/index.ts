@@ -10,12 +10,13 @@ const corsHeaders = {
 
 // DeepL language code mapping
 const languageMapping: { [key: string]: string } = {
-  en: 'EN',    // DeepL uses just 'EN'
+  en: 'EN',    // English
   es: 'ES',    // Spanish
   fr: 'FR',    // French
   de: 'DE',    // German
   it: 'IT',    // Italian
-  pt: 'PT',    // Portuguese
+  pt: 'PT-PT', // Portuguese (European)
+  'pt-br': 'PT-BR', // Portuguese (Brazilian)
 };
 
 serve(async (req) => {
@@ -26,9 +27,10 @@ serve(async (req) => {
 
   try {
     const { text, sourceLanguage, targetLanguage } = await req.json();
-    console.log(`Received request to translate from ${sourceLanguage} to ${targetLanguage}`);
+    console.log(`Starting translation request from ${sourceLanguage} to ${targetLanguage}`);
 
     if (!text || !sourceLanguage || !targetLanguage) {
+      console.error('Missing required parameters:', { text, sourceLanguage, targetLanguage });
       throw new Error('Missing required parameters');
     }
 
@@ -37,11 +39,11 @@ serve(async (req) => {
       throw new Error('DeepL API key not configured');
     }
 
-    // Map the language codes to DeepL format and normalize to uppercase
+    // Map the language codes to DeepL format
     const sourceLang = (languageMapping[sourceLanguage.toLowerCase()] || sourceLanguage.toUpperCase());
     const targetLang = (languageMapping[targetLanguage.toLowerCase()] || targetLanguage.toUpperCase());
 
-    console.log(`Using DeepL language codes: ${sourceLang} -> ${targetLang}`);
+    console.log(`Mapped language codes: ${sourceLang} -> ${targetLang}`);
 
     const response = await fetch('https://api-free.deepl.com/v2/translate', {
       method: 'POST',
@@ -53,18 +55,23 @@ serve(async (req) => {
         text: [text],
         source_lang: sourceLang,
         target_lang: targetLang,
-        preserve_formatting: true
+        preserve_formatting: true,
+        formality: 'default'
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('DeepL API error response:', errorText);
-      throw new Error(`DeepL API error: ${errorText}`);
+      console.error('DeepL API error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`DeepL API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('DeepL response received successfully');
+    console.log('DeepL API response received successfully');
 
     if (!data.translations?.[0]?.text) {
       console.error('Invalid DeepL response format:', data);
@@ -82,7 +89,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Translation error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString()
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
