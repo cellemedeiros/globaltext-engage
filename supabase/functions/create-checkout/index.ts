@@ -68,6 +68,19 @@ serve(async (req) => {
       console.log('No existing customer found, will create new');
     }
 
+    // Create metadata object with truncated values
+    const metadata = {
+      type: 'translation',
+      userId: user.id,
+      words: words?.toString().slice(0, 100),
+      documentName: documentName?.slice(0, 100),
+      filePath: filePath?.slice(0, 100),
+      sourceLanguage: sourceLanguage?.slice(0, 50),
+      targetLanguage: targetLanguage?.slice(0, 50),
+      // Only store a preview of the content if needed
+      contentPreview: content ? `${content.slice(0, 100)}...` : undefined
+    };
+
     const sessionConfig = {
       mode: 'payment',
       line_items: [
@@ -83,19 +96,10 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      metadata: {
-        type: 'translation',
-        userId: user.id,
-        words,
-        documentName,
-        filePath,
-        sourceLanguage,
-        targetLanguage,
-        content
-      },
+      metadata,
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
-      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
+      success_url: `${req.headers.get('origin')}/payment?payment=success`,
       cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
     };
 
