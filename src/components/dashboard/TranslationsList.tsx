@@ -32,15 +32,24 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
           schema: 'public',
           table: 'translations',
         },
-        (payload) => {
+        async (payload) => {
           console.log('Translation update received:', payload);
-          refetch();
           
-          if (payload.eventType === 'INSERT' && role === 'translator') {
-            toast({
-              title: "New Translation Available",
-              description: "A new document is available for translation",
-            });
+          // Force refetch translations when any change occurs
+          await refetch();
+          
+          if (payload.eventType === 'INSERT') {
+            if (role === 'translator') {
+              toast({
+                title: "New Translation Available",
+                description: "A new document is available for translation",
+              });
+            } else if (role === 'client') {
+              toast({
+                title: "Translation Created",
+                description: "Your translation request has been submitted successfully",
+              });
+            }
           } else if (payload.eventType === 'UPDATE') {
             const newStatus = payload.new.status;
             const translatedFilePath = payload.new.translated_file_path;
@@ -62,6 +71,9 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
         }
       )
       .subscribe();
+
+    // Initial fetch
+    refetch();
 
     return () => {
       supabase.removeChannel(channel);
