@@ -23,7 +23,7 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
       } else if (role === 'admin') {
         query = query.eq('status', 'pending_admin_review');
       } else {
-        // For clients, show all their translations
+        // For clients, show all their translations using auth.uid() since it matches the RLS policy
         console.log('Fetching client translations for user:', session.user.id);
         query = query.eq('user_id', session.user.id);
       }
