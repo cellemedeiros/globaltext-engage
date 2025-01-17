@@ -93,7 +93,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
 
         if (storageError) throw storageError;
 
-        const { error } = await supabase
+        const { data: translation, error } = await supabase
           .from('translations')
           .insert({
             user_id: session.user.id,
@@ -101,26 +101,34 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             source_language: sourceLanguage,
             target_language: targetLanguage,
             word_count: wordCount,
-            status: 'pending',
+            status: isAdmin ? 'pending' : 'awaiting_payment',
             amount_paid: isAdmin ? 0 : calculatePrice(wordCount),
             file_path: filePath,
-            content: extractedText
-          });
+            content: extractedText,
+            price_offered: calculatePrice(wordCount)
+          })
+          .select()
+          .single();
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Document uploaded successfully and available for translators",
-        });
+        if (!isAdmin) {
+          // Redirect to payment page with translation ID
+          navigate(`/payment?words=${wordCount}&amount=${calculatePrice(wordCount)}&translationId=${translation.id}&documentName=${encodeURIComponent(file.name)}`);
+        } else {
+          toast({
+            title: "Success",
+            description: "Document uploaded successfully and available for translators",
+          });
 
-        // Reset form
-        setFile(null);
-        setSourceLanguage("");
-        setTargetLanguage("");
-        setWordCount(0);
-        setExtractedText("");
-        setIsWordCountConfirmed(false);
+          // Reset form
+          setFile(null);
+          setSourceLanguage("");
+          setTargetLanguage("");
+          setWordCount(0);
+          setExtractedText("");
+          setIsWordCountConfirmed(false);
+        }
       } else {
         // Redirect to payment page for single translation
         const amount = calculatePrice(wordCount);

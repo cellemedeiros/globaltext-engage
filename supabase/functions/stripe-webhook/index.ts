@@ -34,9 +34,9 @@ serve(async (req) => {
     console.log(`Event type: ${event.type}`);
 
     switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
-        const metadata = paymentIntent.metadata || {};
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const metadata = session.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
           console.log('Processing successful payment for translation:', metadata.translationId);
@@ -46,8 +46,7 @@ serve(async (req) => {
             .from('translations')
             .update({
               status: 'pending',
-              amount_paid: paymentIntent.amount / 100,
-              price_offered: paymentIntent.amount / 100
+              amount_paid: session.amount_total ? session.amount_total / 100 : 0
             })
             .eq('id', metadata.translationId);
 
@@ -89,9 +88,9 @@ serve(async (req) => {
         break;
       }
 
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object;
-        const metadata = paymentIntent.metadata || {};
+      case 'checkout.session.expired': {
+        const session = event.data.object;
+        const metadata = session.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
           console.log('Updating failed payment status for translation:', metadata.translationId);
