@@ -39,9 +39,9 @@ serve(async (req) => {
         const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Updating translation status for ID:', metadata.translationId);
-
-          // Update translation status to pending (available for translators)
+          console.log('Processing successful payment for translation:', metadata.translationId);
+          
+          // Update translation status to pending immediately after payment
           const { error: updateError } = await supabaseAdmin
             .from('translations')
             .update({
