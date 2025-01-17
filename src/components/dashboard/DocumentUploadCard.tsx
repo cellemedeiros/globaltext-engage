@@ -66,14 +66,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No active session');
 
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
-
-    const isAdmin = profile?.role === 'admin';
+    // Check if user is admin by email
+    const isAdmin = session.user.email === 'bispomathews@gmail.com';
 
     const { error } = await supabase
       .from('translations')
@@ -84,7 +78,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         target_language: targetLanguage,
         word_count: wordCount,
         status: 'pending',
-        amount_paid: 0,
+        amount_paid: isAdmin ? calculatedPrice : 0,
         price_offered: calculatedPrice,
         file_path: filePath,
         content: extractedText,
@@ -119,14 +113,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-
-      const isAdmin = profile?.role === 'admin';
+      // Check if user is admin by email
+      const isAdmin = session.user.email === 'bispomathews@gmail.com';
       const calculatedPrice = calculatePrice(wordCount);
       const fileExt = file.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
