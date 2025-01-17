@@ -19,12 +19,12 @@ export const useAvailableTranslations = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
+          console.log('No session found');
           throw new Error("Not authenticated");
         }
 
-        console.log('Fetching available translations...');
+        console.log('Fetching available translations for translator:', session.user.id);
         
-        // Fetch all pending translations that haven't been claimed
         const { data, error } = await supabase
           .from('translations')
           .select(`
@@ -43,10 +43,11 @@ export const useAvailableTranslations = () => {
           throw error;
         }
 
-        console.log('Fetched available translations:', data);
+        console.log('Available translations fetched:', data);
         return data as Translation[];
       } catch (error) {
         const message = error instanceof Error ? error.message : "An unexpected error occurred";
+        console.error('Error in useAvailableTranslations:', message);
         toast({
           title: "Error",
           description: message,
