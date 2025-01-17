@@ -25,21 +25,26 @@ serve(async (req) => {
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase environment variables');
       throw new Error('Server configuration error');
     }
 
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     // Get the JWT token
     const token = authHeader.replace('Bearer ', '');
     console.log('Got token:', token.substring(0, 10) + '...');
 
-    // Verify the user session
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    // Verify the user session using the admin client
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError) {
       console.error('User verification error:', userError);
