@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEditor from "./TranslationEditor";
 import TranslationActions from "./TranslationActions";
-import AdminReviewPanel from "./AdminReviewPanel";
 
 const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
@@ -118,7 +117,7 @@ const TranslationCanvas = () => {
           target_language: targetLanguage,
           content: sourceText,
           ai_translated_content: targetText,
-          status: 'pending_admin_review', // This status will make it appear in admin's manage translations
+          status: 'pending_admin_review',
           word_count: sourceText.split(/\s+/).length,
           amount_paid: 0,
           translator_id: session.user.id,
@@ -147,8 +146,6 @@ const TranslationCanvas = () => {
       setIsSubmitting(false);
     }
   };
-
-  const isAdmin = profile?.id === "37665cdd-1fdd-40d0-b485-35148c159bed";
 
   return (
     <motion.div
@@ -181,12 +178,6 @@ const TranslationCanvas = () => {
           disabled={!selectedFile || !sourceText.trim() || !targetText.trim()}
         />
       </div>
-
-      {isAdmin && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <AdminReviewPanel />
-        </div>
-      )}
     </motion.div>
   );
 };
