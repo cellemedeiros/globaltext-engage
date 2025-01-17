@@ -66,7 +66,8 @@ serve(async (req) => {
           const { data: translators, error: translatorError } = await supabaseAdmin
             .from('profiles')
             .select('id')
-            .or('is_approved_translator.eq.true,role.eq.translator');
+            .eq('role', 'translator')
+            .eq('is_approved_translator', true);
 
           if (translatorError) {
             console.error('Error fetching translators:', translatorError);
