@@ -18,7 +18,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -49,68 +48,51 @@ serve(async (req) => {
         const metadata = paymentIntent.metadata || {};
         
         if (metadata.type === 'translation' && metadata.translationId) {
-          console.log('Updating translation status for ID:', metadata.translationId);
-
-          // First, get the translation to check its current status
-          const { data: translation, error: fetchError } = await supabaseAdmin
+          console.log('Processing payment for translation:', metadata.translationId);
+          
+          // Update translation status to pending (available for translators)
+          const { error: updateError } = await supabaseAdmin
             .from('translations')
-            .select('status')
-            .eq('id', metadata.translationId)
-            .single();
+            .update({
+              status: 'pending',
+              amount_paid: paymentIntent.amount / 100,
+              price_offered: paymentIntent.amount / 100
+            })
+            .eq('id', metadata.translationId);
 
-          if (fetchError) {
-            console.error('Error fetching translation:', fetchError);
-            throw fetchError;
+          if (updateError) {
+            console.error('Error updating translation:', updateError);
+            throw updateError;
           }
 
-          // Only update if the translation is not already in a different status
-          if (translation.status === 'payment_pending') {
-            // Update translation status to pending (available for translators)
-            const { error: updateError } = await supabaseAdmin
-              .from('translations')
-              .update({
-                status: 'pending',
-                amount_paid: paymentIntent.amount / 100,
-                price_offered: paymentIntent.amount / 100
-              })
-              .eq('id', metadata.translationId);
+          // Get all approved translators
+          const { data: translators, error: translatorError } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('is_approved_translator', true);
 
-            if (updateError) {
-              console.error('Error updating translation:', updateError);
-              throw updateError;
-            }
+          if (translatorError) {
+            console.error('Error fetching translators:', translatorError);
+          } else {
+            // Create notifications for all translators
+            const notifications = translators.map(translator => ({
+              title: 'New Translation Available',
+              message: `A new translation project is available: ${metadata.documentName}`,
+              user_id: translator.id,
+            }));
 
-            // Get all approved translators
-            const { data: translators, error: translatorError } = await supabaseAdmin
-              .from('profiles')
-              .select('id')
-              .eq('is_approved_translator', true);
+            if (notifications.length > 0) {
+              const { error: notificationError } = await supabaseAdmin
+                .from('notifications')
+                .insert(notifications);
 
-            if (translatorError) {
-              console.error('Error fetching translators:', translatorError);
-            } else {
-              // Create notifications for all translators
-              const notifications = translators.map(translator => ({
-                title: 'New Translation Available',
-                message: `A new translation project is available: ${metadata.documentName}`,
-                user_id: translator.id,
-              }));
-
-              if (notifications.length > 0) {
-                const { error: notificationError } = await supabaseAdmin
-                  .from('notifications')
-                  .insert(notifications);
-
-                if (notificationError) {
-                  console.error('Error creating notifications:', notificationError);
-                }
+              if (notificationError) {
+                console.error('Error creating notifications:', notificationError);
               }
             }
-
-            console.log('Successfully updated translation and created notifications');
-          } else {
-            console.log('Translation already processed, current status:', translation.status);
           }
+
+          console.log('Successfully processed payment and updated translation');
         }
         break;
       }
