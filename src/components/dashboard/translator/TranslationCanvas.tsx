@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEditor from "./TranslationEditor";
+import GlossaryPanel from "./GlossaryPanel";
+import TranslationMemoryPanel from "./TranslationMemoryPanel";
 
 const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
@@ -51,6 +53,14 @@ const TranslationCanvas = () => {
         
         if (data?.translation) {
           setTargetText(data.translation);
+          
+          // Store in translation memory
+          await supabase.from('translation_memories').insert({
+            source_language: sourceLanguage,
+            target_language: targetLanguage,
+            source_segment: text,
+            target_segment: data.translation,
+          });
         }
       } catch (error) {
         console.error('Translation error:', error);
@@ -79,14 +89,27 @@ const TranslationCanvas = () => {
         onTargetChange={setTargetLanguage}
       />
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <TranslationEditor
-          sourceText={sourceText}
-          targetText={targetText}
-          onSourceChange={handleSourceTextChange}
-          onTargetChange={setTargetText}
-          isTranslating={isTranslating}
-        />
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <TranslationEditor
+            sourceText={sourceText}
+            targetText={targetText}
+            onSourceChange={handleSourceTextChange}
+            onTargetChange={setTargetText}
+            isTranslating={isTranslating}
+          />
+        </div>
+        
+        <div className="space-y-6">
+          <GlossaryPanel
+            sourceLanguage={sourceLanguage}
+            targetLanguage={targetLanguage}
+          />
+          <TranslationMemoryPanel
+            sourceLanguage={sourceLanguage}
+            targetLanguage={targetLanguage}
+          />
+        </div>
       </div>
     </motion.div>
   );
