@@ -40,23 +40,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           return null;
         }
 
-        // Attempt to refresh the session
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.error('Session refresh error:', refreshError);
-          if (refreshError.message.includes('refresh_token_not_found')) {
-            await supabase.auth.signOut();
-            setIsAuthenticated(false);
-            toast({
-              title: "Session Expired",
-              description: "Please sign in again.",
-              variant: "destructive"
-            });
-            return null;
-          }
-          throw refreshError;
-        }
-
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -69,13 +52,24 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         }
         
         return data;
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error in profile query:', error);
-        toast({
-          title: "Authentication Error",
-          description: "Please try logging in again.",
-          variant: "destructive"
-        });
+        // Check if this is a refresh token error
+        if (error.message?.includes('refresh_token_not_found')) {
+          await supabase.auth.signOut();
+          setIsAuthenticated(false);
+          toast({
+            title: "Session Expired",
+            description: "Please sign in again.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Authentication Error",
+            description: "Please try logging in again.",
+            variant: "destructive"
+          });
+        }
         await supabase.auth.signOut();
         setIsAuthenticated(false);
         return null;
@@ -93,7 +87,11 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Initial session check error:', error);
-          throw error;
+          if (mounted) {
+            setIsAuthenticated(false);
+            queryClient.clear();
+          }
+          return;
         }
         if (mounted) {
           setIsAuthenticated(!!session);
@@ -114,11 +112,10 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, !!session);
       if (mounted) {
-        setIsAuthenticated(!!session);
-        if (event === 'SIGNED_OUT') {
-          queryClient.clear();
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           setIsAuthenticated(false);
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          queryClient.clear();
+        } else if (event === 'SIGNED_IN') {
           setIsAuthenticated(true);
         }
       }
