@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { FileText, Clock, Languages, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Database } from "@/integrations/supabase/types";
 
 type Translation = Database['public']['Tables']['translations']['Row'] & {
@@ -58,12 +59,24 @@ const TranslationCard = ({ translation, onClaim }: TranslationCardProps) => {
             Claim Project
           </Button>
         </div>
+
         {translation.content && (
           <div className="mt-2 p-3 bg-muted rounded-md">
-            <p className="text-sm font-medium mb-1">Preview:</p>
+            <p className="text-sm font-medium mb-1">Original Content Preview:</p>
             <p className="text-sm text-muted-foreground">
               {translation.content.slice(0, 200)}...
             </p>
+          </div>
+        )}
+
+        {translation.ai_translated_content && (
+          <div className="mt-2 p-3 bg-blue-50 rounded-md">
+            <p className="text-sm font-medium mb-1">AI Pre-Translation Preview:</p>
+            <ScrollArea className="h-[100px]">
+              <p className="text-sm text-muted-foreground">
+                {translation.ai_translated_content}
+              </p>
+            </ScrollArea>
           </div>
         )}
       </div>
