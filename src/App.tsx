@@ -30,31 +30,11 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     queryFn: async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw sessionError;
-        }
+        if (sessionError) throw sessionError;
         
         if (!session) {
           setIsAuthenticated(false);
           return null;
-        }
-
-        // Attempt to refresh the session
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.error('Session refresh error:', refreshError);
-          if (refreshError.message.includes('refresh_token_not_found')) {
-            await supabase.auth.signOut();
-            setIsAuthenticated(false);
-            toast({
-              title: "Session Expired",
-              description: "Please sign in again.",
-              variant: "destructive"
-            });
-            return null;
-          }
-          throw refreshError;
         }
 
         const { data, error } = await supabase
@@ -63,14 +43,11 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           .eq('id', session.user.id)
           .single();
         
-        if (error) {
-          console.error('Profile fetch error:', error);
-          throw error;
-        }
+        if (error) throw error;
         
         return data;
       } catch (error) {
-        console.error('Error in profile query:', error);
+        console.error('Error fetching profile:', error);
         toast({
           title: "Authentication Error",
           description: "Please try logging in again.",
@@ -91,10 +68,7 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Initial session check error:', error);
-          throw error;
-        }
+        if (error) throw error;
         if (mounted) {
           setIsAuthenticated(!!session);
         }
@@ -107,12 +81,13 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
       }
     };
 
+    // Initial session check
     checkSession();
 
+    // Set up auth state change listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, !!session);
       if (mounted) {
         setIsAuthenticated(!!session);
         if (event === 'SIGNED_OUT') {
