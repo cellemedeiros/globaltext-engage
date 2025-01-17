@@ -5,15 +5,12 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import TranslationHeader from "./TranslationHeader";
 import TranslationEditor from "./TranslationEditor";
-import TranslationActions from "./TranslationActions";
 
 const TranslationCanvas = () => {
   const [sourceLanguage, setSourceLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("pt");
   const [sourceText, setSourceText] = useState("");
   const [targetText, setTargetText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const { toast } = useToast();
 
@@ -68,85 +65,6 @@ const TranslationCanvas = () => {
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSelectedFile(file);
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedFile || !sourceText.trim() || !targetText.trim()) {
-      toast({
-        title: "Missing content",
-        description: "Please provide both source and target text",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const fileExt = selectedFile.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('translations')
-        .upload(filePath, selectedFile);
-
-      if (uploadError) throw uploadError;
-
-      const { error: insertError } = await supabase
-        .from('translations')
-        .insert({
-          user_id: session.user.id,
-          document_name: selectedFile.name,
-          source_language: sourceLanguage,
-          target_language: targetLanguage,
-          content: sourceText,
-          ai_translated_content: targetText,
-          status: 'pending_admin_review',
-          word_count: sourceText.split(/\s+/).length,
-          amount_paid: 0,
-          translator_id: session.user.id,
-          admin_review_status: 'pending'
-        });
-
-      if (insertError) throw insertError;
-
-      toast({
-        title: "Success",
-        description: "Translation submitted for admin review",
-      });
-
-      // Reset form
-      setSelectedFile(null);
-      setSourceText("");
-      setTargetText("");
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit translation",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -168,14 +86,6 @@ const TranslationCanvas = () => {
           onSourceChange={handleSourceTextChange}
           onTargetChange={setTargetText}
           isTranslating={isTranslating}
-        />
-
-        <TranslationActions
-          selectedFile={selectedFile}
-          isSubmitting={isSubmitting}
-          onFileSelect={handleFileSelect}
-          onSubmit={handleSubmit}
-          disabled={!selectedFile || !sourceText.trim() || !targetText.trim()}
         />
       </div>
     </motion.div>
