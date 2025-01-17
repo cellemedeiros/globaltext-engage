@@ -66,7 +66,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No active session');
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('translations')
       .insert({
         user_id: session.user.id,
@@ -78,9 +78,12 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         amount_paid: calculatePrice(wordCount),
         file_path: filePath,
         content: extractedText
-      });
+      })
+      .select()
+      .single();
 
     if (error) throw error;
+    return data;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -150,12 +153,13 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
 
         if (storageError) throw storageError;
 
-        // Create translation record
-        await createTranslation(filePath);
+        // Create translation record and get its ID
+        const translation = await createTranslation(filePath);
+        console.log('Created translation:', translation);
 
-        // Redirect to payment page for single translation
+        // Redirect to payment page with translation ID
         const amount = calculatePrice(wordCount);
-        navigate(`/payment?words=${wordCount}&amount=${amount}&documentName=${encodeURIComponent(file.name)}`);
+        navigate(`/payment?words=${wordCount}&amount=${amount}&documentName=${encodeURIComponent(file.name)}&translationId=${translation.id}`);
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
