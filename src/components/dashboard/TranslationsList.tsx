@@ -32,13 +32,19 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
           schema: 'public',
           table: 'translations',
         },
-        async (payload) => {
+        async (payload: any) => {
           console.log('Translation update received:', payload);
+          console.log('Payload new data:', payload.new);
+          console.log('Current user role:', role);
           
           // For clients, only refetch if the translation belongs to them
           if (role === 'client') {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user && payload.new.user_id === user.id) {
+            console.log('Current user:', user);
+            console.log('Comparing user.id:', user?.id, 'with payload.new.user_id:', payload.new?.user_id);
+            
+            if (user && payload.new && payload.new.user_id === user.id) {
+              console.log('Translation belongs to current user, refetching...');
               await refetch();
               
               if (payload.eventType === 'INSERT') {
@@ -55,6 +61,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
             }
           } else {
             // For translators and admins, always refetch
+            console.log('Non-client role, always refetching...');
             await refetch();
             
             if (payload.eventType === 'INSERT' && role === 'translator') {
