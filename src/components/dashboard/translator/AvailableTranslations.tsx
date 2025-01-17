@@ -7,11 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationCard from "./TranslationCard";
 import LoadingTranslations from "./LoadingTranslations";
 import { useAvailableTranslations } from "@/hooks/useAvailableTranslations";
-import EmptyTranslationState from "../translations/EmptyTranslationState";
+import { Button } from "@/components/ui/button";
 
 const AvailableTranslations = () => {
   const { toast } = useToast();
-  const { data: translations = [], isLoading, refetch } = useAvailableTranslations();
+  const { data: translations, isLoading, refetch } = useAvailableTranslations();
 
   const handleClaimTranslation = async (translationId: string) => {
     try {
@@ -24,8 +24,6 @@ const AvailableTranslations = () => {
         });
         return;
       }
-
-      console.log('Claiming translation:', translationId, 'for user:', session.user.id);
 
       const { error } = await supabase
         .from('translations')
@@ -54,8 +52,6 @@ const AvailableTranslations = () => {
   };
 
   useEffect(() => {
-    console.log('Current translations:', translations);
-
     const channel = supabase
       .channel('available_translations')
       .on(
@@ -76,7 +72,7 @@ const AvailableTranslations = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetch, translations]);
+  }, [refetch]);
 
   if (isLoading) {
     return (
@@ -111,7 +107,10 @@ const AvailableTranslations = () => {
                 />
               ))
             ) : (
-              <EmptyTranslationState type="default" />
+              <div className="text-center py-8 text-gray-500">
+                <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                <p>No available translations at the moment</p>
+              </div>
             )}
           </div>
         </ScrollArea>
