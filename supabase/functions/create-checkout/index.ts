@@ -16,14 +16,14 @@ serve(async (req) => {
   try {
     console.log('Starting checkout session creation...');
 
-    // Get the authorization header
+    // Validate authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('Missing Authorization header');
       throw new Error('Authorization header is required');
     }
 
-    // Initialize Supabase admin client
+    // Initialize Supabase admin client with detailed error handling
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -32,6 +32,7 @@ serve(async (req) => {
       throw new Error('Server configuration error');
     }
 
+    console.log('Initializing Supabase admin client...');
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -43,11 +44,10 @@ serve(async (req) => {
     const { amount, words, plan, documentName, type } = await req.json();
     console.log('Request payload:', { amount, words, plan, documentName, type });
 
-    // Get the JWT token
+    // Get the JWT token and verify user
     const token = authHeader.replace('Bearer ', '');
     console.log('Got token:', token.substring(0, 10) + '...');
 
-    // Verify the user session using the admin client
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError) {
@@ -62,9 +62,10 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Initialize Stripe
+    // Initialize Stripe with error handling
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeSecretKey) {
+      console.error('Missing Stripe secret key');
       throw new Error('Stripe secret key not configured');
     }
 
@@ -73,6 +74,7 @@ serve(async (req) => {
     });
 
     // Look up or create customer
+    console.log('Looking up customer for email:', user.email);
     const customers = await stripe.customers.list({
       email: user.email,
       limit: 1,
@@ -80,6 +82,7 @@ serve(async (req) => {
 
     let customerId = customers.data[0]?.id;
     if (!customerId && user.email) {
+      console.log('Creating new customer...');
       const newCustomer = await stripe.customers.create({
         email: user.email,
       });
@@ -90,8 +93,8 @@ serve(async (req) => {
 
     // Configure session based on type
     let sessionConfig;
-    if (type === 'subscription') {
-      const priceId = plan?.toUpperCase() === 'PREMIUM' 
+    if (type === 'subscription' && plan) {
+      const priceId = plan.toUpperCase() === 'PREMIUM' 
         ? Deno.env.get('PREMIUM_PLAN_PRICE')
         : Deno.env.get('STANDARD_PLAN_PRICE');
 
