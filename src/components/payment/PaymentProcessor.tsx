@@ -11,10 +11,25 @@ interface PaymentProcessorProps {
   plan?: string | null;
   session: Session | null;
   documentName?: string | null;
+  filePath?: string | null;
+  sourceLanguage?: string | null;
+  targetLanguage?: string | null;
+  content?: string | null;
   onSubmit?: () => Promise<void>;
 }
 
-const PaymentProcessor = ({ amount, words, plan, session, documentName, onSubmit }: PaymentProcessorProps) => {
+const PaymentProcessor = ({ 
+  amount, 
+  words, 
+  plan, 
+  session, 
+  documentName,
+  filePath,
+  sourceLanguage,
+  targetLanguage,
+  content,
+  onSubmit 
+}: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -49,6 +64,10 @@ const PaymentProcessor = ({ amount, words, plan, session, documentName, onSubmit
           words, 
           plan,
           documentName,
+          filePath,
+          sourceLanguage,
+          targetLanguage,
+          content,
           type: plan ? 'subscription' : 'translation'
         },
         headers: {

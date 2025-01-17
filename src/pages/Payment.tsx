@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePaymentAuth } from "@/hooks/usePaymentAuth";
 import PaymentSummary from "@/components/payment/PaymentSummary";
@@ -54,6 +54,10 @@ const Payment = () => {
           words={words}
           documentName={documentName}
           session={session}
+          filePath={filePath}
+          sourceLanguage={sourceLanguage}
+          targetLanguage={targetLanguage}
+          content={content}
         />
       </div>
     </div>
