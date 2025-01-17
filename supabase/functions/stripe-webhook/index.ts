@@ -44,48 +44,31 @@ serve(async (req) => {
     console.log(`Processing webhook event: ${event.type}`);
 
     switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
-        const metadata = paymentIntent.metadata || {};
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const metadata = session.metadata || {};
         
-        if (metadata.type === 'translation' && metadata.translationId) {
-          console.log(`Processing successful payment for translation ${metadata.translationId}`);
+        if (metadata.type === 'translation') {
+          console.log(`Processing successful payment for translation`);
           
-          // First verify the translation exists and is in the correct state
-          const { data: translation, error: fetchError } = await supabaseAdmin
+          // Create or update the translation record
+          const { error: translationError } = await supabaseAdmin
             .from('translations')
-            .select('status, amount_paid')
-            .eq('id', metadata.translationId)
-            .single();
-
-          if (fetchError) {
-            console.error('Error fetching translation:', fetchError);
-            throw fetchError;
-          }
-
-          if (!translation) {
-            throw new Error(`Translation ${metadata.translationId} not found`);
-          }
-
-          // Calculate the payment amount in the correct currency unit
-          const amountPaid = paymentIntent.amount / 100;
-          
-          console.log(`Updating translation ${metadata.translationId} to pending status`);
-          console.log(`Amount paid: ${amountPaid}`);
-
-          // Update the translation record
-          const { error: updateError } = await supabaseAdmin
-            .from('translations')
-            .update({
+            .insert({
+              user_id: metadata.userId,
+              document_name: metadata.documentName,
+              word_count: parseInt(metadata.words),
               status: 'pending',
-              amount_paid: amountPaid,
-              price_offered: amountPaid
-            })
-            .eq('id', metadata.translationId);
+              payment_status: 'completed',
+              stripe_payment_intent_id: session.payment_intent,
+              stripe_customer_id: session.customer,
+              amount_paid: session.amount_total / 100,
+              price_offered: session.amount_total / 100
+            });
 
-          if (updateError) {
-            console.error('Error updating translation:', updateError);
-            throw updateError;
+          if (translationError) {
+            console.error('Error creating translation:', translationError);
+            throw translationError;
           }
 
           // Notify translators about the new available translation
@@ -113,32 +96,28 @@ serve(async (req) => {
               console.log(`Created notifications for ${notifications.length} translators`);
             }
           }
-
-          console.log(`Successfully processed payment and updated translation ${metadata.translationId}`);
         }
         break;
       }
 
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object;
-        const metadata = paymentIntent.metadata || {};
+      case 'checkout.session.expired': {
+        const session = event.data.object;
+        const metadata = session.metadata || {};
         
-        if (metadata.type === 'translation' && metadata.translationId) {
-          console.log(`Processing failed payment for translation ${metadata.translationId}`);
+        if (metadata.type === 'translation') {
+          console.log(`Processing expired payment for translation`);
           
           const { error } = await supabaseAdmin
             .from('translations')
             .update({
-              status: 'payment_failed'
+              payment_status: 'expired'
             })
-            .eq('id', metadata.translationId);
+            .eq('stripe_payment_intent_id', session.payment_intent);
 
           if (error) {
-            console.error('Error updating translation status:', error);
+            console.error('Error updating translation payment status:', error);
             throw error;
           }
-
-          console.log(`Updated translation ${metadata.translationId} to payment_failed status`);
         }
         break;
       }
