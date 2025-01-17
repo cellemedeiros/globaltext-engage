@@ -7,14 +7,12 @@ const corsHeaders = {
 }
 
 function calculateWordCount(text: string): number {
-  // Remove special characters and normalize whitespace
   const cleanText = text
-    .replace(/[\r\n]+/g, " ") // Replace multiple newlines with space
-    .replace(/[^\w\s]/g, " ") // Replace special characters with space
-    .replace(/\s+/g, " ") // Replace multiple spaces with single space
+    .replace(/[\r\n]+/g, " ")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 
-  // Split by whitespace and filter out empty strings
   const words = cleanText.split(" ").filter(word => word.length > 0);
   return words.length;
 }

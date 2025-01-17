@@ -6,15 +6,7 @@ interface TranslationStatusProps {
   adminReviewStatus?: string;
 }
 
-export const getStatusDisplay = (status: string, adminReviewStatus?: string) => {
-  // If the translation is under admin review and has been approved, show as completed
-  if (status === 'pending_admin_review' && adminReviewStatus === 'approved') {
-    return {
-      label: 'Completed',
-      className: 'bg-green-500 text-white'
-    };
-  }
-
+export const getStatusDisplay = (status: string) => {
   switch (status) {
     case 'completed':
       return {
@@ -50,7 +42,7 @@ export const getStatusDisplay = (status: string, adminReviewStatus?: string) => 
 };
 
 const TranslationStatus = ({ status, wordCount, adminReviewStatus }: TranslationStatusProps) => {
-  const statusDisplay = getStatusDisplay(status, adminReviewStatus);
+  const statusDisplay = getStatusDisplay(status);
 
   return (
     <div className="flex flex-col items-end gap-2">

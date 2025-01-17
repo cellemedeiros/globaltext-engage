@@ -231,7 +231,6 @@ export type Database = {
           status: string
           subscription_id: string | null
           target_language: string
-          translated_file_path: string | null
           translator_id: string | null
           user_id: string
           word_count: number
@@ -256,7 +255,6 @@ export type Database = {
           status?: string
           subscription_id?: string | null
           target_language: string
-          translated_file_path?: string | null
           translator_id?: string | null
           user_id: string
           word_count: number
@@ -281,7 +279,6 @@ export type Database = {
           status?: string
           subscription_id?: string | null
           target_language?: string
-          translated_file_path?: string | null
           translator_id?: string | null
           user_id?: string
           word_count?: number
@@ -343,34 +340,6 @@ export type Database = {
           reviewer_id: string
         }
         Returns: undefined
-      }
-      get_admin_dashboard_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          total_clients: number
-          active_clients: number
-          new_clients_30d: number
-          total_translators: number
-          approved_translators: number
-          total_translations: number
-          completed_translations: number
-          pending_translations: number
-          total_words: number
-          total_revenue: number
-          subscription_breakdown: Json
-        }[]
-      }
-      get_mrr_metrics: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          month_date: string
-          total_mrr: number
-          new_mrr: number
-          expansion_mrr: number
-          churned_mrr: number
-          total_customers: number
-          active_subscriptions: number
-        }[]
       }
     }
     Enums: {

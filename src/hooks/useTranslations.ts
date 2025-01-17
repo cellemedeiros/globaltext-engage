@@ -17,7 +17,7 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
         console.log('Fetching translations for translator:', session.user.id);
         query = query
           .eq('translator_id', session.user.id)
-          .in('status', ['in_progress', 'pending_review', 'completed']);
+          .in('status', ['in_progress', 'pending_review']);
       } else if (role === 'admin') {
         query = query.eq('status', 'pending_admin_review');
       } else {

@@ -14,7 +14,6 @@ import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslationsList from "@/components/dashboard/TranslationsList";
-import MRRMetrics from "@/components/dashboard/MRRMetrics";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -94,8 +93,6 @@ const TranslatorDashboard = () => {
                 transition={{ delay: 0.2 }}
                 className="space-y-4"
               >
-                <MRRMetrics />
-
                 <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full flex justify-between items-center">

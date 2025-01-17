@@ -46,9 +46,7 @@ const PlanCard = ({
       if (name === "Business") {
         // Handle business plan contact logic
       } else {
-        // For subscription plans, only pass the plan name and price
-        const cleanPrice = price.replace("R$", "");
-        navigate(`/payment?plan=${name}&amount=${cleanPrice}&type=subscription`);
+        navigate(`/payment?plan=${name}&amount=${price.replace("R$", "")}`);
       }
     }
   };

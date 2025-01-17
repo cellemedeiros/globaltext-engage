@@ -118,7 +118,7 @@ const TranslationCanvas = () => {
           target_language: targetLanguage,
           content: sourceText,
           ai_translated_content: targetText,
-          status: 'pending_admin_review', // This status will make it appear in admin's manage translations
+          status: 'pending_admin_review',
           word_count: sourceText.split(/\s+/).length,
           amount_paid: 0,
           translator_id: session.user.id,

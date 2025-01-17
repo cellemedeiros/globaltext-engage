@@ -30,10 +30,12 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     queryFn: async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw sessionError;
+        }
         
         if (!session) {
-          setIsAuthenticated(false);
           return null;
         }
 
@@ -43,7 +45,10 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           .eq('id', session.user.id)
           .single();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Profile error:', error);
+          throw error;
+        }
         
         return data;
       } catch (error) {
@@ -54,7 +59,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           variant: "destructive"
         });
         await supabase.auth.signOut();
-        setIsAuthenticated(false);
         return null;
       }
     },
@@ -76,15 +80,12 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         console.error('Session check error:', error);
         if (mounted) {
           setIsAuthenticated(false);
-          queryClient.clear();
         }
       }
     };
 
-    // Initial session check
     checkSession();
 
-    // Set up auth state change listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -92,9 +93,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         setIsAuthenticated(!!session);
         if (event === 'SIGNED_OUT') {
           queryClient.clear();
-          setIsAuthenticated(false);
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setIsAuthenticated(true);
         }
       }
     });
@@ -110,7 +108,7 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/?signin=true" />;
+    return <Navigate to="/" />;
   }
 
   if (allowedRole === 'admin' && profile?.id !== '37665cdd-1fdd-40d0-b485-35148c159bed') {
@@ -124,56 +122,50 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
   return <>{children}</>;
 };
 
-const AppRoutes = () => {
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedRole="client">
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/translator-dashboard"
-        element={
-          <ProtectedRoute allowedRole="translator">
-            <TranslatorDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/applications"
-        element={
-          <ProtectedRoute allowedRole="admin">
-            <TranslatorDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/payment"
-        element={
-          <ProtectedRoute allowedRole="client">
-            <Payment />
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
-  );
-};
-
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <AppRoutes />
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRole="client">
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/translator-dashboard"
+              element={
+                <ProtectedRoute allowedRole="translator">
+                  <TranslatorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/applications"
+              element={
+                <ProtectedRoute allowedRole="admin">
+                  <TranslatorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment"
+              element={
+                <ProtectedRoute allowedRole="client">
+                  <Payment />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };

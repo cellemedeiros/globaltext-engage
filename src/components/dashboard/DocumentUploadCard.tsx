@@ -2,11 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import LanguageSelector from "@/components/dashboard/translator/LanguageSelector";
-import { Upload } from "lucide-react";
-import WordCountDisplay from "./document-upload/WordCountDisplay";
 import { calculatePrice } from "@/utils/documentUtils";
-import { useNavigate } from "react-router-dom";
+import LanguageSelector from "@/components/dashboard/translator/LanguageSelector";
+import { FileText, Upload } from "lucide-react";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
@@ -17,13 +15,18 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState("");
   const [targetLanguage, setTargetLanguage] = useState("");
   const [wordCount, setWordCount] = useState(0);
-  const [extractedText, setExtractedText] = useState<string>("");
   const [isWordCountConfirmed, setIsWordCountConfirmed] = useState(false);
+
+  const sanitizeContent = (content: string): string => {
+    return content
+      .replace(/\u0000/g, '') // Remove null bytes
+      .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove invalid Unicode characters
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove control characters
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -33,22 +36,15 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     setIsProcessing(true);
     
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const { data, error } = await supabase.functions.invoke('process-document', {
-        body: formData,
-      });
-
-      if (error) throw error;
-
-      setWordCount(data.wordCount);
-      setExtractedText(data.text);
+      const fileContent = await file.text();
+      const sanitizedContent = sanitizeContent(fileContent);
+      const calculatedWordCount = sanitizedContent.split(/\s+/).length;
+      setWordCount(calculatedWordCount);
       setIsWordCountConfirmed(false);
       
       toast({
         title: "Document processed",
-        description: `Word count: ${data.wordCount.toLocaleString()}. Please confirm to proceed.`,
+        description: `Word count: ${calculatedWordCount}. Please confirm to proceed.`,
       });
     } catch (error) {
       console.error('Error processing file:', error);
@@ -79,49 +75,63 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      // If user has an active subscription with sufficient words, use it
-      if (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount) {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${crypto.randomUUID()}.${fileExt}`;
-        
-        const { error: storageError } = await supabase.storage
-          .from('translations')
-          .upload(filePath, file);
-
-        if (storageError) throw storageError;
-
-        const { error } = await supabase
-          .from('translations')
-          .insert({
-            user_id: session.user.id,
-            document_name: file.name,
-            source_language: sourceLanguage,
-            target_language: targetLanguage,
-            word_count: wordCount,
-            status: 'pending',
-            amount_paid: calculatePrice(wordCount),
-            file_path: filePath,
-            content: extractedText
-          });
-
-        if (error) throw error;
-
+      if (!hasActiveSubscription && (!wordsRemaining || wordsRemaining < wordCount)) {
         toast({
-          title: "Success",
-          description: "Document uploaded successfully and available for translators",
+          title: "Insufficient Words",
+          description: "Please upgrade your subscription or purchase more words",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: storageError } = await supabase.storage
+        .from('translations')
+        .upload(filePath, file);
+
+      if (storageError) {
+        throw storageError;
+      }
+
+      // Get file content for translation
+      const fileContent = await file.text();
+      const sanitizedContent = sanitizeContent(fileContent);
+
+      const { error } = await supabase
+        .from('translations')
+        .insert({
+          user_id: session.user.id,
+          document_name: file.name,
+          source_language: sourceLanguage,
+          target_language: targetLanguage,
+          word_count: wordCount,
+          status: 'pending',
+          content: sanitizedContent,
+          amount_paid: calculatePrice(wordCount),
+          file_path: filePath
         });
 
-        // Reset form
-        setFile(null);
-        setSourceLanguage("");
-        setTargetLanguage("");
-        setWordCount(0);
-        setExtractedText("");
-        setIsWordCountConfirmed(false);
-      } else {
-        // Redirect to payment page for single translation
-        const amount = calculatePrice(wordCount);
-        navigate(`/payment?words=${wordCount}&amount=${amount}&documentName=${encodeURIComponent(file.name)}`);
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Document uploaded successfully",
+      });
+
+      setFile(null);
+      setSourceLanguage("");
+      setTargetLanguage("");
+      setWordCount(0);
+      setIsWordCountConfirmed(false);
+      
+      if (event.target instanceof HTMLFormElement) {
+        event.target.reset();
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
@@ -150,10 +160,23 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         </div>
         
         {wordCount > 0 && !isWordCountConfirmed && (
-          <WordCountDisplay 
-            wordCount={wordCount}
-            onConfirm={() => setIsWordCountConfirmed(true)}
-          />
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-medium flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Document Analysis
+            </h3>
+            <p className="mt-2">Word count: {wordCount}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Estimated cost: ${calculatePrice(wordCount)}
+            </p>
+            <Button
+              type="button"
+              onClick={() => setIsWordCountConfirmed(true)}
+              className="mt-3"
+            >
+              Confirm and Continue
+            </Button>
+          </div>
         )}
 
         {isWordCountConfirmed && (

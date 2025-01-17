@@ -16,6 +16,21 @@ const DocumentUploadSection = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthState();
+  const [pendingDocument, setPendingDocument] = useState<{
+    fileName: string;
+    wordCount: number;
+    price: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('pendingTranslation');
+    if (stored && isAuthenticated) {
+      const parsed = JSON.parse(stored);
+      setPendingDocument(parsed);
+      localStorage.removeItem('pendingTranslation');
+      navigate('/payment');
+    }
+  }, [isAuthenticated, pendingDocument, navigate]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -39,6 +54,11 @@ const DocumentUploadSection = () => {
 
       const count = data.wordCount;
       setWordCount(count);
+      setPendingDocument({
+        fileName: file.name,
+        wordCount: count,
+        price: calculatePrice(count)
+      });
 
       toast({
         title: "Document processed successfully",
@@ -48,6 +68,7 @@ const DocumentUploadSection = () => {
       console.error('Error processing document:', error);
       setFile(null);
       setWordCount(0);
+      setPendingDocument(null);
       toast({
         title: "Error processing document",
         description: error.message || "Please try again with a different file",
@@ -58,13 +79,28 @@ const DocumentUploadSection = () => {
     }
   };
 
-  const handleTranslateClick = () => {
+  const handleTranslateClick = async () => {
+    if (!pendingDocument) return;
+
     if (!isAuthenticated) {
+      localStorage.setItem('pendingTranslation', JSON.stringify(pendingDocument));
       setShowAuthDialog(true);
       return;
     }
 
-    navigate('/dashboard');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      navigate(`/payment?words=${pendingDocument.wordCount}&amount=${pendingDocument.price}&documentName=${encodeURIComponent(pendingDocument.fileName)}`);
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process translation request. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -102,19 +138,19 @@ const DocumentUploadSection = () => {
                 </label>
               </div>
 
-              {file && wordCount > 0 && (
+              {pendingDocument && (
                 <div className="space-y-4">
                   <div className="p-4 bg-secondary rounded-lg">
                     <div className="flex justify-between items-center">
                       <div>
-                        <h3 className="font-medium">{file.name}</h3>
+                        <h3 className="font-medium">{pendingDocument.fileName}</h3>
                         <p className="text-sm text-gray-500">
-                          {wordCount} words
+                          {pendingDocument.wordCount} words
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold">
-                          R${calculatePrice(wordCount)}
+                          R${pendingDocument.price}
                         </p>
                       </div>
                     </div>
@@ -137,7 +173,6 @@ const DocumentUploadSection = () => {
       <AuthDialog
         isOpen={showAuthDialog}
         onOpenChange={setShowAuthDialog}
-        message="Please sign in or create an account to continue with your translation"
       />
     </section>
   );
