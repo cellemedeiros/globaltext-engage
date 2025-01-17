@@ -23,7 +23,7 @@ serve(async (req) => {
       throw new Error('Authorization header is required');
     }
 
-    // Initialize Supabase client
+    // Initialize Supabase admin client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -38,6 +38,10 @@ serve(async (req) => {
         persistSession: false,
       },
     });
+
+    // Get request body
+    const { amount, words, plan, documentName, type } = await req.json();
+    console.log('Request payload:', { amount, words, plan, documentName, type });
 
     // Get the JWT token
     const token = authHeader.replace('Bearer ', '');
@@ -58,16 +62,13 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Get request body
-    const { amount, words, plan, documentName, type } = await req.json();
-    console.log('Request payload:', { amount, words, plan, documentName, type });
-
-    if (!amount && !plan) {
-      throw new Error('Either amount or plan is required');
+    // Initialize Stripe
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      throw new Error('Stripe secret key not configured');
     }
 
-    // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
     });
 
