@@ -23,6 +23,9 @@ const GlossaryPanel = ({ sourceLanguage, targetLanguage }: { sourceLanguage: str
   const { data: terms, refetch } = useQuery({
     queryKey: ['glossary-terms', sourceLanguage, targetLanguage],
     queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from('glossary_terms')
         .select('*')
@@ -43,9 +46,20 @@ const GlossaryPanel = ({ sourceLanguage, targetLanguage }: { sourceLanguage: str
   const addTerm = async () => {
     if (!newSourceTerm.trim() || !newTargetTerm.trim()) return;
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add terms",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { error } = await supabase
       .from('glossary_terms')
       .insert({
+        user_id: session.user.id,
         source_language: sourceLanguage,
         target_language: targetLanguage,
         source_term: newSourceTerm.trim(),
@@ -53,6 +67,7 @@ const GlossaryPanel = ({ sourceLanguage, targetLanguage }: { sourceLanguage: str
       });
 
     if (error) {
+      console.error('Error adding term:', error);
       toast({
         title: "Error",
         description: "Failed to add glossary term",
