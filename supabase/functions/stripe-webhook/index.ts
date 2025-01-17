@@ -47,6 +47,7 @@ serve(async (req) => {
             .from('translations')
             .update({
               status: 'pending',
+              translator_id: null, // Ensure no translator is assigned
               amount_paid: paymentIntent.amount / 100,
               price_offered: paymentIntent.amount / 100
             })
