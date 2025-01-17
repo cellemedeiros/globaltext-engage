@@ -1,5 +1,5 @@
 export const calculatePrice = (wordCount: number): number => {
-  const baseRate = 0.10; // R$0.10 per word
+  const baseRate = 0.20; // R$0.20 per word
   return Number((wordCount * baseRate).toFixed(2));
 };
 

@@ -92,6 +92,14 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
       });
 
     if (error) throw error;
+
+    // Reset form after successful creation
+    setFile(null);
+    setSourceLanguage("");
+    setTargetLanguage("");
+    setWordCount(0);
+    setExtractedText("");
+    setIsWordCountConfirmed(false);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -119,7 +127,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         .single();
 
       const isAdmin = profile?.role === 'admin';
-      const calculatedPrice = isAdmin ? 0 : calculatePrice(wordCount);
+      const calculatedPrice = calculatePrice(wordCount);
       const fileExt = file.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
@@ -138,22 +146,12 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
           title: "Success",
           description: "Document uploaded successfully and available for translators",
         });
-
-        // Reset form
-        setFile(null);
-        setSourceLanguage("");
-        setTargetLanguage("");
-        setWordCount(0);
-        setExtractedText("");
-        setIsWordCountConfirmed(false);
         
-        // Redirect to dashboard
-        navigate('/dashboard');
+        // Redirect admin to translator dashboard, others to regular dashboard
+        navigate(isAdmin ? '/translator-dashboard' : '/dashboard');
       } else {
-        // Only redirect non-admin users to payment
-        if (!isAdmin) {
-          navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}&filePath=${filePath}&sourceLanguage=${sourceLanguage}&targetLanguage=${targetLanguage}&content=${encodeURIComponent(extractedText)}`);
-        }
+        // Redirect non-admin users to payment
+        navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}&filePath=${filePath}&sourceLanguage=${sourceLanguage}&targetLanguage=${targetLanguage}&content=${encodeURIComponent(extractedText)}`);
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
