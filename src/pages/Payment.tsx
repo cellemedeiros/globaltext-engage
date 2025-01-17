@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePaymentAuth } from "@/hooks/usePaymentAuth";
-import { supabase } from "@/integrations/supabase/client";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentProcessor from "@/components/payment/PaymentProcessor";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +10,6 @@ const Payment = () => {
   const { session, isCheckingAuth } = usePaymentAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const words = searchParams.get('words');
   const amount = searchParams.get('amount');
@@ -36,54 +34,6 @@ const Payment = () => {
     handlePaymentSuccess();
   }, [searchParams, navigate, toast]);
 
-  const handlePayment = async () => {
-    if (!session?.user) return;
-
-    setIsProcessing(true);
-    try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession?.access_token) {
-        throw new Error('No active session');
-      }
-
-      console.log('Creating checkout session...');
-      
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          amount, 
-          words,
-          documentName,
-          type: 'translation',
-          filePath,
-          sourceLanguage,
-          targetLanguage,
-          content
-        },
-        headers: {
-          Authorization: `Bearer ${currentSession.access_token}`
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (error: any) {
-      console.error('Payment error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process payment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   if (isCheckingAuth) {
     return <div>Loading...</div>;
   }
@@ -101,8 +51,9 @@ const Payment = () => {
 
         <PaymentProcessor
           amount={amount}
-          isProcessing={isProcessing}
-          onSubmit={handlePayment}
+          words={words}
+          documentName={documentName}
+          session={session}
         />
       </div>
     </div>

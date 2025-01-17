@@ -7,13 +7,14 @@ import { Loader2 } from "lucide-react";
 
 interface PaymentProcessorProps {
   amount: string | null;
-  words: string | null;
-  plan: string | null;
+  words?: string | null;
+  plan?: string | null;
   session: Session | null;
   documentName?: string | null;
+  onSubmit?: () => Promise<void>;
 }
 
-const PaymentProcessor = ({ amount, words, plan, session, documentName }: PaymentProcessorProps) => {
+const PaymentProcessor = ({ amount, words, plan, session, documentName, onSubmit }: PaymentProcessorProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -29,6 +30,11 @@ const PaymentProcessor = ({ amount, words, plan, session, documentName }: Paymen
 
     setIsProcessing(true);
     try {
+      if (onSubmit) {
+        await onSubmit();
+        return;
+      }
+
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (!currentSession?.access_token) {
