@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,15 +10,6 @@ import Dashboard from "./pages/Dashboard";
 import TranslatorDashboard from "./pages/TranslatorDashboard";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-    },
-  },
-});
 
 const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' | 'admin' }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -40,7 +30,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           return null;
         }
 
-        // Get the profile data
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -56,7 +45,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
       } catch (error: any) {
         console.error('Error in profile query:', error);
         
-        // Handle refresh token errors specifically
         if (error.message?.includes('refresh_token_not_found') || 
             error.error?.message?.includes('refresh_token_not_found')) {
           await supabase.auth.signOut();
@@ -69,7 +57,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           return null;
         }
 
-        // Handle other errors
         toast({
           title: "Authentication Error",
           description: "Please try logging in again.",
@@ -94,7 +81,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           console.error('Initial session check error:', error);
           if (mounted) {
             setIsAuthenticated(false);
-            queryClient.clear();
           }
           return;
         }
@@ -105,7 +91,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         console.error('Session check error:', error);
         if (mounted) {
           setIsAuthenticated(false);
-          queryClient.clear();
         }
       }
     };
@@ -117,9 +102,8 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, !!session);
       if (mounted) {
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        if (event === 'SIGNED_OUT') {
           setIsAuthenticated(false);
-          queryClient.clear();
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setIsAuthenticated(true);
         }
@@ -193,15 +177,13 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <AppRoutes />
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <BrowserRouter>
+      <TooltipProvider>
+        <AppRoutes />
+        <Toaster />
+        <Sonner />
+      </TooltipProvider>
+    </BrowserRouter>
   );
 };
 
