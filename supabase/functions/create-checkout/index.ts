@@ -19,14 +19,20 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      console.error('Missing Authorization header');
+      throw new Error('Authorization header is required');
     }
 
-    // Initialize Supabase client with env variables
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      throw new Error('Server configuration error');
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
     // Get the JWT token
     const token = authHeader.replace('Bearer ', '');
@@ -35,9 +41,14 @@ serve(async (req) => {
     // Verify the user session
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
-    if (userError || !user) {
-      console.error('Authentication error:', userError);
-      throw new Error('Authentication failed');
+    if (userError) {
+      console.error('User verification error:', userError);
+      throw new Error(`Authentication failed: ${userError.message}`);
+    }
+
+    if (!user) {
+      console.error('No user found after verification');
+      throw new Error('User not found');
     }
 
     console.log('User authenticated:', user.id);
