@@ -7,10 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import TranslationCard from "./TranslationCard";
 import LoadingTranslations from "./LoadingTranslations";
 import { useAvailableTranslations } from "@/hooks/useAvailableTranslations";
+import EmptyTranslationState from "../translations/EmptyTranslationState";
 
 const AvailableTranslations = () => {
   const { toast } = useToast();
-  const { data: translations, isLoading, refetch } = useAvailableTranslations();
+  const { data: translations = [], isLoading, refetch } = useAvailableTranslations();
 
   const handleClaimTranslation = async (translationId: string) => {
     try {
@@ -110,10 +111,7 @@ const AvailableTranslations = () => {
                 />
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                <p>No available translations at the moment</p>
-              </div>
+              <EmptyTranslationState type="default" />
             )}
           </div>
         </ScrollArea>
