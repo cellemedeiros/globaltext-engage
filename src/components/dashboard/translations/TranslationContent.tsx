@@ -50,6 +50,20 @@ const TranslationContent = ({
       if (error) throw error;
 
       setContextAnalysis(data.context);
+      
+      // Update the translation in the database with AI translation
+      if (data.translation) {
+        const { error: updateError } = await supabase
+          .from('translations')
+          .update({ 
+            ai_translated_content: data.translation,
+            ai_translated_at: new Date().toISOString()
+          })
+          .eq('id', title);
+
+        if (updateError) throw updateError;
+      }
+
       toast({
         title: "Analysis Complete",
         description: "Context analysis has been generated successfully.",

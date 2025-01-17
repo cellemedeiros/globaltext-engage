@@ -37,6 +37,10 @@ Please ensure the translation maintains the original meaning, tone, and any tech
       }),
     })
 
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${await response.text()}`)
+    }
+
     const data = await response.json()
     const result = JSON.parse(data.choices[0].message.content)
 
