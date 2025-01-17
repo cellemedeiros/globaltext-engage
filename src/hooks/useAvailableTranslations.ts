@@ -22,6 +22,8 @@ export const useAvailableTranslations = () => {
           throw new Error("Not authenticated");
         }
 
+        console.log('Fetching available translations...');
+        
         // Fetch all pending translations that haven't been claimed
         const { data, error } = await supabase
           .from('translations')
