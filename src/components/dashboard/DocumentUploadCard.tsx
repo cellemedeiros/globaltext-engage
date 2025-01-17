@@ -79,8 +79,11 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         return;
       }
 
-      // If user has an active subscription with sufficient words, use it
-      if (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount) {
+      const isAdmin = session.user.id === '37665cdd-1fdd-40d0-b485-35148c159bed';
+      const calculatedPrice = calculatePrice(wordCount);
+
+      // If user is admin or has an active subscription with sufficient words, proceed without payment
+      if (isAdmin || (hasActiveSubscription && wordsRemaining && wordsRemaining >= wordCount)) {
         const fileExt = file.name.split('.').pop();
         const filePath = `${crypto.randomUUID()}.${fileExt}`;
         
@@ -99,7 +102,8 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
             target_language: targetLanguage,
             word_count: wordCount,
             status: 'pending',
-            amount_paid: calculatePrice(wordCount),
+            amount_paid: isAdmin ? 0 : calculatedPrice, // Admin pays nothing
+            price_offered: calculatedPrice, // Store the calculated price for translators
             file_path: filePath,
             content: extractedText
           });
@@ -120,8 +124,7 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
         setIsWordCountConfirmed(false);
       } else {
         // Redirect to payment page for single translation
-        const amount = calculatePrice(wordCount);
-        navigate(`/payment?words=${wordCount}&amount=${amount}&documentName=${encodeURIComponent(file.name)}`);
+        navigate(`/payment?words=${wordCount}&amount=${calculatedPrice}&documentName=${encodeURIComponent(file.name)}`);
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
