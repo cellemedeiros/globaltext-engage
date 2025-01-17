@@ -1,41 +1,28 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import Index from "./pages/Index";
-import Payment from "./pages/Payment";
-import Dashboard from "./pages/Dashboard";
-import TranslatorDashboard from "./pages/TranslatorDashboard";
-import { useQuery } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Outlet, useNavigate } from "react-router-dom";
+import { AuthChangeEvent } from "@supabase/supabase-js";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-    },
-  },
-});
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
 
-const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'client' | 'translator' | 'admin' }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const queryClient = useQueryClient();
+
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw sessionError;
-        }
-        
+        const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
+          console.log('No session found');
           setIsAuthenticated(false);
           return null;
         }
@@ -46,7 +33,7 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           .select('*')
           .eq('id', session.user.id)
           .single();
-        
+
         if (error) {
           console.error('Profile fetch error:', error);
           throw error;
@@ -75,13 +62,11 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
           description: "Please try logging in again.",
           variant: "destructive"
         });
-        await supabase.auth.signOut();
-        setIsAuthenticated(false);
-        return null;
+        throw error;
       }
     },
-    enabled: isAuthenticated === true,
-    retry: false
+    retry: false,
+    enabled: isAuthenticated !== false,
   });
 
   useEffect(() => {
@@ -105,7 +90,6 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
         console.error('Session check error:', error);
         if (mounted) {
           setIsAuthenticated(false);
-          queryClient.clear();
         }
       }
     };
@@ -114,10 +98,10 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
       console.log('Auth state change:', event, !!session);
       if (mounted) {
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        if (event === 'SIGNED_OUT') {
           setIsAuthenticated(false);
           queryClient.clear();
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -130,78 +114,40 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, 
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
-  if (isAuthenticated === null || isLoading) {
-    return <div>Loading...</div>;
+  useEffect(() => {
+    if (!isLoading && !profile && isAuthenticated === false) {
+      console.log('Redirecting to login...');
+      navigate('/login');
+    }
+  }, [navigate, profile, isLoading, isAuthenticated]);
+
+  if (isLoading || isAuthenticated === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/?signin=true" />;
+    return null;
   }
 
-  if (allowedRole === 'admin' && profile?.id !== '37665cdd-1fdd-40d0-b485-35148c159bed') {
-    return <Navigate to="/" />;
-  }
-
-  if (allowedRole !== 'admin' && profile?.role !== allowedRole) {
-    return <Navigate to={profile?.role === 'translator' ? '/translator-dashboard' : '/dashboard'} />;
-  }
-
-  return <>{children}</>;
-};
-
-const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedRole="client">
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/translator-dashboard"
-        element={
-          <ProtectedRoute allowedRole="translator">
-            <TranslatorDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/applications"
-        element={
-          <ProtectedRoute allowedRole="admin">
-            <TranslatorDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/payment"
-        element={
-          <ProtectedRoute allowedRole="client">
-            <Payment />
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <>
+      {children}
+      <Toaster />
+    </>
   );
 };
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <AppRoutes />
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ProtectedRoute>
+      <Outlet />
+    </ProtectedRoute>
   );
 };
 
