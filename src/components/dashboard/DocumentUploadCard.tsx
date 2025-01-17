@@ -165,8 +165,6 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
     }
   };
 
-  // ... keep existing code (render JSX)
-
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm">
       <h2 className="text-xl font-semibold mb-4">Upload Document</h2>
