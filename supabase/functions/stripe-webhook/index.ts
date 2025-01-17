@@ -51,7 +51,7 @@ serve(async (req) => {
         if (metadata.type === 'translation') {
           console.log(`Processing successful payment for translation`);
           
-          // Create or update the translation record
+          // Create the translation record
           const { error: translationError } = await supabaseAdmin
             .from('translations')
             .insert({
@@ -63,7 +63,11 @@ serve(async (req) => {
               stripe_payment_intent_id: session.payment_intent,
               stripe_customer_id: session.customer,
               amount_paid: session.amount_total / 100,
-              price_offered: session.amount_total / 100
+              price_offered: session.amount_total / 100,
+              source_language: metadata.sourceLanguage,
+              target_language: metadata.targetLanguage,
+              file_path: metadata.filePath,
+              content: metadata.contentPreview
             });
 
           if (translationError) {
