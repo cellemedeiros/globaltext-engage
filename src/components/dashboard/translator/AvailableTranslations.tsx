@@ -68,6 +68,12 @@ const AvailableTranslations = () => {
         },
         (payload) => {
           console.log('Realtime update received:', payload);
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Translation Available",
+              description: `A new translation request for ${payload.new.document_name} is available`,
+            });
+          }
           refetch();
         }
       )
@@ -76,7 +82,7 @@ const AvailableTranslations = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetch, translations]);
+  }, [refetch, toast, translations]);
 
   if (isLoading) {
     return (
