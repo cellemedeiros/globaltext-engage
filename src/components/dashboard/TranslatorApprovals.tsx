@@ -16,9 +16,7 @@ type TranslatorProfile = {
   id: string;
   role: string;
   is_approved_translator: boolean;
-  users: {
-    email: string;
-  } | null;
+  email?: string | null;
 };
 
 const TranslatorApprovals = () => {
@@ -28,15 +26,13 @@ const TranslatorApprovals = () => {
   const { data: profiles, refetch, isLoading, error } = useQuery<TranslatorProfile[]>({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: profiles, error } = await supabase
         .from("profiles")
         .select(`
           id,
           role,
           is_approved_translator,
-          users (
-            email
-          )
+          email:auth.users!profiles_id_fkey(email)
         `)
         .eq("is_approved_translator", true)
         .order("created_at", { ascending: false });
@@ -46,13 +42,7 @@ const TranslatorApprovals = () => {
         throw error;
       }
       
-      // Transform the data to match our expected type
-      const transformedData = (data || []).map(profile => ({
-        ...profile,
-        users: profile.users ? { email: profile.users.email } : null
-      }));
-      
-      return transformedData;
+      return profiles || [];
     },
   });
 
@@ -111,7 +101,7 @@ const TranslatorApprovals = () => {
           <TableBody>
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
-                <TableCell>{profile.users?.email}</TableCell>
+                <TableCell>{profile.email}</TableCell>
                 <TableCell>{profile.role}</TableCell>
                 <TableCell>
                   <Button
