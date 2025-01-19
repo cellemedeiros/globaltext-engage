@@ -57,32 +57,39 @@ const TranslatorDashboard = () => {
   const { data: translators, isLoading: isLoadingTranslators } = useQuery<TranslatorProfile[]>({
     queryKey: ['translators'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          country,
-          role,
-          is_approved_translator,
-          created_at,
-          email:id(email)
-        `)
+        .select('*')
         .eq('role', 'translator')
         .order('created_at', { ascending: false });
 
-      if (error) {
+      if (profilesError) {
         toast({
           title: "Error fetching translators",
-          description: error.message,
+          description: profilesError.message,
           variant: "destructive",
         });
-        throw error;
+        throw profilesError;
       }
 
+      // Then get emails for each profile from auth.users
+      const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+      
+      if (usersError) {
+        toast({
+          title: "Error fetching user emails",
+          description: usersError.message,
+          variant: "destructive",
+        });
+        throw usersError;
+      }
+
+      // Create a map of user IDs to emails
+      const userEmailMap = new Map(users.map(user => [user.id, user.email]));
+
       // Transform the data to match our TranslatorProfile type
-      const transformedData: TranslatorProfile[] = (data || []).map((profile: any) => ({
+      const transformedData: TranslatorProfile[] = (profilesData || []).map((profile: any) => ({
         id: profile.id,
         first_name: profile.first_name,
         last_name: profile.last_name,
@@ -90,7 +97,7 @@ const TranslatorDashboard = () => {
         role: profile.role,
         is_approved_translator: profile.is_approved_translator,
         created_at: profile.created_at,
-        email: profile.email?.email || null,
+        email: userEmailMap.get(profile.id) || null,
       }));
 
       return transformedData;
@@ -98,6 +105,8 @@ const TranslatorDashboard = () => {
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
+
+  // ... keep existing code (JSX for the dashboard layout)
 
   return (
     <TranslatorAccessControl>
