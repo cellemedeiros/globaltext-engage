@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
@@ -14,7 +15,6 @@ import NotificationsPopover from "@/components/notifications/NotificationsPopove
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
-import { useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,7 +26,7 @@ type TranslatorProfile = {
   role: string;
   is_approved_translator: boolean;
   created_at: string;
-  email: string;
+  email: string | null;
 };
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
@@ -81,10 +81,16 @@ const TranslatorDashboard = () => {
         throw error;
       }
 
-      // Transform the data to include email from the join
-      const transformedData = data.map(profile => ({
-        ...profile,
-        email: profile.email?.email || 'No email found'
+      // Transform the data to match our TranslatorProfile type
+      const transformedData: TranslatorProfile[] = (data || []).map((profile: any) => ({
+        id: profile.id,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        country: profile.country,
+        role: profile.role,
+        is_approved_translator: profile.is_approved_translator,
+        created_at: profile.created_at,
+        email: profile.email?.email || null,
       }));
 
       return transformedData;
