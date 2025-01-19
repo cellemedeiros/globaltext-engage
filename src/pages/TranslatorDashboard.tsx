@@ -34,6 +34,11 @@ interface Translator {
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
+interface User {
+  id: string;
+  email?: string;
+}
+
 const TranslatorDashboard = () => {
   const { toast } = useToast();
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
@@ -90,7 +95,7 @@ const TranslatorDashboard = () => {
 
       // Map profiles with their corresponding emails
       const translatorsWithEmail = profilesData.map(profile => {
-        const user = usersData.users.find(u => u.id === profile.id);
+        const user = (usersData?.users as User[])?.find(u => u.id === profile.id);
         return {
           ...profile,
           email: user?.email || 'Email not available'
