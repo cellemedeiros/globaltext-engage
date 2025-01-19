@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { UserCheck, AlertCircle } from "lucide-react";
+import { UserCheck, AlertCircle, Mail, MapPin, Phone } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type TranslatorProfile = {
   id: string;
@@ -21,9 +22,10 @@ type TranslatorProfile = {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  country: string | null;
+  phone: string | null;
 };
 
-// Only the admin translator ID is protected from having approval revoked
 const PROTECTED_TRANSLATOR_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorApprovals = () => {
@@ -116,6 +118,9 @@ const TranslatorApprovals = () => {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold">Contact</TableHead>
+                  <TableHead className="font-semibold">Location</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -124,6 +129,35 @@ const TranslatorApprovals = () => {
                   <TableRow key={profile.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">
                       {profile.first_name} {profile.last_name}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-sm">
+                          <Mail className="h-3 w-3" />
+                          {profile.email}
+                        </div>
+                        {profile.phone && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            {profile.phone}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {profile.country && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <MapPin className="h-3 w-3" />
+                          {profile.country}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {profile.id === PROTECTED_TRANSLATOR_ID ? (
+                        <Badge variant="default">Admin</Badge>
+                      ) : (
+                        <Badge variant="secondary">Active</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Button
