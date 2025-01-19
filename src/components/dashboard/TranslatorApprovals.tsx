@@ -28,12 +28,7 @@ const TranslatorApprovals = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select(`
-          id,
-          role,
-          is_approved_translator,
-          users:auth.users!profiles_id_fkey(email)
-        `)
+        .select("*, email:id(email)")
         .eq("is_approved_translator", true)
         .order("created_at", { ascending: false });
 
@@ -47,7 +42,7 @@ const TranslatorApprovals = () => {
         id: profile.id,
         role: profile.role,
         is_approved_translator: profile.is_approved_translator,
-        email: profile.users?.email || null,
+        email: profile.email?.email || null,
       }));
 
       return transformedData;
