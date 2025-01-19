@@ -1,22 +1,22 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { DataTable } from "@/components/ui/data-table";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
-import { useToast } from "@/hooks/use-toast";
 import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
-import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
-import { DataTable } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -28,9 +28,7 @@ interface Translator {
   role: string;
   is_approved_translator: boolean;
   created_at: string;
-  email: {
-    email: string;
-  };
+  email: string;
 }
 
 const TranslatorDashboard = () => {
@@ -59,37 +57,44 @@ const TranslatorDashboard = () => {
   const { data: translators, isLoading: isLoadingTranslators } = useQuery({
     queryKey: ['translators'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
-
-      const { data, error } = await supabase
+      // First get all translator profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          country,
-          role,
-          is_approved_translator,
-          created_at,
-          email:auth_users!inner(email)
-        `)
+        .select('*')
         .eq('role', 'translator');
 
-      if (error) {
+      if (profilesError) {
         toast({
           title: "Error fetching translators",
-          description: error.message,
+          description: profilesError.message,
           variant: "destructive",
         });
-        throw error;
+        throw profilesError;
       }
 
-      console.log('Fetched translators:', data);
-      return (data as Translator[]).map(translator => ({
-        ...translator,
-        email: translator.email?.email || 'Email not available'
-      }));
+      // Then get their emails from auth.users using their IDs
+      const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
+      
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        // If we can't get emails, still return profiles with email as "Email not available"
+        return profilesData.map(profile => ({
+          ...profile,
+          email: 'Email not available'
+        }));
+      }
+
+      // Map profiles with their corresponding emails
+      const translatorsWithEmail = profilesData.map(profile => {
+        const user = usersData.users.find(u => u.id === profile.id);
+        return {
+          ...profile,
+          email: user?.email || 'Email not available'
+        };
+      });
+
+      console.log('Fetched translators:', translatorsWithEmail);
+      return translatorsWithEmail as Translator[];
     },
   });
 
