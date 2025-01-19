@@ -26,19 +26,18 @@ const TranslatorApprovals = () => {
   const { data: profiles, refetch, isLoading, error } = useQuery<TranslatorProfile[]>({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('get-translator-profiles');
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, role, is_approved_translator, email")
+        .eq("is_approved_translator", true)
+        .order("created_at", { ascending: false });
       
       if (error) {
         console.error('Error fetching translator profiles:', error);
-        throw new Error(error.message);
+        throw error;
       }
       
-      if (!data) {
-        throw new Error('No data returned from the server');
-      }
-
-      console.log('Fetched translator profiles:', data);
-      return data;
+      return data || [];
     },
   });
 
@@ -89,16 +88,16 @@ const TranslatorApprovals = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>User ID</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
-                <TableCell>{profile.id}</TableCell>
                 <TableCell>{profile.email}</TableCell>
+                <TableCell>{profile.role}</TableCell>
                 <TableCell>
                   <Button
                     variant="destructive"
