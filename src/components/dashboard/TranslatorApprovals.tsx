@@ -16,33 +16,36 @@ type TranslatorProfile = {
   id: string;
   role: string;
   is_approved_translator: boolean;
-  email?: string | null;
+  email: string | null;
 };
 
 const TranslatorApprovals = () => {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data: profiles, refetch, isLoading, error } = useQuery<TranslatorProfile[]>({
+  const { data: profiles, refetch, isLoading, error } = useQuery({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
-      const { data: profiles, error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select(`
-          id,
-          role,
-          is_approved_translator,
-          email:auth.users!profiles_id_fkey(email)
-        `)
+        .select("*, email:auth.users(email)")
         .eq("is_approved_translator", true)
         .order("created_at", { ascending: false });
-      
+
       if (error) {
         console.error('Error fetching translator profiles:', error);
         throw error;
       }
-      
-      return profiles || [];
+
+      // Transform the data to match our TranslatorProfile type
+      const transformedData: TranslatorProfile[] = (data || []).map((profile: any) => ({
+        id: profile.id,
+        role: profile.role,
+        is_approved_translator: profile.is_approved_translator,
+        email: profile.email?.email || null,
+      }));
+
+      return transformedData;
     },
   });
 
