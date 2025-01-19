@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { UserCheck, AlertCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type TranslatorProfile = {
   id: string;
@@ -76,52 +78,80 @@ const TranslatorApprovals = () => {
 
   if (error) {
     return (
-      <div className="text-red-500">
-        Error loading translators: {(error as Error).message}
-      </div>
+      <Card className="border-destructive">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p>Error loading translators: {(error as Error).message}</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   if (isLoading) {
-    return <div>Loading translators...</div>;
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 text-muted-foreground animate-pulse">
+            <p>Loading translators...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Active Translators</h2>
-      {profiles && profiles.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {profiles.map((profile) => (
-              <TableRow key={profile.id}>
-                <TableCell>
-                  {profile.first_name} {profile.last_name}
-                </TableCell>
-                <TableCell>{profile.role}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleRevokeApproval(profile.id)}
-                    disabled={isUpdating || profile.id === PROTECTED_TRANSLATOR_ID}
-                  >
-                    Revoke Approval
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="text-gray-500">No active translators found.</div>
-      )}
-    </div>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <UserCheck className="h-5 w-5 text-primary" />
+          <CardTitle className="text-xl">Active Translators</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {profiles && profiles.length > 0 ? (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {profiles.map((profile) => (
+                  <TableRow key={profile.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">
+                      {profile.first_name} {profile.last_name}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleRevokeApproval(profile.id)}
+                        disabled={isUpdating || profile.id === PROTECTED_TRANSLATOR_ID}
+                        className="w-[140px]"
+                      >
+                        {profile.id === PROTECTED_TRANSLATOR_ID ? (
+                          "Admin Protected"
+                        ) : (
+                          "Revoke Approval"
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            No active translators found.
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
