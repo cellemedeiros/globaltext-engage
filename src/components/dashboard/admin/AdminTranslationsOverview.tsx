@@ -54,6 +54,38 @@ const AdminTranslationsOverview = () => {
     );
   }
 
+  const getStatusDisplay = (status: string, adminReviewStatus?: string | null) => {
+    if (status === 'pending_admin_review' && adminReviewStatus === 'approved') {
+      return {
+        label: 'Completed',
+        variant: 'default' as const
+      };
+    }
+
+    switch (status) {
+      case 'completed':
+        return {
+          label: 'Completed',
+          variant: 'default' as const
+        };
+      case 'pending_admin_review':
+        return {
+          label: 'Under Review',
+          variant: 'secondary' as const
+        };
+      case 'in_progress':
+        return {
+          label: 'In Progress',
+          variant: 'secondary' as const
+        };
+      default:
+        return {
+          label: 'Pending',
+          variant: 'outline' as const
+        };
+    }
+  };
+
   return (
     <Card className="p-6">
       <ScrollArea className="h-[600px]">
@@ -69,56 +101,51 @@ const AdminTranslationsOverview = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {translations?.map((translation) => (
-              <TableRow key={translation.id}>
-                <TableCell className="font-medium">
-                  {translation.document_name}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div>
-                      {translation.profiles?.first_name} {translation.profiles?.last_name}
+            {translations?.map((translation) => {
+              const status = getStatusDisplay(translation.status, translation.admin_review_status);
+              return (
+                <TableRow key={translation.id}>
+                  <TableCell className="font-medium">
+                    {translation.document_name}
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div>
+                        {translation.profiles?.first_name} {translation.profiles?.last_name}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {translation.profiles?.email}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {translation.profiles?.email}
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <Badge variant="outline">
+                        From: {translation.source_language}
+                      </Badge>
+                      <Badge variant="outline">
+                        To: {translation.target_language}
+                      </Badge>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <Badge variant="outline">
-                      From: {translation.source_language}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={status.variant}>
+                      {status.label}
                     </Badge>
-                    <Badge variant="outline">
-                      To: {translation.target_language}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      translation.status === 'completed'
-                        ? 'default'
-                        : translation.status === 'pending'
-                        ? 'secondary'
-                        : 'outline'
-                    }
-                  >
-                    {translation.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {translation.translator ? (
-                    `${translation.translator.first_name} ${translation.translator.last_name}`
-                  ) : (
-                    <span className="text-muted-foreground">Not assigned</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {new Date(translation.created_at).toLocaleDateString()}
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    {translation.translator ? (
+                      `${translation.translator.first_name} ${translation.translator.last_name}`
+                    ) : (
+                      <span className="text-muted-foreground">Not assigned</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(translation.created_at).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </ScrollArea>
