@@ -46,6 +46,7 @@ const TranslatorDashboard = () => {
   const { data: translators, isLoading: isLoadingTranslators } = useQuery({
     queryKey: ['translators'],
     queryFn: async () => {
+      // Modified query to fetch all users with role = 'translator', regardless of approval status
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -69,11 +70,14 @@ const TranslatorDashboard = () => {
         throw error;
       }
 
+      console.log('Fetched translators:', data); // Added for debugging
       return data;
     },
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
+
+  // ... keep existing code (JSX structure)
 
   return (
     <TranslatorAccessControl>
