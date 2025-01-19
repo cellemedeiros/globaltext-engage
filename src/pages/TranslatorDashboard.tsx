@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
@@ -170,7 +170,7 @@ const TranslatorDashboard = () => {
                             accessorKey: "is_approved_translator",
                             header: "Status",
                             cell: ({ row }) => (
-                              <Badge variant={row.original.is_approved_translator ? "success" : "secondary"}>
+                              <Badge variant={row.original.is_approved_translator ? "default" : "secondary"}>
                                 {row.original.is_approved_translator ? "Approved" : "Pending"}
                               </Badge>
                             ),
