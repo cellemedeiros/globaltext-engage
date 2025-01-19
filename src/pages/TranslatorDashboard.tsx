@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { DataTable } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
@@ -14,6 +11,7 @@ import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
@@ -22,23 +20,7 @@ import { Database } from "@/integrations/supabase/types";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
-interface Translator {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  country: string | null;
-  role: string;
-  is_approved_translator: boolean;
-  created_at: string;
-  email: string;
-}
-
 type Profile = Database['public']['Tables']['profiles']['Row'];
-
-interface User {
-  id: string;
-  email?: string;
-}
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
@@ -61,46 +43,6 @@ const TranslatorDashboard = () => {
       if (error) throw error;
       return data;
     }
-  });
-
-  const { data: translators, isLoading: isLoadingTranslators } = useQuery({
-    queryKey: ['translators'],
-    queryFn: async () => {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'translator')
-        .returns<Profile[]>();
-
-      if (profilesError) {
-        toast({
-          title: "Error fetching translators",
-          description: profilesError.message,
-          variant: "destructive",
-        });
-        throw profilesError;
-      }
-
-      const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
-      
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        return profilesData.map(profile => ({
-          ...profile,
-          email: 'Email not available'
-        }));
-      }
-
-      const translatorsWithEmail = profilesData.map(profile => {
-        const user = (usersData?.users as User[])?.find(u => u.id === profile.id);
-        return {
-          ...profile,
-          email: user?.email || 'Email not available'
-        };
-      });
-
-      return translatorsWithEmail as Translator[];
-    },
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
@@ -183,57 +125,8 @@ const TranslatorDashboard = () => {
                   <CollapsibleContent className="pt-4">
                     <div className="space-y-4">
                       <TranslatorApprovals />
-                      <div className="rounded-md border">
-                        <DataTable
-                          columns={[
-                            {
-                              accessorKey: "email",
-                              header: "Email",
-                            },
-                            {
-                              accessorKey: "first_name",
-                              header: "First Name",
-                            },
-                            {
-                              accessorKey: "last_name",
-                              header: "Last Name",
-                            },
-                            {
-                              accessorKey: "country",
-                              header: "Country",
-                            },
-                            {
-                              accessorKey: "is_approved_translator",
-                              header: "Status",
-                              cell: ({ row }) => (
-                                <Badge variant={row.original.is_approved_translator ? "default" : "secondary"}>
-                                  {row.original.is_approved_translator ? "Approved" : "Pending"}
-                                </Badge>
-                              ),
-                            },
-                            {
-                              accessorKey: "created_at",
-                              header: "Joined",
-                              cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
-                            },
-                          ]}
-                          data={translators || []}
-                          isLoading={isLoadingTranslators}
-                        />
-                      </div>
+                      <TranslatorApplicationsList />
                     </div>
-                  </CollapsibleContent>
-                </Collapsible>
-
-                <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full flex justify-between items-center">
-                      <span>Manage Applications</span>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-4">
-                    <TranslatorApplicationsList />
                   </CollapsibleContent>
                 </Collapsible>
               </motion.div>
