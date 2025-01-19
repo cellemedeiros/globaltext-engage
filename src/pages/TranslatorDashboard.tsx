@@ -58,7 +58,8 @@ const TranslatorDashboard = () => {
           country,
           role,
           is_approved_translator,
-          created_at
+          created_at,
+          email:auth_users!inner(email)
         `)
         .eq('role', 'translator');
 
@@ -71,19 +72,11 @@ const TranslatorDashboard = () => {
         throw error;
       }
 
-      const translatorsWithEmail = await Promise.all(
-        data.map(async (translator) => {
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(translator.id);
-          if (userError) {
-            console.error('Error fetching user email:', userError);
-            return { ...translator, email: 'Email not available' };
-          }
-          return { ...translator, email: userData?.user?.email };
-        })
-      );
-
-      console.log('Fetched translators with email:', translatorsWithEmail);
-      return translatorsWithEmail;
+      console.log('Fetched translators:', data);
+      return data.map(translator => ({
+        ...translator,
+        email: translator.email?.email || 'Email not available'
+      }));
     },
   });
 
