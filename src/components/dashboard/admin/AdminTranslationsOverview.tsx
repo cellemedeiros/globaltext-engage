@@ -25,9 +25,9 @@ const AdminTranslationsOverview = () => {
           profiles!translations_user_id_fkey (
             first_name,
             last_name,
-            email:id(email)
+            email:id
           ),
-          translators:profiles!translations_translator_id_fkey (
+          translator:profiles!translations_translator_id_fkey (
             first_name,
             last_name
           )
@@ -115,8 +115,8 @@ const AdminTranslationsOverview = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {translation.translators ? (
-                    `${translation.translators.first_name} ${translation.translators.last_name}`
+                  {translation.translator ? (
+                    `${translation.translator.first_name} ${translation.translator.last_name}`
                   ) : (
                     <span className="text-muted-foreground">Not assigned</span>
                   )}
