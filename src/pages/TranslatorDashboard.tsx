@@ -17,6 +17,7 @@ import { ChevronDown } from "lucide-react";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
+import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import { Database } from "@/integrations/supabase/types";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
@@ -65,7 +66,6 @@ const TranslatorDashboard = () => {
   const { data: translators, isLoading: isLoadingTranslators } = useQuery({
     queryKey: ['translators'],
     queryFn: async () => {
-      // First get all translator profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -81,19 +81,16 @@ const TranslatorDashboard = () => {
         throw profilesError;
       }
 
-      // Then get their emails from auth.users using their IDs
       const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
       
       if (usersError) {
         console.error('Error fetching users:', usersError);
-        // If we can't get emails, still return profiles with email as "Email not available"
         return profilesData.map(profile => ({
           ...profile,
           email: 'Email not available'
         }));
       }
 
-      // Map profiles with their corresponding emails
       const translatorsWithEmail = profilesData.map(profile => {
         const user = (usersData?.users as User[])?.find(u => u.id === profile.id);
         return {
@@ -102,7 +99,6 @@ const TranslatorDashboard = () => {
         };
       });
 
-      console.log('Fetched translators:', translatorsWithEmail);
       return translatorsWithEmail as Translator[];
     },
   });
@@ -185,43 +181,46 @@ const TranslatorDashboard = () => {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
-                    <div className="rounded-md border">
-                      <DataTable
-                        columns={[
-                          {
-                            accessorKey: "email",
-                            header: "Email",
-                          },
-                          {
-                            accessorKey: "first_name",
-                            header: "First Name",
-                          },
-                          {
-                            accessorKey: "last_name",
-                            header: "Last Name",
-                          },
-                          {
-                            accessorKey: "country",
-                            header: "Country",
-                          },
-                          {
-                            accessorKey: "is_approved_translator",
-                            header: "Status",
-                            cell: ({ row }) => (
-                              <Badge variant={row.original.is_approved_translator ? "default" : "secondary"}>
-                                {row.original.is_approved_translator ? "Approved" : "Pending"}
-                              </Badge>
-                            ),
-                          },
-                          {
-                            accessorKey: "created_at",
-                            header: "Joined",
-                            cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
-                          },
-                        ]}
-                        data={translators || []}
-                        isLoading={isLoadingTranslators}
-                      />
+                    <div className="space-y-4">
+                      <TranslatorApprovals />
+                      <div className="rounded-md border">
+                        <DataTable
+                          columns={[
+                            {
+                              accessorKey: "email",
+                              header: "Email",
+                            },
+                            {
+                              accessorKey: "first_name",
+                              header: "First Name",
+                            },
+                            {
+                              accessorKey: "last_name",
+                              header: "Last Name",
+                            },
+                            {
+                              accessorKey: "country",
+                              header: "Country",
+                            },
+                            {
+                              accessorKey: "is_approved_translator",
+                              header: "Status",
+                              cell: ({ row }) => (
+                                <Badge variant={row.original.is_approved_translator ? "default" : "secondary"}>
+                                  {row.original.is_approved_translator ? "Approved" : "Pending"}
+                                </Badge>
+                              ),
+                            },
+                            {
+                              accessorKey: "created_at",
+                              header: "Joined",
+                              cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+                            },
+                          ]}
+                          data={translators || []}
+                          isLoading={isLoadingTranslators}
+                        />
+                      </div>
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
