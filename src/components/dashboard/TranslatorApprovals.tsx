@@ -46,7 +46,7 @@ const TranslatorApprovals = () => {
         throw error;
       }
       
-      return data || [];
+      return (data || []) as TranslatorProfile[];
     },
   });
 
