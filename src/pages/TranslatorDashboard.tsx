@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
+import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -35,32 +36,6 @@ const TranslatorDashboard = () => {
       if (error) throw error;
       return data;
     }
-  });
-
-  const { isLoading: translationsLoading } = useQuery({
-    queryKey: ['translator-translations'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
-
-      const { data, error } = await supabase
-        .from('translations')
-        .select('*')
-        .eq('translator_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to load translations. Please try again.",
-          variant: "destructive",
-        });
-        return [];
-      }
-
-      return data || [];
-    },
-    enabled: !!profile?.is_approved_translator
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
@@ -95,6 +70,8 @@ const TranslatorDashboard = () => {
               >
                 <MRRMetrics />
 
+                <AdminTranslationsOverview />
+
                 <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full flex justify-between items-center">
@@ -104,18 +81,6 @@ const TranslatorDashboard = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
                     <TranslatorApplicationsList />
-                  </CollapsibleContent>
-                </Collapsible>
-
-                <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full flex justify-between items-center">
-                      <span>Manage Translators</span>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-4">
-                    <TranslatorApprovals />
                   </CollapsibleContent>
                 </Collapsible>
 
@@ -156,7 +121,7 @@ const TranslatorDashboard = () => {
               transition={{ delay: 0.5 }}
             >
               <TranslatorDashboardTabs 
-                isLoading={translationsLoading}
+                isLoading={false}
               />
             </motion.div>
           </motion.div>
