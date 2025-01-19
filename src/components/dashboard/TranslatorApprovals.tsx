@@ -34,7 +34,7 @@ const TranslatorApprovals = () => {
           id,
           role,
           is_approved_translator,
-          users:id (
+          users (
             email
           )
         `)
