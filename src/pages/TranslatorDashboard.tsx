@@ -17,6 +17,7 @@ import { ChevronDown } from "lucide-react";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
+import { Database } from "@/integrations/supabase/types";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -30,6 +31,8 @@ interface Translator {
   created_at: string;
   email: string;
 }
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
@@ -61,7 +64,8 @@ const TranslatorDashboard = () => {
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'translator');
+        .eq('role', 'translator')
+        .returns<Profile[]>();
 
       if (profilesError) {
         toast({
