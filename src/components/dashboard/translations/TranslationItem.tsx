@@ -8,6 +8,7 @@ import TranslationHeader from "./TranslationHeader";
 import TranslationEarnings from "./TranslationEarnings";
 import AdminReviewSection from "./AdminReviewSection";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface Translation {
   id: string;
@@ -26,6 +27,11 @@ interface Translation {
   translator_id?: string;
   file_path?: string;
   translated_file_path?: string;
+  profiles?: {
+    first_name: string | null;
+    last_name: string | null;
+    id: string;
+  };
 }
 
 interface TranslationItemProps {
@@ -94,13 +100,22 @@ const TranslationItem = ({ translation, role = 'client', onUpdate }: Translation
     <Card className="p-6 hover:shadow-md transition-all duration-200">
       <div className="space-y-6">
         <div className="flex justify-between items-start">
-          <TranslationHeader
-            documentName={translation.document_name}
-            createdAt={translation.created_at}
-            sourceLanguage={translation.source_language}
-            targetLanguage={translation.target_language}
-            deadline={translation.deadline}
-          />
+          <div className="space-y-2">
+            <TranslationHeader
+              documentName={translation.document_name}
+              createdAt={translation.created_at}
+              sourceLanguage={translation.source_language}
+              targetLanguage={translation.target_language}
+              deadline={translation.deadline}
+            />
+            {role === 'admin' && translation.profiles && (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-sm">
+                  Client: {translation.profiles.first_name} {translation.profiles.last_name}
+                </Badge>
+              </div>
+            )}
+          </div>
           <TranslationStatus 
             status={translation.status}
             wordCount={translation.word_count}

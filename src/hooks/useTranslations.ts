@@ -13,7 +13,14 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
 
       let query = supabase
         .from('translations')
-        .select('*, profiles(first_name, last_name)')
+        .select(`
+          *,
+          profiles!translations_user_id_fkey (
+            first_name,
+            last_name,
+            id
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (role === 'translator') {
@@ -21,9 +28,10 @@ export const useTranslations = (role: 'client' | 'translator' | 'admin') => {
           .eq('translator_id', session.user.id)
           .in('status', ['in_progress', 'pending_review', 'completed']);
       } else if (role === 'admin') {
-        query = query.eq('status', 'pending_admin_review');
+        // For admin, show all translations
+        console.log('Fetching all translations for admin');
       } else {
-        // For clients, show all their translations using auth.uid() since it matches the RLS policy
+        // For clients, show all their translations using auth.uid()
         console.log('Fetching client translations for user:', session.user.id);
         query = query.eq('user_id', session.user.id);
       }
