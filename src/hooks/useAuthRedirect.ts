@@ -36,9 +36,11 @@ export const useAuthRedirect = (queryClient: QueryClient) => {
         return data;
       } catch (error: any) {
         console.error('Error in profile query:', error);
+        // Handle refresh token errors specifically
         if (error.message?.includes('refresh_token_not_found')) {
           await supabase.auth.signOut();
           setIsAuthenticated(false);
+          queryClient.clear();
           toast({
             title: "Session Expired",
             description: "Please sign in again.",
@@ -53,6 +55,7 @@ export const useAuthRedirect = (queryClient: QueryClient) => {
         }
         await supabase.auth.signOut();
         setIsAuthenticated(false);
+        queryClient.clear();
         return null;
       }
     },
