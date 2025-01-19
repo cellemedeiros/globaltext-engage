@@ -15,12 +15,13 @@ import NotificationsPopover from "@/components/notifications/NotificationsPopove
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
+import { useState } from "react";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
-
+  const [isOverviewOpen, setIsOverviewOpen] = useState(true);
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -70,7 +71,23 @@ const TranslatorDashboard = () => {
               >
                 <MRRMetrics />
 
-                <AdminTranslationsOverview />
+                <Collapsible 
+                  open={isOverviewOpen}
+                  onOpenChange={setIsOverviewOpen}
+                  className="w-full space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">All Translations Overview</h2>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOverviewOpen ? 'transform rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent className="space-y-2">
+                    <AdminTranslationsOverview />
+                  </CollapsibleContent>
+                </Collapsible>
 
                 <Collapsible className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
                   <CollapsibleTrigger asChild>

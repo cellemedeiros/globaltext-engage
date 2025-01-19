@@ -41,6 +41,7 @@ const AdminTranslationsOverview = () => {
 
       return data;
     },
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
 
   if (isLoading) {
@@ -55,7 +56,6 @@ const AdminTranslationsOverview = () => {
 
   return (
     <Card className="p-6">
-      <h2 className="text-2xl font-bold mb-6">All Translations Overview</h2>
       <ScrollArea className="h-[600px]">
         <Table>
           <TableHeader>
@@ -102,13 +102,6 @@ const AdminTranslationsOverview = () => {
                         : translation.status === 'pending'
                         ? 'secondary'
                         : 'outline'
-                    }
-                    className={
-                      translation.status === 'completed'
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : translation.status === 'pending'
-                        ? 'bg-yellow-500 hover:bg-yellow-600'
-                        : ''
                     }
                   >
                     {translation.status}
