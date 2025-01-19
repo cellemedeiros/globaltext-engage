@@ -23,6 +23,7 @@ const TranslatorDashboard = () => {
   const { toast } = useToast();
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
   const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(true);
+  const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(true);
   
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -104,6 +105,22 @@ const TranslatorDashboard = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
                     <TranslationsList role="admin" />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible 
+                  open={isManageTranslatorsOpen}
+                  onOpenChange={setIsManageTranslatorsOpen}
+                  className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Manage Translators</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isManageTranslatorsOpen ? 'transform rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <TranslatorApprovals />
                   </CollapsibleContent>
                 </Collapsible>
 
