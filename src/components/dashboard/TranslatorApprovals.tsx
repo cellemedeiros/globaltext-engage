@@ -19,11 +19,8 @@ type TranslatorProfile = {
   email: string | null;
 };
 
-// Array of protected translator IDs that cannot have their approval revoked
-const PROTECTED_TRANSLATOR_IDS = [
-  "37665cdd-1fdd-40d0-b485-35148c159bed",
-  "a83ae0a2-998b-40c9-9bd6-983ed8285564"
-];
+// Only the admin translator ID is protected from having approval revoked
+const PROTECTED_TRANSLATOR_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorApprovals = () => {
   const { toast } = useToast();
@@ -116,7 +113,7 @@ const TranslatorApprovals = () => {
                   <Button
                     variant="destructive"
                     onClick={() => handleRevokeApproval(profile.id)}
-                    disabled={isUpdating || PROTECTED_TRANSLATOR_IDS.includes(profile.id)}
+                    disabled={isUpdating || profile.id === PROTECTED_TRANSLATOR_ID}
                   >
                     Revoke Approval
                   </Button>
