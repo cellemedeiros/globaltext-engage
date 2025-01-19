@@ -16,6 +16,8 @@ type TranslatorProfile = {
   id: string;
   role: string;
   is_approved_translator: boolean;
+  first_name: string | null;
+  last_name: string | null;
   email: string | null;
 };
 
@@ -31,7 +33,7 @@ const TranslatorApprovals = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*, email:id(email)")
+        .select("*")
         .eq("is_approved_translator", true)
         .order("created_at", { ascending: false });
 
@@ -40,15 +42,7 @@ const TranslatorApprovals = () => {
         throw error;
       }
 
-      // Transform the data to match our TranslatorProfile type
-      const transformedData: TranslatorProfile[] = (data || []).map((profile: any) => ({
-        id: profile.id,
-        role: profile.role,
-        is_approved_translator: profile.is_approved_translator,
-        email: profile.email?.email || null,
-      }));
-
-      return transformedData;
+      return data as TranslatorProfile[];
     },
   });
 
@@ -99,7 +93,7 @@ const TranslatorApprovals = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Email</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -107,7 +101,9 @@ const TranslatorApprovals = () => {
           <TableBody>
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
-                <TableCell>{profile.email}</TableCell>
+                <TableCell>
+                  {profile.first_name} {profile.last_name}
+                </TableCell>
                 <TableCell>{profile.role}</TableCell>
                 <TableCell>
                   <Button
