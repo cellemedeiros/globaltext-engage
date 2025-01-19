@@ -46,6 +46,9 @@ const TranslatorDashboard = () => {
   const { data: translators, isLoading: isLoadingTranslators } = useQuery({
     queryKey: ['translators'],
     queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -55,11 +58,9 @@ const TranslatorDashboard = () => {
           country,
           role,
           is_approved_translator,
-          created_at,
-          email:id(email)
+          created_at
         `)
-        .eq('role', 'translator')
-        .order('created_at', { ascending: false });
+        .eq('role', 'translator');
 
       if (error) {
         toast({
@@ -70,8 +71,19 @@ const TranslatorDashboard = () => {
         throw error;
       }
 
-      console.log('Fetched translators:', data);
-      return data;
+      const translatorsWithEmail = await Promise.all(
+        data.map(async (translator) => {
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(translator.id);
+          if (userError) {
+            console.error('Error fetching user email:', userError);
+            return { ...translator, email: 'Email not available' };
+          }
+          return { ...translator, email: userData?.user?.email };
+        })
+      );
+
+      console.log('Fetched translators with email:', translatorsWithEmail);
+      return translatorsWithEmail;
     },
   });
 
@@ -157,7 +169,7 @@ const TranslatorDashboard = () => {
                       <DataTable
                         columns={[
                           {
-                            accessorKey: "email.email",
+                            accessorKey: "email",
                             header: "Email",
                           },
                           {
