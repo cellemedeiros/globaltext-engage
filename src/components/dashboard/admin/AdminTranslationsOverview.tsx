@@ -98,10 +98,17 @@ const AdminTranslationsOverview = () => {
                   <Badge
                     variant={
                       translation.status === 'completed'
-                        ? 'success'
+                        ? 'default'
                         : translation.status === 'pending'
-                        ? 'warning'
-                        : 'secondary'
+                        ? 'secondary'
+                        : 'outline'
+                    }
+                    className={
+                      translation.status === 'completed'
+                        ? 'bg-green-500 hover:bg-green-600'
+                        : translation.status === 'pending'
+                        ? 'bg-yellow-500 hover:bg-yellow-600'
+                        : ''
                     }
                   >
                     {translation.status}
