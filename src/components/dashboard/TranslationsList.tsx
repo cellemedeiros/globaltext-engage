@@ -8,6 +8,7 @@ import TranslationItem from "./translations/TranslationItem";
 import { useTranslations } from "@/hooks/useTranslations";
 import EmptyTranslationState from "./translations/EmptyTranslationState";
 import TranslatorTabs from "./translations/TranslatorTabs";
+import AdminReviewSection from "./translations/AdminReviewSection";
 
 interface TranslationsListProps {
   role?: 'client' | 'translator' | 'admin';
@@ -163,18 +164,32 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
       <ScrollArea className="h-[600px]">
         <div className="space-y-4">
           {translations.map((translation) => (
-            <TranslationItem 
-              key={translation.id}
-              translation={translation}
-              role={role}
-              onUpdate={() => {
-                toast({
-                  title: "Success",
-                  description: "Translation updated successfully",
-                });
-                refetch();
-              }}
-            />
+            <div key={translation.id} className="space-y-4">
+              <TranslationItem 
+                key={translation.id}
+                translation={translation}
+                role={role}
+                onUpdate={() => {
+                  toast({
+                    title: "Success",
+                    description: "Translation updated successfully",
+                  });
+                  refetch();
+                }}
+              />
+              {role === 'admin' && translation.status === 'pending_admin_review' && (
+                <AdminReviewSection
+                  translationId={translation.id}
+                  onUpdate={() => {
+                    toast({
+                      title: "Success",
+                      description: "Review submitted successfully",
+                    });
+                    refetch();
+                  }}
+                />
+              )}
+            </div>
           ))}
         </div>
       </ScrollArea>
