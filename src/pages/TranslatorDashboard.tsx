@@ -20,6 +20,19 @@ import { Badge } from "@/components/ui/badge";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
+interface Translator {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  country: string | null;
+  role: string;
+  is_approved_translator: boolean;
+  created_at: string;
+  email: {
+    email: string;
+  };
+}
+
 const TranslatorDashboard = () => {
   const { toast } = useToast();
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
@@ -73,7 +86,7 @@ const TranslatorDashboard = () => {
       }
 
       console.log('Fetched translators:', data);
-      return data.map(translator => ({
+      return (data as Translator[]).map(translator => ({
         ...translator,
         email: translator.email?.email || 'Email not available'
       }));
