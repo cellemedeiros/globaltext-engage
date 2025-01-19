@@ -46,7 +46,13 @@ const TranslatorApprovals = () => {
         throw error;
       }
       
-      return (data || []) as TranslatorProfile[];
+      // Transform the data to match our expected type
+      const transformedData = (data || []).map(profile => ({
+        ...profile,
+        users: profile.users ? { email: profile.users.email } : null
+      }));
+      
+      return transformedData;
     },
   });
 
