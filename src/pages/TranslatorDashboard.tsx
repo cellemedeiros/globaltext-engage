@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
@@ -14,7 +15,6 @@ import NotificationsPopover from "@/components/notifications/NotificationsPopove
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
-import { useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 
@@ -46,7 +46,6 @@ const TranslatorDashboard = () => {
   const { data: translators, isLoading: isLoadingTranslators } = useQuery({
     queryKey: ['translators'],
     queryFn: async () => {
-      // Modified query to fetch all users with role = 'translator', regardless of approval status
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -56,7 +55,8 @@ const TranslatorDashboard = () => {
           country,
           role,
           is_approved_translator,
-          created_at
+          created_at,
+          email:id(email)
         `)
         .eq('role', 'translator')
         .order('created_at', { ascending: false });
@@ -70,14 +70,12 @@ const TranslatorDashboard = () => {
         throw error;
       }
 
-      console.log('Fetched translators:', data); // Added for debugging
+      console.log('Fetched translators:', data);
       return data;
     },
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
-
-  // ... keep existing code (JSX structure)
 
   return (
     <TranslatorAccessControl>
@@ -158,6 +156,10 @@ const TranslatorDashboard = () => {
                     <div className="rounded-md border">
                       <DataTable
                         columns={[
+                          {
+                            accessorKey: "email.email",
+                            header: "Email",
+                          },
                           {
                             accessorKey: "first_name",
                             header: "First Name",
