@@ -3,7 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { UserCheck, AlertCircle } from "lucide-react";
+import { UserCheck, AlertCircle, Mail, MapPin, Phone } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -13,6 +21,9 @@ type TranslatorProfile = {
   is_approved_translator: boolean;
   first_name: string | null;
   last_name: string | null;
+  email: string | null;
+  country: string | null;
+  phone: string | null;
 };
 
 const PROTECTED_TRANSLATOR_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
@@ -102,36 +113,71 @@ const TranslatorApprovals = () => {
       </CardHeader>
       <CardContent>
         {profiles && profiles.length > 0 ? (
-          <div className="space-y-4">
-            {profiles.map((profile) => (
-              <div key={profile.id} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="font-medium">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold">Contact</TableHead>
+                  <TableHead className="font-semibold">Location</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {profiles.map((profile) => (
+                  <TableRow key={profile.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">
                       {profile.first_name} {profile.last_name}
-                    </p>
-                    {profile.id === PROTECTED_TRANSLATOR_ID ? (
-                      <Badge variant="default">Admin</Badge>
-                    ) : (
-                      <Badge variant="secondary">Active</Badge>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleRevokeApproval(profile.id)}
-                  disabled={isUpdating || profile.id === PROTECTED_TRANSLATOR_ID}
-                  className="w-[140px]"
-                >
-                  {profile.id === PROTECTED_TRANSLATOR_ID ? (
-                    "Admin Protected"
-                  ) : (
-                    "Revoke Approval"
-                  )}
-                </Button>
-              </div>
-            ))}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-sm">
+                          <Mail className="h-3 w-3" />
+                          {profile.email}
+                        </div>
+                        {profile.phone && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            {profile.phone}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {profile.country && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <MapPin className="h-3 w-3" />
+                          {profile.country}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {profile.id === PROTECTED_TRANSLATOR_ID ? (
+                        <Badge variant="default">Admin</Badge>
+                      ) : (
+                        <Badge variant="secondary">Active</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleRevokeApproval(profile.id)}
+                        disabled={isUpdating || profile.id === PROTECTED_TRANSLATOR_ID}
+                        className="w-[140px]"
+                      >
+                        {profile.id === PROTECTED_TRANSLATOR_ID ? (
+                          "Admin Protected"
+                        ) : (
+                          "Revoke Approval"
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
