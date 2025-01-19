@@ -15,6 +15,8 @@ import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
 import { useState } from "react";
+import { DataTable } from "@/components/ui/data-table";
+import { Badge } from "@/components/ui/badge";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -22,6 +24,7 @@ const TranslatorDashboard = () => {
   const { toast } = useToast();
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
   const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(true);
+  const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(true);
   
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -38,6 +41,36 @@ const TranslatorDashboard = () => {
       if (error) throw error;
       return data;
     }
+  });
+
+  const { data: translators, isLoading: isLoadingTranslators } = useQuery({
+    queryKey: ['translators'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          country,
+          role,
+          is_approved_translator,
+          created_at
+        `)
+        .eq('role', 'translator')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        toast({
+          title: "Error fetching translators",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+
+      return data;
+    },
   });
 
   const isAdmin = profile?.id === ADMIN_USER_ID;
@@ -103,6 +136,55 @@ const TranslatorDashboard = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
                     <TranslationsList role="admin" />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible 
+                  open={isManageTranslatorsOpen}
+                  onOpenChange={setIsManageTranslatorsOpen}
+                  className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Manage Translators</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isManageTranslatorsOpen ? 'transform rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <div className="rounded-md border">
+                      <DataTable
+                        columns={[
+                          {
+                            accessorKey: "first_name",
+                            header: "First Name",
+                          },
+                          {
+                            accessorKey: "last_name",
+                            header: "Last Name",
+                          },
+                          {
+                            accessorKey: "country",
+                            header: "Country",
+                          },
+                          {
+                            accessorKey: "is_approved_translator",
+                            header: "Status",
+                            cell: ({ row }) => (
+                              <Badge variant={row.original.is_approved_translator ? "success" : "secondary"}>
+                                {row.original.is_approved_translator ? "Approved" : "Pending"}
+                              </Badge>
+                            ),
+                          },
+                          {
+                            accessorKey: "created_at",
+                            header: "Joined",
+                            cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+                          },
+                        ]}
+                        data={translators || []}
+                        isLoading={isLoadingTranslators}
+                      />
+                    </div>
                   </CollapsibleContent>
                 </Collapsible>
 
