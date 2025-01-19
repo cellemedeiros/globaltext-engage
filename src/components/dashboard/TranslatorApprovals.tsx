@@ -16,7 +16,9 @@ type TranslatorProfile = {
   id: string;
   role: string;
   is_approved_translator: boolean;
-  email?: string;
+  users: {
+    email: string;
+  } | null;
 };
 
 const TranslatorApprovals = () => {
@@ -28,7 +30,14 @@ const TranslatorApprovals = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, role, is_approved_translator, email")
+        .select(`
+          id,
+          role,
+          is_approved_translator,
+          users:id (
+            email
+          )
+        `)
         .eq("is_approved_translator", true)
         .order("created_at", { ascending: false });
       
@@ -96,7 +105,7 @@ const TranslatorApprovals = () => {
           <TableBody>
             {profiles.map((profile) => (
               <TableRow key={profile.id}>
-                <TableCell>{profile.email}</TableCell>
+                <TableCell>{profile.users?.email}</TableCell>
                 <TableCell>{profile.role}</TableCell>
                 <TableCell>
                   <Button
