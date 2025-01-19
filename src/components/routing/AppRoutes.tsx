@@ -5,6 +5,7 @@ import Index from "@/pages/Index";
 import Payment from "@/pages/Payment";
 import Dashboard from "@/pages/Dashboard";
 import TranslatorDashboard from "@/pages/TranslatorDashboard";
+import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 
 interface AppRoutesProps {
   queryClient: QueryClient;
@@ -34,7 +35,7 @@ const AppRoutes = ({ queryClient }: AppRoutesProps) => {
         path="/admin/applications"
         element={
           <ProtectedRoute allowedRole="admin" queryClient={queryClient}>
-            <TranslatorDashboard />
+            <TranslatorApplicationsList />
           </ProtectedRoute>
         }
       />

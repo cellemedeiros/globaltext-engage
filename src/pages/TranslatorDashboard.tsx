@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
-import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -17,6 +16,7 @@ import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import { Database } from "@/integrations/supabase/types";
+import { Link } from "react-router-dom";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
@@ -65,7 +65,16 @@ const TranslatorDashboard = () => {
               >
                 Translator Workspace
               </motion.h1>
-              <NotificationsPopover />
+              <div className="flex items-center gap-4">
+                {isAdmin && (
+                  <Link to="/admin/applications">
+                    <Button variant="outline">
+                      View Applications
+                    </Button>
+                  </Link>
+                )}
+                <NotificationsPopover />
+              </div>
             </div>
             
             {isAdmin && (
@@ -123,10 +132,7 @@ const TranslatorDashboard = () => {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
-                    <div className="space-y-4">
-                      <TranslatorApprovals />
-                      <TranslatorApplicationsList />
-                    </div>
+                    <TranslatorApprovals />
                   </CollapsibleContent>
                 </Collapsible>
               </motion.div>
