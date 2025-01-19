@@ -55,7 +55,8 @@ const TranslatorDashboard = () => {
           country,
           role,
           is_approved_translator,
-          created_at
+          created_at,
+          email:id(email)
         `)
         .eq('role', 'translator')
         .order('created_at', { ascending: false });
@@ -69,7 +70,13 @@ const TranslatorDashboard = () => {
         throw error;
       }
 
-      return data;
+      // Transform the data to include email from the join
+      const transformedData = data.map(profile => ({
+        ...profile,
+        email: profile.email?.email || 'No email found'
+      }));
+
+      return transformedData;
     },
   });
 
@@ -154,6 +161,10 @@ const TranslatorDashboard = () => {
                     <div className="rounded-md border">
                       <DataTable
                         columns={[
+                          {
+                            accessorKey: "email",
+                            header: "Email",
+                          },
                           {
                             accessorKey: "first_name",
                             header: "First Name",
