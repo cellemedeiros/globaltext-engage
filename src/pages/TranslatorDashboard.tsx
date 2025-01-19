@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import TranslatorApplicationsList from "@/components/dashboard/admin/TranslatorApplicationsList";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
@@ -18,6 +18,17 @@ import { useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 
+type TranslatorProfile = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  country: string | null;
+  role: string;
+  is_approved_translator: boolean;
+  created_at: string;
+  email: string;
+};
+
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorDashboard = () => {
@@ -25,7 +36,7 @@ const TranslatorDashboard = () => {
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
   const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(true);
   const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(true);
-  
+
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -43,7 +54,7 @@ const TranslatorDashboard = () => {
     }
   });
 
-  const { data: translators, isLoading: isLoadingTranslators } = useQuery({
+  const { data: translators, isLoading: isLoadingTranslators } = useQuery<TranslatorProfile[]>({
     queryKey: ['translators'],
     queryFn: async () => {
       const { data, error } = await supabase
