@@ -26,14 +26,13 @@ const TranslatorApprovals = () => {
   const { data: profiles, refetch, isLoading, error } = useQuery({
     queryKey: ["translator-profiles"],
     queryFn: async () => {
-      // Using the correct join syntax for PostgREST
       const { data, error } = await supabase
         .from("profiles")
         .select(`
           id,
           role,
           is_approved_translator,
-          auth:auth.users(email)
+          users:auth.users!profiles_id_fkey(email)
         `)
         .eq("is_approved_translator", true)
         .order("created_at", { ascending: false });
@@ -48,7 +47,7 @@ const TranslatorApprovals = () => {
         id: profile.id,
         role: profile.role,
         is_approved_translator: profile.is_approved_translator,
-        email: profile.auth?.[0]?.email || null,
+        email: profile.users?.email || null,
       }));
 
       return transformedData;
