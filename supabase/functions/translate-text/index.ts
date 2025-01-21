@@ -8,15 +8,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Updated DeepL language code mapping
+// DeepL API language codes - using their official supported codes
 const languageMapping: { [key: string]: string } = {
   en: 'EN-US',  // English (US)
   es: 'ES',     // Spanish
   fr: 'FR',     // French
   de: 'DE',     // German
   it: 'IT',     // Italian
-  pt: 'PT-PT',  // Portuguese (European)
+  pt: 'PT-BR',  // Portuguese (Brazilian)
   'pt-br': 'PT-BR', // Portuguese (Brazilian)
+  'pt-pt': 'PT-PT', // Portuguese (European)
 };
 
 serve(async (req) => {
