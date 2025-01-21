@@ -10,12 +10,12 @@ const corsHeaders = {
 
 // DeepL API language codes - using their official supported codes
 const languageMapping: { [key: string]: string } = {
-  en: 'EN-US',  // English (US)
+  en: 'EN',     // English
   es: 'ES',     // Spanish
   fr: 'FR',     // French
   de: 'DE',     // German
   it: 'IT',     // Italian
-  pt: 'PT-BR',  // Portuguese (Brazilian)
+  pt: 'PT',     // Portuguese
   'pt-br': 'PT-BR', // Portuguese (Brazilian)
   'pt-pt': 'PT-PT', // Portuguese (European)
 };
