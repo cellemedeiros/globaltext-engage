@@ -6,6 +6,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function callOpenAIWithRetry(prompt: string, retries = 3, baseDelay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'You are a professional translation consultant providing context analysis for translators.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 500
+        }),
+      });
+
+      if (response.status === 429) {
+        const delay = baseDelay * Math.pow(2, i);
+        console.log(`Rate limited. Retrying in ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('OpenAI API error:', errorData);
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      const delay = baseDelay * Math.pow(2, i);
+      console.log(`Error occurred. Retrying in ${delay}ms...`, error);
+      await sleep(delay);
+    }
+  }
+  throw new Error('Max retries reached');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -33,30 +80,7 @@ serve(async (req) => {
 
     console.log('Sending request to OpenAI')
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a professional translation consultant providing context analysis for translators.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 500
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.text()
-      console.error('OpenAI API error:', errorData)
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`)
-    }
-
-    const data = await response.json()
+    const data = await callOpenAIWithRetry(prompt);
     console.log('OpenAI response:', data)
 
     if (!data.choices?.[0]?.message?.content) {
