@@ -54,29 +54,31 @@ async function callOpenAIWithRetry(prompt: string, retries = 3, baseDelay = 1000
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { content, sourceLanguage, targetLanguage } = await req.json()
 
-    console.log('Received request with:', { sourceLanguage, targetLanguage, contentLength: content?.length })
-
     if (!content || !sourceLanguage || !targetLanguage) {
       throw new Error('Missing required parameters')
     }
 
-    const prompt = `As a professional translator, analyze the following text that needs to be translated from ${sourceLanguage} to ${targetLanguage}. Provide insights about:
-    1. The text's tone and style
-    2. Any cultural considerations
-    3. Technical terminology or jargon that requires special attention
-    4. Potential translation challenges
-    
-    Text to analyze:
-    ${content}
-    
-    Format your response to be clear and concise, focusing on the most important aspects for translation.`
+    const prompt = `
+      Please analyze this text for translation context:
+      
+      Text: ${content}
+      Source Language: ${sourceLanguage}
+      Target Language: ${targetLanguage}
+      
+      Provide insights about:
+      1. Cultural context and nuances
+      2. Technical or specialized terminology
+      3. Potential translation challenges
+      4. Style and tone considerations
+    `
 
     console.log('Sending request to OpenAI')
 
@@ -84,35 +86,28 @@ serve(async (req) => {
     console.log('OpenAI response:', data)
 
     if (!data.choices?.[0]?.message?.content) {
-      console.error('Unexpected OpenAI response structure:', data)
-      throw new Error('Invalid response structure from OpenAI')
+      throw new Error('Invalid response from OpenAI')
     }
 
-    const analysis = data.choices[0].message.content
-
     return new Response(
-      JSON.stringify({ context: analysis }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      JSON.stringify({
+        context: data.choices[0].message.content,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     )
   } catch (error) {
-    console.error('Error in enhance-translation:', error)
+    console.error('Error in enhance-translation function:', error)
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message,
         details: error.toString()
       }),
-      { 
+      {
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     )
   }
 })
