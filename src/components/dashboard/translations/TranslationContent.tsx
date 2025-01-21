@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lightbulb } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import TranslationDownload from "./TranslationDownload";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,41 +30,43 @@ const TranslationContent = ({
   sourceLanguage,
   targetLanguage
 }: TranslationContentProps) => {
-  const [contextAnalysis, setContextAnalysis] = useState<string>("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [automaticTranslation, setAutomaticTranslation] = useState<string>("");
   const { toast } = useToast();
 
-  const getContextAnalysis = async () => {
-    if (!content || !sourceLanguage || !targetLanguage) return;
+  useEffect(() => {
+    const getAutomaticTranslation = async () => {
+      if (!content || !sourceLanguage || !targetLanguage || aiTranslatedContent) return;
+      
+      setIsTranslating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-text', {
+          body: {
+            text: content,
+            sourceLanguage,
+            targetLanguage
+          }
+        });
 
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('enhance-translation', {
-        body: {
-          content,
-          sourceLanguage,
-          targetLanguage
+        if (error) throw error;
+
+        if (data?.translation) {
+          setAutomaticTranslation(data.translation);
         }
-      });
+      } catch (error) {
+        console.error('Error getting automatic translation:', error);
+        toast({
+          title: "Translation Error",
+          description: "Failed to generate automatic translation. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsTranslating(false);
+      }
+    };
 
-      if (error) throw error;
-
-      setContextAnalysis(data.context);
-      toast({
-        title: "Analysis Complete",
-        description: "Context analysis has been generated successfully.",
-      });
-    } catch (error) {
-      console.error('Error getting context analysis:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate context analysis. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+    getAutomaticTranslation();
+  }, [content, sourceLanguage, targetLanguage, aiTranslatedContent, toast]);
 
   if (!content && !aiTranslatedContent && !translatedFilePath) return null;
 
@@ -72,20 +74,11 @@ const TranslationContent = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex gap-4">
-          {role === 'translator' && content && (
-            <Button
-              onClick={getContextAnalysis}
-              variant="outline"
-              disabled={isAnalyzing}
-              className="flex items-center gap-2"
-            >
-              {isAnalyzing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Lightbulb className="h-4 w-4" />
-              )}
-              {isAnalyzing ? "Analyzing..." : "Get Context Analysis"}
-            </Button>
+          {isTranslating && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generating automatic translation...
+            </div>
           )}
         </div>
         <div className="flex gap-4">
@@ -106,18 +99,11 @@ const TranslationContent = ({
         </div>
       </div>
 
-      {contextAnalysis && (
-        <Card className="p-4 bg-muted/50">
-          <h4 className="font-medium mb-3 text-sm text-muted-foreground">Context Analysis</h4>
-          <p className="text-sm">{contextAnalysis}</p>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-3 gap-6">
         {content && (
-          <Card className="p-4">
+          <Card className="p-4 col-span-1">
             <h4 className="font-medium mb-3 text-sm text-muted-foreground">Original Content</h4>
-            <ScrollArea className="h-[200px]">
+            <ScrollArea className="h-[400px]">
               <div className="space-y-2">
                 <p className="text-sm whitespace-pre-wrap">{content}</p>
               </div>
@@ -125,10 +111,27 @@ const TranslationContent = ({
           </Card>
         )}
         
+        {(automaticTranslation || isTranslating) && (
+          <Card className="p-4 col-span-1">
+            <h4 className="font-medium mb-3 text-sm text-muted-foreground">Automatic Translation</h4>
+            <ScrollArea className="h-[400px]">
+              <div className="space-y-2">
+                {isTranslating ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{automaticTranslation}</p>
+                )}
+              </div>
+            </ScrollArea>
+          </Card>
+        )}
+        
         {aiTranslatedContent && (
-          <Card className="p-4">
+          <Card className="p-4 col-span-1">
             <h4 className="font-medium mb-3 text-sm text-muted-foreground">AI Translation</h4>
-            <ScrollArea className="h-[200px]">
+            <ScrollArea className="h-[400px]">
               <div className="space-y-2">
                 <p className="text-sm whitespace-pre-wrap">{aiTranslatedContent}</p>
               </div>
