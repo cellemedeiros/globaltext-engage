@@ -8,9 +8,11 @@ const corsHeaders = {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function callOpenAIWithRetry(prompt: string, retries = 3, baseDelay = 1000) {
+async function callOpenAIWithRetry(prompt: string, retries = 5, baseDelay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
+      console.log(`Attempt ${i + 1} of ${retries}`);
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -28,25 +30,32 @@ async function callOpenAIWithRetry(prompt: string, retries = 3, baseDelay = 1000
         }),
       });
 
-      if (response.status === 429) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.log(`Rate limited. Retrying in ${delay}ms...`);
-        await sleep(delay);
-        continue;
-      }
-
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('OpenAI API error:', errorData);
+        const errorText = await response.text();
+        console.error(`OpenAI API error (${response.status}):`, errorText);
+        
+        if (response.status === 429) {
+          const delay = baseDelay * Math.pow(2, i);
+          console.log(`Rate limited. Waiting ${delay}ms before retry...`);
+          await sleep(delay);
+          continue;
+        }
+        
         throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('Successful response from OpenAI');
       return data;
     } catch (error) {
-      if (i === retries - 1) throw error;
+      console.error(`Attempt ${i + 1} failed:`, error);
+      
+      if (i === retries - 1) {
+        throw new Error(`Max retries reached: ${error.message}`);
+      }
+      
       const delay = baseDelay * Math.pow(2, i);
-      console.log(`Error occurred. Retrying in ${delay}ms...`, error);
+      console.log(`Error occurred. Waiting ${delay}ms before retry...`);
       await sleep(delay);
     }
   }
@@ -56,15 +65,17 @@ async function callOpenAIWithRetry(prompt: string, retries = 3, baseDelay = 1000
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { content, sourceLanguage, targetLanguage } = await req.json()
+    const { content, sourceLanguage, targetLanguage } = await req.json();
 
     if (!content || !sourceLanguage || !targetLanguage) {
-      throw new Error('Missing required parameters')
+      throw new Error('Missing required parameters');
     }
+
+    console.log('Processing request for:', { sourceLanguage, targetLanguage, contentLength: content.length });
 
     const prompt = `
       Please analyze this text for translation context:
@@ -78,15 +89,15 @@ serve(async (req) => {
       2. Technical or specialized terminology
       3. Potential translation challenges
       4. Style and tone considerations
-    `
+    `;
 
-    console.log('Sending request to OpenAI')
-
+    console.log('Calling OpenAI with retry mechanism');
     const data = await callOpenAIWithRetry(prompt);
-    console.log('OpenAI response:', data)
+    console.log('OpenAI response received');
 
     if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response from OpenAI')
+      console.error('Invalid OpenAI response structure:', data);
+      throw new Error('Invalid response from OpenAI');
     }
 
     return new Response(
@@ -96,9 +107,9 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   } catch (error) {
-    console.error('Error in enhance-translation function:', error)
+    console.error('Error in enhance-translation function:', error);
     return new Response(
       JSON.stringify({
         error: error.message,
@@ -108,6 +119,6 @@ serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   }
-})
+});
