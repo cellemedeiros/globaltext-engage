@@ -14,6 +14,8 @@ serve(async (req) => {
   try {
     const { content, sourceLanguage, targetLanguage } = await req.json()
 
+    console.log('Received request with:', { sourceLanguage, targetLanguage, contentLength: content?.length })
+
     const prompt = `As a professional translator, analyze the following text that needs to be translated from ${sourceLanguage} to ${targetLanguage}. Provide insights about:
     1. The text's tone and style
     2. Any cultural considerations
@@ -25,6 +27,8 @@ serve(async (req) => {
     
     Format your response to be clear and concise, focusing on the most important aspects for translation.`
 
+    console.log('Sending request to OpenAI')
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -32,28 +36,47 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-3.5-turbo',
         messages: [
           { role: 'system', content: 'You are a professional translation consultant providing context analysis for translators.' },
           { role: 'user', content: prompt }
         ],
+        temperature: 0.7,
+        max_tokens: 500
       }),
     })
 
     const data = await response.json()
+    console.log('OpenAI response:', data)
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response from OpenAI')
+    }
+
     const analysis = data.choices[0].message.content
 
     return new Response(
       JSON.stringify({ context: analysis }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in enhance-translation:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString()
+      }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
       }
     )
   }
