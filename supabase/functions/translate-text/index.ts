@@ -8,14 +8,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// DeepL language code mapping
+// Updated DeepL language code mapping
 const languageMapping: { [key: string]: string } = {
-  en: 'EN',    // English
-  es: 'ES',    // Spanish
-  fr: 'FR',    // French
-  de: 'DE',    // German
-  it: 'IT',    // Italian
-  pt: 'PT-PT', // Portuguese (European)
+  en: 'EN-US',  // English (US)
+  es: 'ES',     // Spanish
+  fr: 'FR',     // French
+  de: 'DE',     // German
+  it: 'IT',     // Italian
+  pt: 'PT-PT',  // Portuguese (European)
   'pt-br': 'PT-BR', // Portuguese (Brazilian)
 };
 
@@ -50,9 +50,19 @@ serve(async (req) => {
       throw new Error('DeepL API key not configured');
     }
 
-    // Map the language codes to DeepL format
-    const sourceLang = (languageMapping[sourceLanguage.toLowerCase()] || sourceLanguage.toUpperCase());
-    const targetLang = (languageMapping[targetLanguage.toLowerCase()] || targetLanguage.toUpperCase());
+    // Map the language codes to DeepL format, with better error handling
+    const sourceLang = languageMapping[sourceLanguage.toLowerCase()];
+    const targetLang = languageMapping[targetLanguage.toLowerCase()];
+
+    if (!sourceLang) {
+      console.error(`Unsupported source language: ${sourceLanguage}`);
+      throw new Error(`Unsupported source language: ${sourceLanguage}. Supported languages are: ${Object.keys(languageMapping).join(', ')}`);
+    }
+
+    if (!targetLang) {
+      console.error(`Unsupported target language: ${targetLanguage}`);
+      throw new Error(`Unsupported target language: ${targetLanguage}. Supported languages are: ${Object.keys(languageMapping).join(', ')}`);
+    }
 
     console.log(`Making DeepL API request with languages: ${sourceLang} -> ${targetLang}`);
 
