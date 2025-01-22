@@ -17,12 +17,9 @@ const NavigationSection = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
-    };
-
-    checkSession();
+    });
 
     const {
       data: { subscription },
@@ -35,32 +32,34 @@ const NavigationSection = () => {
 
   const handleLogout = async () => {
     try {
-      // First clear any cached data
-      localStorage.removeItem('supabase.auth.token');
-      
-      // Force client state update before attempting server logout
-      setIsAuthenticated(false);
-      
-      // Attempt server-side logout
       const { error } = await supabase.auth.signOut();
       
-      if (error) {
-        console.error('Logout error:', error);
-        // Even if server logout fails, we keep the client logged out
+      // Handle session_not_found error specifically
+      if (error?.message?.includes('session_not_found')) {
+        // If session is not found, we can consider the user already logged out
+        setIsAuthenticated(false);
+        navigate("/");
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully.",
+        });
+        return;
       }
 
-      // Always navigate and show success message
+      if (error) throw error;
+
       navigate("/");
       toast({
-        title: "Signed out",
+        title: "Success",
         description: "You have been signed out successfully.",
       });
     } catch (error) {
       console.error('Logout error:', error);
-      // Ensure client is logged out even if server logout fails
+      // Force client-side logout even if server-side logout failed
+      setIsAuthenticated(false);
       navigate("/");
       toast({
-        title: "Signed out",
+        title: "Notice",
         description: "You have been signed out.",
       });
     }
