@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
-import WithdrawalSection from "@/components/dashboard/WithdrawalSection";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -25,9 +24,9 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
-  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
-  const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(false);
-  const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(false);
+  const [isOverviewOpen, setIsOverviewOpen] = useState(true);
+  const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(true);
+  const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(true);
   
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -146,7 +145,6 @@ const TranslatorDashboard = () => {
               className="grid gap-8"
             >
               <TranslatorEarnings />
-              {!isAdmin && <WithdrawalSection />}
             </motion.div>
 
             <motion.div

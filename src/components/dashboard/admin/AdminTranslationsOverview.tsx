@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -13,11 +13,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 const AdminTranslationsOverview = () => {
-  const { toast } = useToast();
-  const { data: translations, isLoading, refetch } = useQuery({
+  const { data: translations, isLoading } = useQuery({
     queryKey: ['admin-translations-overview'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,43 +41,8 @@ const AdminTranslationsOverview = () => {
 
       return data;
     },
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
-
-  useEffect(() => {
-    console.log('Setting up real-time subscription for admin translations');
-    
-    const channel = supabase
-      .channel('admin_translations_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'translations',
-        },
-        async (payload) => {
-          console.log('Translation update received in admin view:', payload);
-          await refetch();
-          
-          if (payload.eventType === 'INSERT') {
-            toast({
-              title: "New Translation",
-              description: "A new translation has been submitted",
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            toast({
-              title: "Translation Updated",
-              description: "A translation has been updated",
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetch, toast]);
 
   if (isLoading) {
     return (
