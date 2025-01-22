@@ -31,11 +31,10 @@ export const useAuthState = (onOpenChange?: (open: boolean) => void) => {
         description: "You need to apply as a translator first.",
       });
       return true;
-    } else {
-      if (onOpenChange) onOpenChange(false);
-      navigate('/translator-dashboard');
-      return true;
     }
+    
+    if (onOpenChange) onOpenChange(false);
+    return true;
   };
 
   const handleProfileUpdate = async (session: any, role: 'client' | 'translator') => {
@@ -71,7 +70,13 @@ export const useAuthState = (onOpenChange?: (open: boolean) => void) => {
       if (updateError) throw updateError;
     }
 
-    window.location.href = role === 'translator' ? '/translator-dashboard' : '/dashboard';
+    // Close the auth dialog if it exists
+    if (onOpenChange) onOpenChange(false);
+    
+    toast({
+      title: "Success",
+      description: "Your profile has been updated successfully.",
+    });
   };
 
   const handleRoleSelect = async (role: 'client' | 'translator') => {
