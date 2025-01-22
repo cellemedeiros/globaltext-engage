@@ -9,21 +9,20 @@ import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import { Database } from "@/integrations/supabase/types";
-import { Link } from "react-router-dom";
-
-const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
+import { Link, useNavigate } from "react-router-dom";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
   const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(false);
   const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(false);
@@ -58,13 +57,23 @@ const TranslatorDashboard = () => {
             className="max-w-7xl mx-auto space-y-8"
           >
             <div className="flex justify-between items-center">
-              <motion.h1 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-3xl font-bold text-gray-800"
-              >
-                Translator Workspace
-              </motion.h1>
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate(-1)}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Go Back
+                </Button>
+                <motion.h1 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-3xl font-bold text-gray-800"
+                >
+                  Translator Workspace
+                </motion.h1>
+              </div>
               <div className="flex items-center gap-4">
                 {isAdmin && (
                   <Link to="/admin/applications">
