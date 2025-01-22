@@ -1,23 +1,11 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const deeplApiKey = Deno.env.get('DEEPL_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// DeepL API language codes mapping
-const languageMapping: { [key: string]: string } = {
-  en: 'EN',
-  es: 'ES',
-  fr: 'FR',
-  de: 'DE',
-  it: 'IT',
-  pt: 'PT',
-  'pt-br': 'PT-BR',
-  'pt-pt': 'PT-PT',
 };
 
 serve(async (req) => {
@@ -37,82 +25,79 @@ serve(async (req) => {
       throw new Error('Missing required parameters: text, sourceLanguage, or targetLanguage');
     }
 
-    if (!deeplApiKey) {
-      console.error('DeepL API key not configured');
-      throw new Error('DeepL API key not configured');
+    if (!geminiApiKey) {
+      console.error('Gemini API key not configured');
+      throw new Error('Gemini API key not configured');
     }
 
-    const sourceLang = languageMapping[sourceLanguage.toLowerCase()];
-    const targetLang = languageMapping[targetLanguage.toLowerCase()];
-
-    if (!sourceLang || !targetLang) {
-      console.error('Unsupported language code:', { sourceLanguage, targetLanguage });
-      throw new Error(`Unsupported language code. Supported languages are: ${Object.keys(languageMapping).join(', ')}`);
-    }
-
-    console.log('Making DeepL API request...');
-    const response = await fetch('https://api-free.deepl.com/v2/translate', {
+    console.log('Making Gemini API request...');
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
-        'Authorization': `DeepL-Auth-Key ${deeplApiKey}`,
         'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey,
       },
       body: JSON.stringify({
-        text: [text],
-        source_lang: sourceLang,
-        target_lang: targetLang,
-        preserve_formatting: true,
-        formality: 'default'
+        contents: [{
+          parts: [{
+            text: `Translate the following text from ${sourceLanguage} to ${targetLanguage}. Only return the translated text, nothing else: ${text}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          topK: 1,
+          topP: 1,
+        },
       }),
     });
 
-    console.log('DeepL API response status:', response.status);
+    console.log('Gemini API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('DeepL API error response:', {
+      console.error('Gemini API error response:', {
         status: response.status,
         statusText: response.statusText,
         error: errorText
       });
 
-      // Handle quota exceeded error specifically
-      if (response.status === 456 || errorText.includes('Quota Exceeded')) {
+      if (response.status === 429) {
         return new Response(
           JSON.stringify({
-            error: 'Translation quota exceeded. Please try again later or contact support.',
-            details: 'DeepL API quota limit reached',
+            error: 'Translation quota exceeded. Please try again later.',
+            details: 'Rate limit reached',
             type: 'QuotaExceededError'
           }),
           { 
-            status: 429, // Using 429 Too Many Requests for quota issues
+            status: 429,
             headers: { 
-              ...corsHeaders, 
+              ...corsHeaders,
               'Content-Type': 'application/json',
-              'Retry-After': '3600' // Suggest retry after 1 hour
+              'Retry-After': '60'
             }
           }
         );
       }
 
-      throw new Error(`DeepL API error: ${response.status} - ${errorText}`);
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     console.log('Translation completed successfully');
 
-    if (!data.translations?.[0]?.text) {
-      console.error('Invalid DeepL response format:', data);
-      throw new Error('Invalid response format from DeepL API');
+    const translatedText = data.candidates[0].content.parts[0].text;
+    if (!translatedText) {
+      console.error('Invalid Gemini response format:', data);
+      throw new Error('Invalid response format from Gemini API');
     }
 
     return new Response(
-      JSON.stringify({ translation: data.translations[0].text }),
+      JSON.stringify({ translation: translatedText }),
       { 
         headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
 
@@ -132,8 +117,8 @@ serve(async (req) => {
       { 
         status: error.name === 'QuotaExceededError' ? 429 : 500,
         headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
         }
       }
     );
