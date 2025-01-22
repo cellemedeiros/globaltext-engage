@@ -125,7 +125,7 @@ const TranslationContent = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-3 gap-6">
         {content && (
           <Card className="p-4 col-span-1">
             <h4 className="font-medium mb-3 text-sm text-muted-foreground">Original Content</h4>
