@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
 import TranslatorEarnings from "@/components/dashboard/TranslatorEarnings";
+import WithdrawalSection from "@/components/dashboard/WithdrawalSection";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslatorDashboardTabs from "@/components/dashboard/translator/TranslatorDashboardTabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -145,6 +146,7 @@ const TranslatorDashboard = () => {
               className="grid gap-8"
             >
               <TranslatorEarnings />
+              {!isAdmin && <WithdrawalSection />}
             </motion.div>
 
             <motion.div
