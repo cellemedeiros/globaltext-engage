@@ -18,6 +18,8 @@ import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import { Database } from "@/integrations/supabase/types";
 import { Link, useNavigate } from "react-router-dom";
 
+const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
+
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const TranslatorDashboard = () => {
