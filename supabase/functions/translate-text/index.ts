@@ -8,18 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// DeepL API language codes - using their official supported codes
-const languageMapping: { [key: string]: string } = {
-  en: 'EN',     // English
-  es: 'ES',     // Spanish
-  fr: 'FR',     // French
-  de: 'DE',     // German
-  it: 'IT',     // Italian
-  pt: 'PT',     // Portuguese
-  'pt-br': 'PT-BR', // Portuguese (Brazilian)
-  'pt-pt': 'PT-PT', // Portuguese (European)
-};
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -27,22 +15,13 @@ serve(async (req) => {
   }
 
   try {
-    // Log the API key presence (not the actual key)
-    console.log('DeepL API Key present:', !!deeplApiKey);
-
+    console.log('Starting translation request...');
+    
     const { text, sourceLanguage, targetLanguage } = await req.json();
-    console.log('Translation request received:', {
-      sourceLanguage,
-      targetLanguage,
-      textLength: text?.length || 0
-    });
+    console.log('Request parameters:', { sourceLanguage, targetLanguage, textLength: text?.length });
 
     if (!text || !sourceLanguage || !targetLanguage) {
-      console.error('Missing required parameters:', { 
-        hasText: !!text, 
-        sourceLanguage, 
-        targetLanguage 
-      });
+      console.error('Missing required parameters:', { hasText: !!text, sourceLanguage, targetLanguage });
       throw new Error('Missing required parameters: text, sourceLanguage, or targetLanguage');
     }
 
@@ -51,22 +30,27 @@ serve(async (req) => {
       throw new Error('DeepL API key not configured');
     }
 
-    // Map the language codes to DeepL format, with better error handling
+    // Map language codes to DeepL format
+    const languageMapping: { [key: string]: string } = {
+      en: 'EN',
+      es: 'ES',
+      fr: 'FR',
+      de: 'DE',
+      it: 'IT',
+      pt: 'PT',
+      'pt-br': 'PT-BR',
+      'pt-pt': 'PT-PT',
+    };
+
     const sourceLang = languageMapping[sourceLanguage.toLowerCase()];
     const targetLang = languageMapping[targetLanguage.toLowerCase()];
 
-    if (!sourceLang) {
-      console.error(`Unsupported source language: ${sourceLanguage}`);
-      throw new Error(`Unsupported source language: ${sourceLanguage}. Supported languages are: ${Object.keys(languageMapping).join(', ')}`);
+    if (!sourceLang || !targetLang) {
+      console.error('Unsupported language code:', { sourceLanguage, targetLanguage });
+      throw new Error(`Unsupported language code. Supported languages are: ${Object.keys(languageMapping).join(', ')}`);
     }
 
-    if (!targetLang) {
-      console.error(`Unsupported target language: ${targetLanguage}`);
-      throw new Error(`Unsupported target language: ${targetLanguage}. Supported languages are: ${Object.keys(languageMapping).join(', ')}`);
-    }
-
-    console.log(`Making DeepL API request with languages: ${sourceLang} -> ${targetLang}`);
-
+    console.log('Making DeepL API request...');
     const response = await fetch('https://api-free.deepl.com/v2/translate', {
       method: 'POST',
       headers: {
@@ -82,12 +66,11 @@ serve(async (req) => {
       }),
     });
 
-    // Log the raw response status
     console.log('DeepL API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('DeepL API error:', {
+      console.error('DeepL API error response:', {
         status: response.status,
         statusText: response.statusText,
         error: errorText
@@ -96,18 +79,21 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    
+    console.log('Translation completed successfully');
+
     if (!data.translations?.[0]?.text) {
       console.error('Invalid DeepL response format:', data);
       throw new Error('Invalid response format from DeepL API');
     }
 
-    const translation = data.translations[0].text;
-    console.log('Translation completed successfully');
-
     return new Response(
-      JSON.stringify({ translation }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ translation: data.translations[0].text }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
 
   } catch (error) {
@@ -125,7 +111,10 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }
       }
     );
   }
