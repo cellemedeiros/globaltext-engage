@@ -51,6 +51,8 @@ const TranslationActions = ({
 
     try {
       setIsUploading(true);
+      console.log('Starting translation submission process...');
+      
       const fileExt = selectedFile.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
@@ -59,7 +61,12 @@ const TranslationActions = ({
         .from('translations')
         .upload(filePath, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('File uploaded successfully, updating translation status...');
 
       // Update translation status and file path
       const { error: updateError } = await supabase
@@ -71,7 +78,12 @@ const TranslationActions = ({
         })
         .eq('id', translationId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating translation:', updateError);
+        throw updateError;
+      }
+
+      console.log('Translation status updated successfully');
 
       toast({
         title: "Success",
