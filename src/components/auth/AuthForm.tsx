@@ -1,7 +1,6 @@
 import { useState } from "react";
 import SignInForm from "./SignInForm";
 import SignUpForm from "./SignUpForm";
-import { useToast } from "@/components/ui/use-toast";
 
 interface AuthFormProps {
   selectedRole: 'client' | 'translator';
@@ -11,7 +10,6 @@ interface AuthFormProps {
 
 const AuthForm = ({ selectedRole, onRoleChange, message }: AuthFormProps) => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const { toast } = useToast();
 
   return (
     <div className="space-y-4">

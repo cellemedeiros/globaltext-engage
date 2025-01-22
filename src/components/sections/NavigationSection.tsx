@@ -12,48 +12,19 @@ import { ArrowLeft, Globe, LogOut } from "lucide-react";
 const NavigationSection = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useTranslation();
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
-      
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profile) {
-          setUserRole(profile.role);
-        }
-      }
-    };
-
-    checkSession();
+    });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profile) {
-          setUserRole(profile.role);
-        }
-      } else {
-        setUserRole(null);
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -63,9 +34,10 @@ const NavigationSection = () => {
     try {
       const { error } = await supabase.auth.signOut();
       
+      // Handle session_not_found error specifically
       if (error?.message?.includes('session_not_found')) {
+        // If session is not found, we can consider the user already logged out
         setIsAuthenticated(false);
-        setUserRole(null);
         navigate("/");
         toast({
           title: "Signed out",
@@ -83,21 +55,13 @@ const NavigationSection = () => {
       });
     } catch (error) {
       console.error('Logout error:', error);
+      // Force client-side logout even if server-side logout failed
       setIsAuthenticated(false);
-      setUserRole(null);
       navigate("/");
       toast({
         title: "Notice",
         description: "You have been signed out.",
       });
-    }
-  };
-
-  const handleDashboardClick = () => {
-    if (userRole === 'translator') {
-      navigate("/translator-dashboard");
-    } else {
-      navigate("/dashboard");
     }
   };
 
@@ -157,7 +121,7 @@ const NavigationSection = () => {
             <LanguageSwitcher />
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                <Button onClick={handleDashboardClick}>
+                <Button onClick={() => navigate("/dashboard")}>
                   {t('nav.dashboard')}
                 </Button>
                 <Button 
