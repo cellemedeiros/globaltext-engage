@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children, allowedRole, queryClient }: ProtectedRoutePr
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      if (event === 'SIGNED_OUT') {
         queryClient.clear();
         toast({
           title: "Signed Out",
