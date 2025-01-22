@@ -23,6 +23,7 @@ const ProtectedRoute = ({ children, allowedRole, queryClient }: ProtectedRoutePr
       if (error || !session) {
         console.error('Session check error:', error);
         queryClient.clear();
+        supabase.auth.signOut(); // Force sign out to clear any invalid session state
         toast({
           title: "Session Expired",
           description: "Please sign in again to continue.",
@@ -31,8 +32,10 @@ const ProtectedRoute = ({ children, allowedRole, queryClient }: ProtectedRoutePr
       }
     };
 
+    // Initial session check
     checkSession();
 
+    // Set up auth state listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -42,6 +45,9 @@ const ProtectedRoute = ({ children, allowedRole, queryClient }: ProtectedRoutePr
           title: "Signed Out",
           description: "Your session has ended. Please sign in again to continue.",
         });
+      } else if (event === 'SIGNED_IN') {
+        // Refresh the session when signed in
+        await checkSession();
       }
     });
 

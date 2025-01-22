@@ -22,6 +22,7 @@ export const useAuthRedirect = (queryClient: QueryClient) => {
           return null;
         }
 
+        setIsAuthenticated(true);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -36,31 +37,20 @@ export const useAuthRedirect = (queryClient: QueryClient) => {
         return data;
       } catch (error: any) {
         console.error('Error in profile query:', error);
-        // Handle refresh token errors specifically
-        if (error.message?.includes('refresh_token_not_found')) {
-          await supabase.auth.signOut();
-          setIsAuthenticated(false);
-          queryClient.clear();
-          toast({
-            title: "Session Expired",
-            description: "Please sign in again.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Authentication Error",
-            description: "Please try logging in again.",
-            variant: "destructive"
-          });
-        }
         await supabase.auth.signOut();
         setIsAuthenticated(false);
         queryClient.clear();
+        toast({
+          title: "Authentication Error",
+          description: "Please try logging in again.",
+          variant: "destructive"
+        });
         return null;
       }
     },
-    enabled: isAuthenticated === true,
-    retry: false
+    enabled: true,
+    retry: false,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   useEffect(() => {
@@ -69,14 +59,6 @@ export const useAuthRedirect = (queryClient: QueryClient) => {
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Initial session check error:', error);
-          if (mounted) {
-            setIsAuthenticated(false);
-            queryClient.clear();
-          }
-          return;
-        }
         if (mounted) {
           setIsAuthenticated(!!session);
         }
@@ -96,12 +78,7 @@ export const useAuthRedirect = (queryClient: QueryClient) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, !!session);
       if (mounted) {
-        if (event === 'SIGNED_OUT') {
-          setIsAuthenticated(false);
-          queryClient.clear();
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setIsAuthenticated(true);
-        }
+        setIsAuthenticated(!!session);
       }
     });
 
