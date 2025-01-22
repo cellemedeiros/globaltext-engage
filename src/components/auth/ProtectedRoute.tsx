@@ -1,6 +1,9 @@
 import { Navigate } from "react-router-dom";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { QueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,7 +12,43 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRole, queryClient }: ProtectedRouteProps) => {
+  const { toast } = useToast();
   const { isAuthenticated, profile, isLoading } = useAuthRedirect(queryClient);
+
+  // Add session check on mount and setup auth state listener
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        console.error('Session check error:', error);
+        queryClient.clear();
+        toast({
+          title: "Session Expired",
+          description: "Please sign in again to continue.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        queryClient.clear();
+        toast({
+          title: "Signed Out",
+          description: "Your session has ended. Please sign in again to continue.",
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [queryClient, toast]);
 
   if (isAuthenticated === null || isLoading) {
     return <div>Loading...</div>;
