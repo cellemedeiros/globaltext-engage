@@ -48,18 +48,28 @@ const TranslationContent = ({
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes('quota exceeded') || error.message?.includes('429')) {
+            toast({
+              title: "Translation Limit Reached",
+              description: "The translation service is currently unavailable due to high demand. Please try again later.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Translation Error",
+              description: "Failed to generate automatic translation. Please try again.",
+              variant: "destructive"
+            });
+          }
+          throw error;
+        }
 
         if (data?.translation) {
           setAutomaticTranslation(data.translation);
         }
       } catch (error) {
         console.error('Error getting automatic translation:', error);
-        toast({
-          title: "Translation Error",
-          description: "Failed to generate automatic translation. Please try again.",
-          variant: "destructive"
-        });
       } finally {
         setIsTranslating(false);
       }

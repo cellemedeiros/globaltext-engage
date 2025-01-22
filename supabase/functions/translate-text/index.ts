@@ -8,6 +8,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// DeepL API language codes mapping
+const languageMapping: { [key: string]: string } = {
+  en: 'EN',
+  es: 'ES',
+  fr: 'FR',
+  de: 'DE',
+  it: 'IT',
+  pt: 'PT',
+  'pt-br': 'PT-BR',
+  'pt-pt': 'PT-PT',
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -29,18 +41,6 @@ serve(async (req) => {
       console.error('DeepL API key not configured');
       throw new Error('DeepL API key not configured');
     }
-
-    // Map language codes to DeepL format
-    const languageMapping: { [key: string]: string } = {
-      en: 'EN',
-      es: 'ES',
-      fr: 'FR',
-      de: 'DE',
-      it: 'IT',
-      pt: 'PT',
-      'pt-br': 'PT-BR',
-      'pt-pt': 'PT-PT',
-    };
 
     const sourceLang = languageMapping[sourceLanguage.toLowerCase()];
     const targetLang = languageMapping[targetLanguage.toLowerCase()];
@@ -75,6 +75,26 @@ serve(async (req) => {
         statusText: response.statusText,
         error: errorText
       });
+
+      // Handle quota exceeded error specifically
+      if (response.status === 456 || errorText.includes('Quota Exceeded')) {
+        return new Response(
+          JSON.stringify({
+            error: 'Translation quota exceeded. Please try again later or contact support.',
+            details: 'DeepL API quota limit reached',
+            type: 'QuotaExceededError'
+          }),
+          { 
+            status: 429, // Using 429 Too Many Requests for quota issues
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Retry-After': '3600' // Suggest retry after 1 hour
+            }
+          }
+        );
+      }
+
       throw new Error(`DeepL API error: ${response.status} - ${errorText}`);
     }
 
@@ -104,13 +124,13 @@ serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message,
         details: error.toString(),
         type: error.name
       }),
       { 
-        status: 500,
+        status: error.name === 'QuotaExceededError' ? 429 : 500,
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json' 
