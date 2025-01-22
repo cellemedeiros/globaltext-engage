@@ -11,7 +11,6 @@ import { ArrowLeft, Globe, LogOut } from "lucide-react";
 
 const NavigationSection = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -21,38 +20,14 @@ const NavigationSection = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
-
-      if (session) {
-        // Fetch user role from profiles
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profile) {
-          setUserRole(profile.role);
-        }
-      }
     };
 
     checkSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profile) {
-          setUserRole(profile.role);
-        }
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -60,16 +35,21 @@ const NavigationSection = () => {
 
   const handleLogout = async () => {
     try {
+      // First clear any cached data
       localStorage.removeItem('supabase.auth.token');
-      setIsAuthenticated(false);
-      setUserRole(null);
       
+      // Force client state update before attempting server logout
+      setIsAuthenticated(false);
+      
+      // Attempt server-side logout
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Logout error:', error);
+        // Even if server logout fails, we keep the client logged out
       }
 
+      // Always navigate and show success message
       navigate("/");
       toast({
         title: "Signed out",
@@ -77,27 +57,12 @@ const NavigationSection = () => {
       });
     } catch (error) {
       console.error('Logout error:', error);
+      // Ensure client is logged out even if server logout fails
       navigate("/");
       toast({
         title: "Signed out",
         description: "You have been signed out.",
       });
-    }
-  };
-
-  const handleDashboardClick = () => {
-    if (!isAuthenticated) {
-      setShowAuthDialog(true);
-      return;
-    }
-
-    // Navigate based on user role
-    if (userRole === 'translator') {
-      navigate("/translator-dashboard");
-    } else if (userRole === 'admin') {
-      navigate("/admin/applications");
-    } else {
-      navigate("/dashboard");
     }
   };
 
@@ -157,7 +122,7 @@ const NavigationSection = () => {
             <LanguageSwitcher />
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                <Button onClick={handleDashboardClick}>
+                <Button onClick={() => navigate("/dashboard")}>
                   {t('nav.dashboard')}
                 </Button>
                 <Button 
