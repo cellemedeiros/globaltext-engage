@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Globe } from "lucide-react";
 import TranslationDownload from "./TranslationDownload";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,49 +34,55 @@ const TranslationContent = ({
   const [automaticTranslation, setAutomaticTranslation] = useState<string>("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    const getAutomaticTranslation = async () => {
-      if (!content || !sourceLanguage || !targetLanguage || aiTranslatedContent) return;
-      
-      setIsTranslating(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('translate-text', {
-          body: {
-            text: content,
-            sourceLanguage,
-            targetLanguage
-          }
-        });
-
-        if (error) {
-          if (error.message?.includes('quota exceeded') || error.message?.includes('429')) {
-            toast({
-              title: "Translation Limit Reached",
-              description: "The translation service is currently unavailable due to high demand. Please try again later.",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "Translation Error",
-              description: "Failed to generate automatic translation. Please try again.",
-              variant: "destructive"
-            });
-          }
-          throw error;
+  const handleGetTranslation = async () => {
+    if (!content || !sourceLanguage || !targetLanguage) return;
+    
+    setIsTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-text', {
+        body: {
+          text: content,
+          sourceLanguage,
+          targetLanguage
         }
+      });
 
-        if (data?.translation) {
-          setAutomaticTranslation(data.translation);
+      if (error) {
+        if (error.message?.includes('quota exceeded') || error.message?.includes('429')) {
+          toast({
+            title: "Translation Limit Reached",
+            description: "The translation service is currently unavailable due to high demand. Please try again later.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Translation Error",
+            description: "Failed to generate automatic translation. Please try again.",
+            variant: "destructive"
+          });
         }
-      } catch (error) {
-        console.error('Error getting automatic translation:', error);
-      } finally {
-        setIsTranslating(false);
+        throw error;
       }
-    };
 
-    getAutomaticTranslation();
-  }, [content, sourceLanguage, targetLanguage, aiTranslatedContent, toast]);
+      if (data?.translation) {
+        setAutomaticTranslation(data.translation);
+        toast({
+          title: "Translation Generated",
+          description: "Automatic translation has been generated successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Error getting automatic translation:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  useEffect(() => {
+    if (aiTranslatedContent) {
+      setAutomaticTranslation(aiTranslatedContent);
+    }
+  }, [aiTranslatedContent]);
 
   if (!content && !aiTranslatedContent && !translatedFilePath) return null;
 
@@ -84,6 +90,16 @@ const TranslationContent = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex gap-4">
+          {!automaticTranslation && !isTranslating && content && (
+            <Button
+              onClick={handleGetTranslation}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Globe className="h-4 w-4" />
+              Get Automatic Translation
+            </Button>
+          )}
           {isTranslating && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
