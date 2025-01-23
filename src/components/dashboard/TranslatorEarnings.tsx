@@ -48,6 +48,9 @@ const TranslatorEarnings = () => {
   const totalWords = translations?.reduce((sum, t) => sum + (t.word_count || 0), 0) || 0;
   const totalEarnings = totalWords * RATE_PER_WORD;
   const completedTranslations = translations?.length || 0;
+  
+  // Ensure available balance never exceeds total earnings
+  const displayBalance = Math.min(Number(availableBalance || 0), totalEarnings);
 
   return (
     <div className="space-y-6">
@@ -69,7 +72,7 @@ const TranslatorEarnings = () => {
             <Wallet className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Available Balance</p>
-              <p className="text-2xl font-bold">R${Number(availableBalance).toFixed(2)}</p>
+              <p className="text-2xl font-bold">R${displayBalance.toFixed(2)}</p>
             </div>
           </div>
         </Card>
