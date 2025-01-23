@@ -125,9 +125,9 @@ const TranslationContent = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 gap-6">
         {content && (
-          <Card className="p-4 col-span-1">
+          <Card className="p-4">
             <h4 className="font-medium mb-3 text-sm text-muted-foreground">Original Content</h4>
             <ScrollArea className="h-[400px]">
               <div className="space-y-2">
@@ -138,7 +138,7 @@ const TranslationContent = ({
         )}
         
         {(automaticTranslation || isTranslating) && (
-          <Card className="p-4 col-span-1">
+          <Card className="p-4">
             <h4 className="font-medium mb-3 text-sm text-muted-foreground">Automatic Translation</h4>
             <ScrollArea className="h-[400px]">
               <div className="space-y-2">
@@ -155,7 +155,7 @@ const TranslationContent = ({
         )}
         
         {aiTranslatedContent && (
-          <Card className="p-4 col-span-1">
+          <Card className="p-4">
             <h4 className="font-medium mb-3 text-sm text-muted-foreground">AI Translation</h4>
             <ScrollArea className="h-[400px]">
               <div className="space-y-2">
