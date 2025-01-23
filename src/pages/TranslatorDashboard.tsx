@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
@@ -15,18 +14,18 @@ import TranslationsList from "@/components/dashboard/TranslationsList";
 import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
+import WithdrawalRequestsTable from "@/components/dashboard/admin/WithdrawalRequestsTable";
 import { Database } from "@/integrations/supabase/types";
 import { Link } from "react-router-dom";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
-
-type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
   const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(false);
   const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(false);
+  const [isWithdrawalsOpen, setIsWithdrawalsOpen] = useState(false);
   
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -133,6 +132,22 @@ const TranslatorDashboard = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-4">
                     <TranslatorApprovals />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible 
+                  open={isWithdrawalsOpen}
+                  onOpenChange={setIsWithdrawalsOpen}
+                  className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Withdrawal Requests</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isWithdrawalsOpen ? 'transform rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <WithdrawalRequestsTable />
                   </CollapsibleContent>
                 </Collapsible>
               </motion.div>
