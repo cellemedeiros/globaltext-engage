@@ -5,8 +5,22 @@ import { DollarSign, TrendingUp, FileText, Wallet } from "lucide-react";
 import WithdrawalRequestForm from "./translator/WithdrawalRequestForm";
 
 const RATE_PER_WORD = 0.08; // R$0.08 per word
+const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
 
 const TranslatorEarnings = () => {
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
+  // Don't render anything for admin user
+  if (user?.id === ADMIN_USER_ID) {
+    return null;
+  }
+
   const { data: translations, refetch: refetchTranslations } = useQuery({
     queryKey: ['translator-translations'],
     queryFn: async () => {
