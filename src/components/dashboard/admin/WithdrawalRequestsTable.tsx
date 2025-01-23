@@ -101,7 +101,8 @@ export default function WithdrawalRequestsTable() {
       cell: ({ row }) => format(new Date(row.original.created_at), 'MMM d, yyyy HH:mm'),
     },
     {
-      id: "actions",
+      accessorKey: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         if (row.original.status === 'pending') {
           return (
