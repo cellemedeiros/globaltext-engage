@@ -24,9 +24,9 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
-  const [isOverviewOpen, setIsOverviewOpen] = useState(true);
-  const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(true);
-  const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(true);
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+  const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(false);
+  const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(false);
   
   const { data: profile } = useQuery({
     queryKey: ['profile'],
