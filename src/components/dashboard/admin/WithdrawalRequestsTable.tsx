@@ -49,6 +49,14 @@ export default function WithdrawalRequestsTable() {
       cell: ({ row }) => row.original.payment_method.replace('_', ' ').toUpperCase(),
     },
     {
+      accessorKey: "payment_details",
+      header: "PIX Key",
+      cell: ({ row }) => {
+        const paymentDetails = row.original.payment_details;
+        return paymentDetails?.pix_key || 'N/A';
+      },
+    },
+    {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
