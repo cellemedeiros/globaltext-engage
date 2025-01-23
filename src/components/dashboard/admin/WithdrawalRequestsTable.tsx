@@ -2,9 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DataTable } from "@/components/ui/data-table";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Check } from "lucide-react";
 
 export default function WithdrawalRequestsTable() {
-  const { data: withdrawalRequests, isLoading } = useQuery({
+  const { toast } = useToast();
+  const { data: withdrawalRequests, isLoading, refetch } = useQuery({
     queryKey: ['admin-withdrawal-requests'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -24,6 +28,31 @@ export default function WithdrawalRequestsTable() {
     },
   });
 
+  const handleMarkAsCompleted = async (id: string) => {
+    const { error } = await supabase
+      .from('withdrawal_requests')
+      .update({
+        status: 'completed',
+        processed_at: new Date().toISOString(),
+        processed_by: (await supabase.auth.getUser()).data.user?.id
+      })
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark payment as completed",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Payment marked as completed",
+      });
+      refetch();
+    }
+  };
+
   const columns = [
     {
       accessorKey: "translator",
@@ -41,7 +70,7 @@ export default function WithdrawalRequestsTable() {
     {
       accessorKey: "amount",
       header: "Amount",
-      cell: ({ row }) => `$${row.original.amount.toFixed(2)}`,
+      cell: ({ row }) => `R$${row.original.amount.toFixed(2)}`,
     },
     {
       accessorKey: "payment_details",
@@ -70,6 +99,25 @@ export default function WithdrawalRequestsTable() {
       accessorKey: "created_at",
       header: "Requested At",
       cell: ({ row }) => format(new Date(row.original.created_at), 'MMM d, yyyy HH:mm'),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        if (row.original.status === 'pending') {
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => handleMarkAsCompleted(row.original.id)}
+            >
+              <Check className="w-4 h-4" />
+              Mark as Paid
+            </Button>
+          );
+        }
+        return null;
+      },
     },
   ];
 

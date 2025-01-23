@@ -484,7 +484,10 @@ export type Database = {
         Args: {
           translator_uuid: string
         }
-        Returns: number
+        Returns: {
+          available_balance: number
+          pending_withdrawals: number
+        }[]
       }
       get_admin_dashboard_stats: {
         Args: Record<PropertyKey, never>

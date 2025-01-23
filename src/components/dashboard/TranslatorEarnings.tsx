@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { DollarSign, TrendingUp, FileText, Wallet } from "lucide-react";
+import { DollarSign, TrendingUp, FileText, Wallet, Clock } from "lucide-react";
 import WithdrawalRequestForm from "./translator/WithdrawalRequestForm";
 
 const RATE_PER_WORD = 0.08; // R$0.08 per word
@@ -27,11 +27,11 @@ const TranslatorEarnings = () => {
     },
   });
 
-  const { data: availableBalance, refetch: refetchBalance } = useQuery({
+  const { data: balanceInfo, refetch: refetchBalance } = useQuery({
     queryKey: ['translator-balance'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
+      if (!user) return { available_balance: 0, pending_withdrawals: 0 };
 
       const { data, error } = await supabase.rpc(
         'calculate_translator_balance',
@@ -42,7 +42,7 @@ const TranslatorEarnings = () => {
         console.error('Error calculating balance:', error);
         throw error;
       }
-      return data || 0;
+      return data || { available_balance: 0, pending_withdrawals: 0 };
     },
   });
 
@@ -50,8 +50,8 @@ const TranslatorEarnings = () => {
   const totalEarnings = totalWords * RATE_PER_WORD;
   const completedTranslations = translations?.length || 0;
   
-  // Ensure available balance never exceeds total earnings
-  const displayBalance = Math.min(Number(availableBalance || 0), totalEarnings);
+  const availableBalance = Number(balanceInfo?.available_balance || 0);
+  const pendingWithdrawals = Number(balanceInfo?.pending_withdrawals || 0);
 
   const handleWithdrawalSuccess = () => {
     refetchBalance();
@@ -62,7 +62,7 @@ const TranslatorEarnings = () => {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Earnings Overview</h2>
       
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-5">
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <DollarSign className="w-8 h-8 text-primary" />
@@ -78,7 +78,17 @@ const TranslatorEarnings = () => {
             <Wallet className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Available Balance</p>
-              <p className="text-2xl font-bold">R${displayBalance.toFixed(2)}</p>
+              <p className="text-2xl font-bold">R${availableBalance.toFixed(2)}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <Clock className="w-8 h-8 text-yellow-500" />
+            <div>
+              <p className="text-sm text-muted-foreground">Pending Withdrawals</p>
+              <p className="text-2xl font-bold">R${pendingWithdrawals.toFixed(2)}</p>
             </div>
           </div>
         </Card>
@@ -105,7 +115,7 @@ const TranslatorEarnings = () => {
       </div>
 
       <WithdrawalRequestForm 
-        availableBalance={displayBalance}
+        availableBalance={availableBalance}
         onSuccess={handleWithdrawalSuccess}
       />
     </div>
