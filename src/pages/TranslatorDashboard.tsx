@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
@@ -20,6 +20,8 @@ import { Database } from "@/integrations/supabase/types";
 import { Link } from "react-router-dom";
 
 const ADMIN_USER_ID = "37665cdd-1fdd-40d0-b485-35148c159bed";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const TranslatorDashboard = () => {
   const { toast } = useToast();
