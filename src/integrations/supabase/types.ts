@@ -480,6 +480,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      calculate_translator_balance: {
+        Args: {
+          translator_uuid: string
+        }
+        Returns: number
+      }
       get_admin_dashboard_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
