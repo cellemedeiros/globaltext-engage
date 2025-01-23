@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 import TranslatorAccessControl from "@/components/dashboard/translator/TranslatorAccessControl";
@@ -156,14 +156,16 @@ const TranslatorDashboard = () => {
               </motion.div>
             )}
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="grid gap-8"
-            >
-              <TranslatorEarnings />
-            </motion.div>
+            {!isAdmin && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="grid gap-8"
+              >
+                <TranslatorEarnings />
+              </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
