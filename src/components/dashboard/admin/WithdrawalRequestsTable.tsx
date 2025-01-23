@@ -44,11 +44,6 @@ export default function WithdrawalRequestsTable() {
       cell: ({ row }) => `$${row.original.amount.toFixed(2)}`,
     },
     {
-      accessorKey: "payment_method",
-      header: "Payment Method",
-      cell: ({ row }) => row.original.payment_method.replace('_', ' ').toUpperCase(),
-    },
-    {
       accessorKey: "payment_details",
       header: "PIX Key",
       cell: ({ row }) => {

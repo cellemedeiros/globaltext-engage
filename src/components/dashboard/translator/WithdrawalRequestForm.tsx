@@ -14,13 +14,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -32,8 +25,7 @@ const formSchema = z.object({
     },
     { message: "Amount must be a positive number" }
   ),
-  paymentMethod: z.enum(["pix", "bank_transfer"]),
-  paymentDetails: z.string().min(1, "Payment details are required"),
+  pixKey: z.string().min(1, "PIX key is required"),
 });
 
 interface WithdrawalRequestFormProps {
@@ -49,8 +41,7 @@ const WithdrawalRequestForm = ({ availableBalance, onSuccess }: WithdrawalReques
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: "",
-      paymentMethod: "pix",
-      paymentDetails: "",
+      pixKey: "",
     },
   });
 
@@ -76,8 +67,8 @@ const WithdrawalRequestForm = ({ availableBalance, onSuccess }: WithdrawalReques
         .insert({
           translator_id: user.id,
           amount,
-          payment_method: values.paymentMethod,
-          payment_details: { details: values.paymentDetails },
+          payment_method: 'pix',
+          payment_details: { pix_key: values.pixKey },
         });
 
       if (error) throw error;
@@ -128,38 +119,13 @@ const WithdrawalRequestForm = ({ availableBalance, onSuccess }: WithdrawalReques
 
           <FormField
             control={form.control}
-            name="paymentMethod"
+            name="pixKey"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Payment Method</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-gray-800">
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="paymentDetails"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Details</FormLabel>
+                <FormLabel>PIX Key</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter PIX key or bank account details"
+                    placeholder="Enter your PIX key"
                     {...field}
                   />
                 </FormControl>
