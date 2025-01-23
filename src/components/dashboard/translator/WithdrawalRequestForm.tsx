@@ -141,7 +141,7 @@ const WithdrawalRequestForm = ({ availableBalance, onSuccess }: WithdrawalReques
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800">
                     <SelectItem value="pix">PIX</SelectItem>
                     <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                   </SelectContent>
