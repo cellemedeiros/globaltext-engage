@@ -25,7 +25,6 @@ const TranslatorEarnings = () => {
         throw error;
       }
 
-      // Calculate amount_paid for each translation based on word count
       return data?.map(translation => ({
         ...translation,
         amount_paid: translation.word_count * RATE_PER_WORD
@@ -48,12 +47,14 @@ const TranslatorEarnings = () => {
         console.error('Error calculating balance:', error);
         throw error;
       }
-      return data || { available_balance: 0, pending_withdrawals: 0 };
+
+      // Ensure we return the first result or default values
+      return data?.[0] || { available_balance: 0, pending_withdrawals: 0 };
     },
   });
 
   const totalWords = translations?.reduce((sum, t) => sum + (t.word_count || 0), 0) || 0;
-  const totalEarnings = totalWords * RATE_PER_WORD;
+  const totalEarnings = translations?.reduce((sum, t) => sum + (t.amount_paid || 0), 0) || 0;
   const completedTranslations = translations?.length || 0;
   
   const availableBalance = Number(balanceInfo?.available_balance || 0);
