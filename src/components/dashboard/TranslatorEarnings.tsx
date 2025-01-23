@@ -2,11 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { DollarSign, TrendingUp, FileText, Wallet } from "lucide-react";
+import WithdrawalRequestForm from "./translator/WithdrawalRequestForm";
 
 const RATE_PER_WORD = 0.08; // R$0.08 per word
 
 const TranslatorEarnings = () => {
-  const { data: translations } = useQuery({
+  const { data: translations, refetch: refetchTranslations } = useQuery({
     queryKey: ['translator-translations'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -26,7 +27,7 @@ const TranslatorEarnings = () => {
     },
   });
 
-  const { data: availableBalance } = useQuery({
+  const { data: availableBalance, refetch: refetchBalance } = useQuery({
     queryKey: ['translator-balance'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -51,6 +52,11 @@ const TranslatorEarnings = () => {
   
   // Ensure available balance never exceeds total earnings
   const displayBalance = Math.min(Number(availableBalance || 0), totalEarnings);
+
+  const handleWithdrawalSuccess = () => {
+    refetchBalance();
+    refetchTranslations();
+  };
 
   return (
     <div className="space-y-6">
@@ -97,6 +103,11 @@ const TranslatorEarnings = () => {
           </div>
         </Card>
       </div>
+
+      <WithdrawalRequestForm 
+        availableBalance={displayBalance}
+        onSuccess={handleWithdrawalSuccess}
+      />
     </div>
   );
 };
