@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -13,11 +13,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminTranslationsOverview = () => {
-  const { data: translations, isLoading } = useQuery({
+  const { toast } = useToast();
+  const { data: translations, isLoading, refetch } = useQuery({
     queryKey: ['admin-translations-overview'],
     queryFn: async () => {
+      console.log('Fetching translations for admin overview...');
       const { data, error } = await supabase
         .from('translations')
         .select(`
@@ -39,10 +42,53 @@ const AdminTranslationsOverview = () => {
         throw error;
       }
 
+      console.log('Fetched translations:', data);
       return data;
     },
-    refetchInterval: 5000, // Refetch every 5 seconds
   });
+
+  useEffect(() => {
+    console.log('Setting up real-time subscription for translations...');
+    
+    const channel = supabase
+      .channel('admin_translations_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'translations',
+        },
+        async (payload) => {
+          console.log('Translation change detected:', payload);
+          console.log('Change type:', payload.eventType);
+          console.log('New data:', payload.new);
+          console.log('Old data:', payload.old);
+
+          await refetch();
+
+          // Show toast notification for claimed translations
+          if (
+            payload.eventType === 'UPDATE' && 
+            payload.new.translator_id && 
+            (!payload.old.translator_id || payload.old.translator_id !== payload.new.translator_id)
+          ) {
+            toast({
+              title: "Translation Claimed",
+              description: "A translator has claimed a new translation",
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up real-time subscription...');
+      supabase.removeChannel(channel);
+    };
+  }, [refetch, toast]);
 
   if (isLoading) {
     return (
