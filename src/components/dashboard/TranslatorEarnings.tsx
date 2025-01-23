@@ -17,13 +17,19 @@ const TranslatorEarnings = () => {
         .from('translations')
         .select('*')
         .eq('status', 'completed')
-        .eq('translator_id', user.id);
+        .eq('translator_id', user.id)
+        .order('completed_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching translations:', error);
         throw error;
       }
-      return data || [];
+
+      // Calculate amount_paid for each translation based on word count
+      return data?.map(translation => ({
+        ...translation,
+        amount_paid: translation.word_count * RATE_PER_WORD
+      })) || [];
     },
   });
 
