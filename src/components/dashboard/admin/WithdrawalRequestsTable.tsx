@@ -23,33 +23,47 @@ export default function WithdrawalRequestsTable() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching withdrawal requests:', error);
+        throw error;
+      }
       return data;
     },
   });
 
   const handleMarkAsCompleted = async (id: string) => {
-    const { error } = await supabase
-      .from('withdrawal_requests')
-      .update({
-        status: 'completed',
-        processed_at: new Date().toISOString(),
-        processed_by: (await supabase.auth.getUser()).data.user?.id
-      })
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('withdrawal_requests')
+        .update({
+          status: 'completed',
+          processed_at: new Date().toISOString(),
+          processed_by: (await supabase.auth.getUser()).data.user?.id
+        })
+        .eq('id', id)
+        .select();
 
-    if (error) {
+      if (error) {
+        console.error('Error marking payment as completed:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to mark payment as completed",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Payment marked as completed",
+        });
+        refetch();
+      }
+    } catch (err) {
+      console.error('Error in handleMarkAsCompleted:', err);
       toast({
         title: "Error",
-        description: "Failed to mark payment as completed",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Payment marked as completed",
-      });
-      refetch();
     }
   };
 
