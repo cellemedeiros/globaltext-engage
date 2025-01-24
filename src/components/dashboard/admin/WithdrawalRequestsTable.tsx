@@ -43,7 +43,27 @@ const WithdrawalRequestsTable = () => {
 
   const handleMarkAsCompleted = async (requestId: string) => {
     try {
-      const { error } = await supabase
+      // First check if the request exists and is in pending status
+      const { data: request, error: fetchError } = await supabase
+        .from('withdrawal_requests')
+        .select('status')
+        .eq('id', requestId)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (request?.status !== 'pending') {
+        toast({
+          title: "Error",
+          description: "This request cannot be marked as completed",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error: updateError } = await supabase
         .from('withdrawal_requests')
         .update({
           status: 'completed',
@@ -52,11 +72,11 @@ const WithdrawalRequestsTable = () => {
         })
         .eq('id', requestId);
 
-      if (error) {
-        console.error('Error marking payment as completed:', error);
+      if (updateError) {
+        console.error('Error marking payment as completed:', updateError);
         toast({
           title: "Error",
-          description: error.message || "Failed to mark payment as completed",
+          description: updateError.message || "Failed to mark payment as completed",
           variant: "destructive"
         });
         return;
