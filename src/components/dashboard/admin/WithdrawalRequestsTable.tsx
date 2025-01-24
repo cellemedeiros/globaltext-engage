@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 
 const WithdrawalRequestsTable = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: withdrawalRequests, refetch, isLoading } = useQuery({
     queryKey: ['withdrawal-requests'],
@@ -42,7 +43,7 @@ const WithdrawalRequestsTable = () => {
     retry: false
   });
 
-  const handleMarkAsCompleted = async (requestId: string) => {
+  const handleMarkAsCompleted = async (requestId: string, translatorId: string) => {
     try {
       // First check if the request exists and is in pending status
       const { data: request, error: fetchError } = await supabase
@@ -82,6 +83,10 @@ const WithdrawalRequestsTable = () => {
         });
         return;
       }
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['withdrawal-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['translator-balance'] });
 
       toast({
         title: "Success",
@@ -157,7 +162,7 @@ const WithdrawalRequestsTable = () => {
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {request.status === 'pending' && (
                   <Button 
-                    onClick={() => handleMarkAsCompleted(request.id)}
+                    onClick={() => handleMarkAsCompleted(request.id, request.translator_id)}
                     variant="default"
                   >
                     Mark as Completed
