@@ -24,8 +24,7 @@ const WithdrawalRequestsTable = () => {
             translator:translator_id(
               id,
               first_name,
-              last_name,
-              email
+              last_name
             )
           `)
           .order('created_at', { ascending: false });
@@ -56,7 +55,6 @@ const WithdrawalRequestsTable = () => {
 
   const handleMarkAsCompleted = async (id: string) => {
     try {
-      // First check if session is valid
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
