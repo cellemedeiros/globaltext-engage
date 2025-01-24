@@ -51,7 +51,8 @@ const WithdrawalRequestsTable = () => {
           processed_at: new Date().toISOString(),
           processed_by: (await supabase.auth.getUser()).data.user?.id
         })
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) {
         console.error('Error marking payment as completed:', error);
