@@ -2,11 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 
 const WithdrawalRequestsTable = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const { data: withdrawalRequests, refetch, isLoading } = useQuery({
     queryKey: ['withdrawal-requests'],
