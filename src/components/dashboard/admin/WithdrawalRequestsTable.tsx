@@ -31,22 +31,11 @@ const WithdrawalRequestsTable = () => {
 
         if (error) {
           console.error('Error fetching withdrawal requests:', error);
-          if (error.message?.includes('refresh_token_not_found')) {
-            await supabase.auth.signOut();
-            navigate('/?signin=true');
-            throw new Error('Session expired. Please sign in again.');
-          }
           throw error;
         }
         return data;
       } catch (error: any) {
         console.error('Error in withdrawal requests query:', error);
-        if (error.message?.includes('No active session') || 
-            error.message?.includes('refresh_token_not_found')) {
-          await supabase.auth.signOut();
-          navigate('/?signin=true');
-          throw new Error('Session expired. Please sign in again.');
-        }
         throw error;
       }
     },
@@ -55,86 +44,35 @@ const WithdrawalRequestsTable = () => {
 
   const handleMarkAsCompleted = async (id: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Session Expired",
-          description: "Please sign in again",
-          variant: "destructive"
-        });
-        navigate('/?signin=true');
-        return;
-      }
-
-      // First fetch the current request to ensure it exists and can be updated
-      const { data: currentRequest, error: fetchError } = await supabase
-        .from('withdrawal_requests')
-        .select('status')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching withdrawal request:', fetchError);
-        toast({
-          title: "Error",
-          description: "Could not fetch withdrawal request",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (currentRequest.status === 'completed') {
-        toast({
-          title: "Already Completed",
-          description: "This withdrawal request has already been processed",
-          variant: "default"
-        });
-        return;
-      }
-
       const { error } = await supabase
         .from('withdrawal_requests')
-        .update({
+        .update({ 
           status: 'completed',
           processed_at: new Date().toISOString(),
-          processed_by: session.user.id
+          processed_by: (await supabase.auth.getUser()).data.user?.id
         })
         .eq('id', id);
 
       if (error) {
         console.error('Error marking payment as completed:', error);
-        if (error.message?.includes('refresh_token_not_found')) {
-          await supabase.auth.signOut();
-          navigate('/?signin=true');
-          toast({
-            title: "Session Expired",
-            description: "Please sign in again",
-            variant: "destructive"
-          });
-          return;
-        }
-        
         toast({
           title: "Error",
           description: error.message || "Failed to mark payment as completed",
           variant: "destructive"
         });
-      } else {
-        toast({
-          title: "Success",
-          description: "Payment marked as completed",
-        });
-        refetch();
+        return;
       }
+
+      toast({
+        title: "Success",
+        description: "Payment marked as completed",
+      });
+      refetch();
     } catch (err: any) {
       console.error('Error in handleMarkAsCompleted:', err);
-      if (err.message?.includes('refresh_token_not_found')) {
-        await supabase.auth.signOut();
-        navigate('/?signin=true');
-      }
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     }
@@ -145,42 +83,63 @@ const WithdrawalRequestsTable = () => {
   }
 
   return (
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            ID
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Translator
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Amount
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Status
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {withdrawalRequests?.map((request) => (
-          <tr key={request.id}>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.id}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.translator.first_name} {request.translator.last_name}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.amount}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.status}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {request.status !== 'completed' && (
-                <Button onClick={() => handleMarkAsCompleted(request.id)}>Mark as Completed</Button>
-              )}
-            </td>
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              ID
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Translator
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Amount (R$)
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              PIX Key
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {withdrawalRequests?.map((request) => (
+            <tr key={request.id}>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {request.id}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {request.translator?.first_name} {request.translator?.last_name}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {request.amount.toFixed(2)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {request.payment_details?.pix_key}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {request.status}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {request.status === 'pending' && (
+                  <Button 
+                    onClick={() => handleMarkAsCompleted(request.id)}
+                    variant="default"
+                  >
+                    Mark as Completed
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 
