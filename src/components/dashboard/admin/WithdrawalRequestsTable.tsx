@@ -65,6 +65,7 @@ const WithdrawalRequestsTable = () => {
         return;
       }
 
+      // Update the withdrawal request status
       const { error: updateError } = await supabase
         .from('withdrawal_requests')
         .update({
@@ -72,7 +73,8 @@ const WithdrawalRequestsTable = () => {
           processed_at: new Date().toISOString(),
           processed_by: (await supabase.auth.getUser()).data.user?.id
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('status', 'pending'); // Additional check to prevent race conditions
 
       if (updateError) {
         console.error('Error marking payment as completed:', updateError);
