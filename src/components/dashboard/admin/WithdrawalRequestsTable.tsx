@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 const WithdrawalRequestsTable = () => {
   const { toast } = useToast();
@@ -40,16 +41,16 @@ const WithdrawalRequestsTable = () => {
     retry: false
   });
 
-  const handleMarkAsCompleted = async (id: string) => {
+  const handleMarkAsCompleted = async (requestId: string) => {
     try {
       const { error } = await supabase
         .from('withdrawal_requests')
-        .update({ 
+        .update({
           status: 'completed',
           processed_at: new Date().toISOString(),
           processed_by: (await supabase.auth.getUser()).data.user?.id
         })
-        .eq('id', id);
+        .eq('id', requestId);
 
       if (error) {
         console.error('Error marking payment as completed:', error);
@@ -86,9 +87,6 @@ const WithdrawalRequestsTable = () => {
         <thead className="bg-gray-50">
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              ID
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Translator
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -96,6 +94,9 @@ const WithdrawalRequestsTable = () => {
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               PIX Key
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Requested At
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Status
@@ -109,9 +110,6 @@ const WithdrawalRequestsTable = () => {
           {withdrawalRequests?.map((request) => (
             <tr key={request.id}>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {request.id}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {request.translator?.first_name} {request.translator?.last_name}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -119,6 +117,9 @@ const WithdrawalRequestsTable = () => {
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {request.payment_details?.pix_key}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {format(new Date(request.created_at || ''), 'PPP')}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {request.status}
