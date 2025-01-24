@@ -66,6 +66,32 @@ const WithdrawalRequestsTable = () => {
         return;
       }
 
+      // First fetch the current request to ensure it exists and can be updated
+      const { data: currentRequest, error: fetchError } = await supabase
+        .from('withdrawal_requests')
+        .select('status')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching withdrawal request:', fetchError);
+        toast({
+          title: "Error",
+          description: "Could not fetch withdrawal request",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (currentRequest.status === 'completed') {
+        toast({
+          title: "Already Completed",
+          description: "This withdrawal request has already been processed",
+          variant: "default"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('withdrawal_requests')
         .update({
@@ -73,8 +99,7 @@ const WithdrawalRequestsTable = () => {
           processed_at: new Date().toISOString(),
           processed_by: session.user.id
         })
-        .eq('id', id)
-        .select();
+        .eq('id', id);
 
       if (error) {
         console.error('Error marking payment as completed:', error);
@@ -148,7 +173,9 @@ const WithdrawalRequestsTable = () => {
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.amount}</td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.status}</td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              <Button onClick={() => handleMarkAsCompleted(request.id)}>Mark as Completed</Button>
+              {request.status !== 'completed' && (
+                <Button onClick={() => handleMarkAsCompleted(request.id)}>Mark as Completed</Button>
+              )}
             </td>
           </tr>
         ))}
