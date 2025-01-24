@@ -73,8 +73,7 @@ const WithdrawalRequestsTable = () => {
           processed_at: new Date().toISOString(),
           processed_by: (await supabase.auth.getUser()).data.user?.id
         })
-        .eq('id', requestId)
-        .eq('status', 'pending'); // Additional check to prevent race conditions
+        .eq('id', requestId);
 
       if (updateError) {
         console.error('Error marking payment as completed:', updateError);
