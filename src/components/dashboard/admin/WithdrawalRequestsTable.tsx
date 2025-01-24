@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const WithdrawalRequestsTable = () => {
   const { toast } = useToast();
@@ -141,8 +142,17 @@ const WithdrawalRequestsTable = () => {
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {format(new Date(request.created_at || ''), 'PPP')}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {request.status}
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <Badge 
+                  variant="outline"
+                  className={
+                    request.status === 'completed' 
+                      ? 'bg-green-100 text-green-800 border-green-500'
+                      : 'bg-yellow-100 text-yellow-800 border-yellow-500'
+                  }
+                >
+                  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                </Badge>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {request.status === 'pending' && (
