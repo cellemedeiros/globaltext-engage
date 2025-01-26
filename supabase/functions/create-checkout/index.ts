@@ -35,8 +35,8 @@ serve(async (req) => {
         });
 
         priceData = {
-          product: product.id,
           currency: 'brl',
+          product: product.id,
           unit_amount: Math.round(parseFloat(amount) * 100),
           recurring: {
             interval: 'month',
@@ -50,8 +50,8 @@ serve(async (req) => {
         });
 
         priceData = {
-          product: product.id,
           currency: 'brl',
+          product: product.id,
           unit_amount: Math.round(parseFloat(amount) * 100),
         };
       }
