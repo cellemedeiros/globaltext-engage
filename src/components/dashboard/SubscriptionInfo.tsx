@@ -16,7 +16,10 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const { toast } = useToast();
 
   useEffect(() => {
-    const subscription = supabase
+    const { data: authData } = await supabase.auth.getSession();
+    if (!authData.session?.user) return;
+
+    const channel = supabase
       .channel('subscription-changes')
       .on(
         'postgres_changes',
@@ -24,6 +27,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           event: '*',
           schema: 'public',
           table: 'subscriptions',
+          filter: `user_id=eq.${authData.session.user.id}`,
         },
         (payload) => {
           console.log('Subscription update received:', payload);
@@ -31,12 +35,16 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             title: "Assinatura atualizada",
             description: "O status da sua assinatura foi atualizado.",
           });
+          // Force a page refresh to get the latest subscription data
+          window.location.reload();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
-      supabase.removeChannel(subscription);
+      supabase.removeChannel(channel);
     };
   }, [toast]);
 
