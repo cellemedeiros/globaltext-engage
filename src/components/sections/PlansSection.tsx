@@ -18,7 +18,7 @@ const PlansSection = () => {
       price: "R$400",
       period: "/month",
       features: [
-        { text: "Up to 10,000 words per month", available: true },
+        { text: "Up to 5,000 words per month", available: true },
         { text: "Email support", available: true },
         { text: "Basic translation tools", available: true },
         { text: "48-hour delivery", available: true },

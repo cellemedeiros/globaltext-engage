@@ -79,6 +79,19 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
   console.log('Rendering SubscriptionInfo with subscription:', subscription);
 
+  const getInitialWordCount = (planName: string) => {
+    switch (planName) {
+      case 'Standard':
+        return 5000;
+      case 'Premium':
+        return 15000;
+      case 'Business':
+        return 50000;
+      default:
+        return 0;
+    }
+  };
+
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Subscription Status</h2>
@@ -97,7 +110,9 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           
           <div>
             <p className="text-sm text-muted-foreground">Words Remaining</p>
-            <p className="font-medium">{subscription.words_remaining}</p>
+            <p className="font-medium">
+              {subscription.words_remaining ?? getInitialWordCount(subscription.plan_name)}
+            </p>
           </div>
           
           <div>
