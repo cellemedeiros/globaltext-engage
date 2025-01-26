@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
 interface Subscription {
@@ -21,9 +21,15 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const { data: activeSubscription, isLoading } = useQuery({
     queryKey: ['active-subscription'],
     queryFn: async () => {
+      console.log('Fetching subscription data...');
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
+      if (!session) {
+        console.log('No session found');
+        return null;
+      }
 
+      console.log('Session found, user ID:', session.user.id);
+      
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -41,6 +47,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
         return null;
       }
 
+      console.log('Fetched subscription data:', data);
       return data;
     },
   });
