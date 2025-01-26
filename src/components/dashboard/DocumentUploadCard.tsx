@@ -38,6 +38,17 @@ const DocumentUploadCard = ({ hasActiveSubscription, wordsRemaining }: DocumentU
 
       const isAdmin = session.user.email === 'bispomathews@gmail.com';
 
+      // Check if user has sufficient words remaining before uploading
+      if (!isAdmin && (!wordsRemaining || wordsRemaining < data.wordCount)) {
+        toast({
+          title: "Insufficient Words",
+          description: "You don't have enough words remaining in your subscription",
+          variant: "destructive"
+        });
+        navigate(`/payment?words=${data.wordCount}&amount=${calculatePrice(data.wordCount)}&documentName=${encodeURIComponent(data.file.name)}&filePath=${data.filePath}&sourceLanguage=${data.sourceLanguage}&targetLanguage=${data.targetLanguage}&content=${encodeURIComponent(data.extractedText)}`);
+        return;
+      }
+
       // Upload file to storage
       const { error: storageError } = await supabase.storage
         .from('translations')
