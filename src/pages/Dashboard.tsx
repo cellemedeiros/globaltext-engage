@@ -66,8 +66,10 @@ const Dashboard = () => {
       return data;
     },
     retry: 1,
-    onError: (error) => {
-      console.error('Subscription query error:', error);
+    meta: {
+      onError: (error: Error) => {
+        console.error('Subscription query error:', error);
+      }
     }
   });
 
