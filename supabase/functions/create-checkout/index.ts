@@ -12,49 +12,28 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('Starting checkout session creation...');
-
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
   );
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('No authorization header found');
-      throw new Error('No authorization header');
-    }
-
-    console.log('Authorization header found, getting user...');
+    const { amount, words, plan, documentName, filePath, sourceLanguage, targetLanguage, content, type } = await req.json();
+    const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
-    if (userError || !user) {
-      console.error('Authentication failed:', userError);
-      throw new Error('Authentication failed');
+    if (userError || !user?.email) {
+      throw new Error('Authentication required');
     }
 
-    if (!user.email) {
-      console.error('User email not found');
-      throw new Error('User email not found');
-    }
+    console.log('Creating checkout session for:', { email: user.email, plan, type });
 
-    console.log('User authenticated successfully');
-
-    const { amount, words, plan, documentName, filePath, sourceLanguage, targetLanguage, content, type } = await req.json();
-    
-    if (!amount && !plan) {
-      console.error('Amount or plan is required');
-      throw new Error('Amount or plan is required');
-    }
-
-    console.log('Creating Stripe instance...');
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
 
-    console.log('Looking up customer for email:', user.email);
+    // Check if customer already exists
     const customers = await stripe.customers.list({
       email: user.email,
       limit: 1,
@@ -63,65 +42,68 @@ serve(async (req) => {
     let customer_id = undefined;
     if (customers.data.length > 0) {
       customer_id = customers.data[0].id;
-      console.log('Existing customer found:', customer_id);
-    } else {
-      console.log('No existing customer found, will create new');
-    }
+      
+      // For subscriptions, check if already subscribed
+      if (type === 'subscription' && plan) {
+        const priceId = plan === 'Standard' 
+          ? Deno.env.get('STANDARD_PLAN_PRICE')
+          : Deno.env.get('PREMIUM_PLAN_PRICE');
 
-    // Get the appropriate price ID based on the plan
-    let priceId;
-    if (type === 'subscription') {
-      switch (plan) {
-        case 'Standard':
-          priceId = Deno.env.get('STANDARD_PLAN_PRICE');
-          break;
-        case 'Premium':
-          priceId = Deno.env.get('PREMIUM_PLAN_PRICE');
-          break;
-        default:
-          throw new Error('Invalid plan selected');
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customer_id,
+          status: 'active',
+          price: priceId,
+          limit: 1,
+        });
+
+        if (subscriptions.data.length > 0) {
+          throw new Error('Already subscribed to this plan');
+        }
       }
     }
 
-    const metadata = {
-      type,
-      userId: user.id,
-      words: words?.toString().slice(0, 100),
-      documentName: documentName?.slice(0, 100),
-      filePath: filePath?.slice(0, 100),
-      sourceLanguage: sourceLanguage?.slice(0, 50),
-      targetLanguage: targetLanguage?.slice(0, 50),
-      plan: plan || undefined,
-      contentPreview: content ? `${content.slice(0, 100)}...` : undefined
-    };
-
-    const sessionConfig = {
-      mode: type === 'subscription' ? 'subscription' : 'payment',
-      line_items: [
-        {
-          price: type === 'subscription' ? priceId : undefined,
-          price_data: type === 'subscription' ? undefined : {
-            currency: 'usd',
-            product_data: {
-              name: `Translation Service${words ? ` - ${words} words` : ''}`,
-              description: documentName ? `Document: ${documentName}` : undefined,
-            },
-            unit_amount: Math.round(parseFloat(amount) * 100),
-          },
-          quantity: 1,
-        },
-      ],
-      metadata,
+    // Set up the checkout session configuration
+    const sessionConfig: any = {
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
+      line_items: [{
+        quantity: 1,
+        price_data: type === 'subscription' && plan
+          ? undefined
+          : {
+              currency: 'usd',
+              product_data: {
+                name: `Translation Service${words ? ` - ${words} words` : ''}`,
+                description: documentName ? `Document: ${documentName}` : undefined,
+              },
+              unit_amount: Math.round(parseFloat(amount) * 100),
+            },
+        price: type === 'subscription' && plan
+          ? (plan === 'Standard' 
+              ? Deno.env.get('STANDARD_PLAN_PRICE') 
+              : Deno.env.get('PREMIUM_PLAN_PRICE'))
+          : undefined,
+      }],
+      mode: type === 'subscription' ? 'subscription' : 'payment',
       success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
       cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
+      metadata: {
+        user_id: user.id,
+        type,
+        plan: plan || undefined,
+        words: words?.toString().slice(0, 100),
+        documentName: documentName?.slice(0, 100),
+        filePath: filePath?.slice(0, 100),
+        sourceLanguage: sourceLanguage?.slice(0, 50),
+        targetLanguage: targetLanguage?.slice(0, 50),
+        contentPreview: content ? `${content.slice(0, 100)}...` : undefined,
+      },
     };
 
-    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
+    console.log('Creating checkout session with config:', sessionConfig);
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
-    console.log('Payment session created:', session.id);
+    console.log('Checkout session created:', session.id);
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
@@ -130,7 +112,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error creating payment session:', error);
+    console.error('Error creating checkout session:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
