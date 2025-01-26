@@ -24,6 +24,7 @@ interface MRRData {
     plan_name: string;
     subscription_count: number;
     plan_revenue: number;
+    user_id: string;
   }>;
 }
 
@@ -107,10 +108,19 @@ const MRRMetrics = () => {
 
   const getSubscriptionsByPlan = (planName: string) => {
     if (!currentMonth?.subscription_breakdown) return null;
-    const plan = currentMonth.subscription_breakdown.find(
-      plan => plan.plan_name.toLowerCase() === planName.toLowerCase()
-    );
-    return plan || { subscription_count: 0, plan_revenue: 0 };
+    
+    // Aggregate subscriptions by plan name
+    const planSubscriptions = currentMonth.subscription_breakdown.reduce((acc, sub) => {
+      if (sub.plan_name.toLowerCase() === planName.toLowerCase()) {
+        return {
+          subscription_count: (acc.subscription_count || 0) + (sub.subscription_count || 1),
+          plan_revenue: (acc.plan_revenue || 0) + (sub.plan_revenue || 0),
+        };
+      }
+      return acc;
+    }, { subscription_count: 0, plan_revenue: 0 });
+    
+    return planSubscriptions;
   };
 
   const standardPlan = getSubscriptionsByPlan('standard');

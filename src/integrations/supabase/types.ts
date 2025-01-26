@@ -569,6 +569,7 @@ export type Database = {
           churned_mrr: number
           total_customers: number
           active_subscriptions: number
+          subscription_breakdown: Json
         }[]
       }
     }
