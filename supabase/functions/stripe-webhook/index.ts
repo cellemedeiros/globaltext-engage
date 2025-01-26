@@ -43,6 +43,33 @@ serve(async (req) => {
     console.log(`Processing webhook event: ${event.type}`, event.data.object);
 
     switch (event.type) {
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        console.log('Processing payment intent:', {
+          paymentIntentId: paymentIntent.id,
+          amount: paymentIntent.amount,
+          status: paymentIntent.status,
+        });
+
+        // If this is a translation payment
+        if (paymentIntent.metadata?.translationId) {
+          const { error: updateError } = await supabaseAdmin
+            .from('translations')
+            .update({
+              payment_status: 'succeeded',
+              stripe_payment_intent_id: paymentIntent.id,
+              stripe_customer_id: paymentIntent.customer,
+            })
+            .eq('id', paymentIntent.metadata.translationId);
+
+          if (updateError) {
+            console.error('Error updating translation payment status:', updateError);
+            throw updateError;
+          }
+        }
+        break;
+      }
+
       case 'checkout.session.completed': {
         const session = event.data.object;
         console.log('Processing completed checkout session:', {
