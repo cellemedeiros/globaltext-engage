@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import AuthDialog from "@/components/auth/AuthDialog";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Feature {
   text: string;
@@ -34,22 +35,60 @@ const PlanCard = ({
   const { toast } = useToast();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const handlePlanSelection = () => {
+  const handlePlanSelection = async () => {
     if (!isAuthenticated) {
       setShowAuthDialog(true);
       toast({
         title: "Authentication Required",
         description: "Please sign in or create an account to select a plan.",
       });
-    } else {
-      if (name === "Business") {
-        // Handle business plan contact logic
-      } else {
-        // For subscription plans, only pass the plan name and price
-        const cleanPrice = price.replace("R$", "");
-        navigate(`/payment?plan=${name}&amount=${cleanPrice}&type=subscription`);
-      }
+      return;
     }
+
+    // Check if user has an active subscription
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to continue.",
+      });
+      return;
+    }
+
+    const { data: subscriptions, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking subscription:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check subscription status. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (name === "Business") {
+      // Handle business plan contact logic
+      return;
+    }
+
+    if (subscriptions) {
+      toast({
+        title: "Active Subscription",
+        description: "You already have an active subscription. Please cancel your current plan before switching.",
+      });
+      navigate('/dashboard');
+      return;
+    }
+
+    // For subscription plans, convert price to number and navigate to payment
+    const amount = name === "Standard" ? "400" : name === "Premium" ? "1200" : "";
+    navigate(`/payment?plan=${name}&amount=${amount}&type=subscription`);
   };
 
   return (
