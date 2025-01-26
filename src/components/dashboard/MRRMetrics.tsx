@@ -28,15 +28,19 @@ interface MRRData {
 }
 
 const MRRMetrics = () => {
-  const { data: mrrData, isLoading } = useQuery({
+  const { data: mrrData, isLoading, error } = useQuery({
     queryKey: ["mrr-metrics"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
       const { data, error } = await supabase.rpc('get_mrr_metrics');
-      if (error) throw error;
-
+      if (error) {
+        console.error('Error fetching MRR metrics:', error);
+        throw error;
+      }
+      
+      console.log('MRR metrics data:', data); // Debug log
       return data as MRRData[];
     },
   });
@@ -54,7 +58,24 @@ const MRRMetrics = () => {
     );
   }
 
-  const sortedData = [...(mrrData || [])].sort(
+  if (error) {
+    console.error('Error in MRRMetrics:', error);
+    return (
+      <div className="text-center p-4">
+        <p className="text-red-500">Error loading metrics data</p>
+      </div>
+    );
+  }
+
+  if (!mrrData || mrrData.length === 0) {
+    return (
+      <div className="text-center p-4">
+        <p className="text-muted-foreground">No metrics data available</p>
+      </div>
+    );
+  }
+
+  const sortedData = [...mrrData].sort(
     (a, b) => new Date(b.month_date).getTime() - new Date(a.month_date).getTime()
   );
 
