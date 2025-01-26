@@ -60,7 +60,7 @@ const PaymentProcessor = ({
         amount,
         words,
         plan,
-        type: plan ? 'subscription' : 'translation'
+        type: 'subscription' // Always create as subscription
       });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -73,7 +73,7 @@ const PaymentProcessor = ({
           sourceLanguage,
           targetLanguage,
           content,
-          type: plan ? 'subscription' : 'translation'
+          type: 'subscription' // Always set type as subscription
         },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
@@ -115,7 +115,7 @@ const PaymentProcessor = ({
             Processing...
           </div>
         ) : (
-          `Proceed to Payment - ${plan ? plan : `$${amount}`}`
+          `Subscribe to ${plan} - $${amount}`
         )}
       </Button>
     </div>
