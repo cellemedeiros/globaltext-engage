@@ -19,20 +19,24 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage } = await req.json();
+    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, type } = await req.json();
 
-    console.log('Received checkout request:', { amount, plan, email, documentName });
+    console.log('Received checkout request:', { amount, plan, email, documentName, type });
 
     if (!amount || !email || !user_id) {
       throw new Error('Missing required fields: amount, email, or user_id');
     }
 
-    // Create product for this subscription
+    // Create product for this payment
     let product;
     try {
       product = await stripe.products.create({
-        name: `${plan || 'Translation'} Plan`,
-        description: `Translation service subscription - ${plan || 'Standard'} plan`,
+        name: type === 'subscription' 
+          ? `${plan || 'Translation'} Plan` 
+          : `Translation: ${documentName || 'Document'}`,
+        description: type === 'subscription'
+          ? `Translation service subscription - ${plan || 'Standard'} plan`
+          : `One-time translation payment for ${documentName}`,
       });
       console.log('Created Stripe product:', product.id);
     } catch (error) {
@@ -40,17 +44,25 @@ serve(async (req) => {
       throw error;
     }
 
-    // Create price for the subscription
+    // Create price
     let price;
     try {
-      price = await stripe.prices.create({
+      const priceData = {
         product: product.id,
         unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
         currency: 'brl',
-        recurring: {
-          interval: 'month',
-        },
-      });
+      };
+
+      // Add recurring property only for subscriptions
+      if (type === 'subscription') {
+        Object.assign(priceData, {
+          recurring: {
+            interval: 'month',
+          },
+        });
+      }
+
+      price = await stripe.prices.create(priceData);
       console.log('Created Stripe price:', price.id);
     } catch (error) {
       console.error('Error creating Stripe price:', error);
@@ -59,7 +71,7 @@ serve(async (req) => {
 
     // Create checkout session
     try {
-      const session = await stripe.checkout.sessions.create({
+      const sessionData = {
         customer_email: email,
         line_items: [
           {
@@ -67,20 +79,21 @@ serve(async (req) => {
             quantity: 1,
           },
         ],
-        mode: 'subscription',
+        mode: type === 'subscription' ? 'subscription' : 'payment',
         success_url: `${req.headers.get('origin')}/payment?payment=success`,
         cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
         metadata: {
           user_id,
-          type: 'subscription',
+          type,
           plan,
           documentName,
           filePath,
           sourceLanguage,
           targetLanguage,
         },
-      });
+      };
 
+      const session = await stripe.checkout.sessions.create(sessionData);
       console.log('Created checkout session:', session.id);
 
       return new Response(

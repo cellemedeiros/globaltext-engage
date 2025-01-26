@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
@@ -9,7 +9,7 @@ interface PaymentProcessorProps {
   amount: string | null;
   words?: string | null;
   plan?: string | null;
-  session: Session | null;
+  session: any;
   documentName?: string | null;
   filePath?: string | null;
   sourceLanguage?: string | null;
@@ -95,7 +95,9 @@ const PaymentProcessor = ({
         documentName,
         filePath,
         sourceLanguage,
-        targetLanguage
+        targetLanguage,
+        // Determine payment type based on presence of plan
+        type: plan ? 'subscription' : 'payment'
       };
 
       console.log('Creating checkout session with payload:', payload);
