@@ -44,6 +44,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
               title: "Subscription Updated",
               description: "Your subscription status has been updated.",
             });
+            // Force a page reload to reflect the new subscription status
             window.location.reload();
           }
         )
@@ -107,7 +108,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           
           <div>
             <p className="text-sm text-muted-foreground">Status</p>
-            <p className="font-medium">{subscription.status}</p>
+            <p className="font-medium capitalize">{subscription.status}</p>
           </div>
           
           <div>
