@@ -6,12 +6,12 @@ i18n
   .use(HttpBackend)
   .use(initReactI18next)
   .init({
-    lng: 'en',
-    fallbackLng: 'en',
-    supportedLngs: ['en', 'es', 'fr', 'it', 'de', 'pt'],
+    lng: 'pt',
+    fallbackLng: 'pt',
+    supportedLngs: ['pt', 'en', 'es', 'fr', 'it', 'de'],
     ns: ['translation'],
     defaultNS: 'translation',
-    debug: true, // Enable debug mode to see what's happening
+    debug: true,
     interpolation: {
       escapeValue: false,
     },

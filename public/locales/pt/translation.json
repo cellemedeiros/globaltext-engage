@@ -2,12 +2,127 @@
   "nav": {
     "features": "Recursos",
     "pricing": "Preços",
-    "contact": "Contato"
+    "contact": "Contato",
+    "dashboard": "Painel",
+    "logout": "Sair"
   },
   "hero": {
     "title": "Mais do que simples traduções...",
     "subtitle": "Capacitando empresas e indivíduos com comunicação precisa e culturalmente relevante.",
     "explore": "Explorar recursos",
     "contact": "Entre em contato"
+  },
+  "features": {
+    "title": "Recursos Principais",
+    "subtitle": "Descubra como podemos ajudar você a alcançar seu público global",
+    "translation": {
+      "title": "Tradução Profissional",
+      "description": "Traduções precisas e culturalmente adaptadas por especialistas qualificados"
+    },
+    "localization": {
+      "title": "Localização de Conteúdo",
+      "description": "Adaptação completa do seu conteúdo para mercados específicos"
+    },
+    "review": {
+      "title": "Revisão Especializada",
+      "description": "Processo de revisão rigoroso para garantir qualidade excepcional"
+    }
+  },
+  "pricing": {
+    "title": "Planos e Preços",
+    "subtitle": "Escolha o plano ideal para suas necessidades",
+    "monthly": "por mês",
+    "standard": {
+      "title": "Padrão",
+      "description": "Para pequenas empresas",
+      "price": "R$199",
+      "features": [
+        "Até 10.000 palavras por mês",
+        "2 idiomas",
+        "Suporte por email",
+        "Revisão básica"
+      ]
+    },
+    "premium": {
+      "title": "Premium",
+      "description": "Para empresas em crescimento",
+      "price": "R$399",
+      "features": [
+        "Até 25.000 palavras por mês",
+        "5 idiomas",
+        "Suporte prioritário",
+        "Revisão avançada"
+      ]
+    },
+    "business": {
+      "title": "Empresarial",
+      "description": "Para grandes empresas",
+      "price": "Personalizado",
+      "features": [
+        "Volume ilimitado",
+        "Todos os idiomas",
+        "Suporte dedicado",
+        "Revisão premium"
+      ]
+    }
+  },
+  "contact": {
+    "title": "Entre em Contato",
+    "subtitle": "Estamos aqui para ajudar",
+    "form": {
+      "name": "Nome",
+      "email": "E-mail",
+      "message": "Mensagem",
+      "submit": "Enviar mensagem"
+    }
+  },
+  "auth": {
+    "signIn": "Entrar",
+    "signUp": "Cadastrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "forgotPassword": "Esqueceu a senha?",
+    "noAccount": "Não tem uma conta?",
+    "hasAccount": "Já tem uma conta?"
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo",
+    "stats": {
+      "totalTranslations": "Total de Traduções",
+      "completed": "Concluídas",
+      "pending": "Pendentes",
+      "words": "Total de Palavras"
+    },
+    "upload": {
+      "title": "Enviar Documento",
+      "drag": "Arraste e solte seu arquivo aqui",
+      "or": "ou",
+      "browse": "Procurar arquivo",
+      "formats": "Formatos suportados: PDF, DOCX, TXT"
+    }
+  },
+  "translator": {
+    "dashboard": {
+      "title": "Painel do Tradutor",
+      "available": "Traduções Disponíveis",
+      "inProgress": "Em Andamento",
+      "completed": "Concluídas",
+      "earnings": "Ganhos"
+    },
+    "application": {
+      "title": "Aplicar como Tradutor",
+      "submit": "Enviar Aplicação"
+    }
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro",
+    "success": "Sucesso!",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "confirm": "Confirmar",
+    "back": "Voltar"
   }
 }
