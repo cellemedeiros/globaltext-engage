@@ -54,9 +54,13 @@ const Dashboard = () => {
           .eq('status', 'active')
           .order('started_at', { ascending: false })
           .limit(1)
-          .maybeSingle();
+          .single();
 
         if (error) {
+          if (error.code === 'PGRST116') {
+            console.log('No active subscription found');
+            return null;
+          }
           console.error('Subscription fetch error:', error);
           toast({
             title: "Error fetching subscription",
@@ -79,11 +83,6 @@ const Dashboard = () => {
       }
     },
     retry: 1,
-    meta: {
-      onError: (error: Error) => {
-        console.error('Subscription query error:', error);
-      }
-    }
   });
 
   return (
