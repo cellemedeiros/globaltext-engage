@@ -16,9 +16,8 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const { toast } = useToast();
 
   useEffect(() => {
-    // Subscribe to real-time changes on the subscriptions table
-    const channel = supabase
-      .channel('subscription-updates')
+    const subscription = supabase
+      .channel('subscription-changes')
       .on(
         'postgres_changes',
         {
@@ -27,34 +26,29 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           table: 'subscriptions',
         },
         (payload) => {
-          console.log('Subscription update:', payload);
-          // Show a toast notification when subscription is updated
+          console.log('Subscription update received:', payload);
           toast({
             title: "Assinatura atualizada",
             description: "O status da sua assinatura foi atualizado.",
           });
-          // The parent component (ProfileSection) will automatically refresh the data
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(subscription);
     };
   }, [toast]);
 
   const handleUpgrade = () => {
-    // If user has no subscription, navigate to payment with Business plan
     if (!subscription) {
       navigate('/#pricing');
       return;
     }
     
-    // If upgrading from Standard or Premium to Business
     if (subscription.plan_name === 'Standard' || subscription.plan_name === 'Premium') {
       navigate('/payment?plan=Business&amount=2500');
     } else {
-      // For Business users or other cases, show pricing options
       navigate('/#pricing');
     }
   };
