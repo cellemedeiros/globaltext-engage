@@ -56,9 +56,9 @@ const PaymentProcessor = ({
         throw new Error('No active session');
       }
 
-      console.log('Creating checkout session...', {
-        amount,
-        words,
+      const payload = {
+        amount, 
+        words, 
         plan,
         email: session.user.email,
         user_id: session.user.id,
@@ -66,38 +66,31 @@ const PaymentProcessor = ({
         filePath,
         sourceLanguage,
         targetLanguage,
-        content
-      });
+        content,
+        type: 'subscription'
+      };
+
+      console.log('Creating checkout session with payload:', payload);
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          amount, 
-          words, 
-          plan,
-          email: session.user.email,
-          user_id: session.user.id,
-          documentName,
-          filePath,
-          sourceLanguage,
-          targetLanguage,
-          content,
-          type: 'subscription'
-        },
+        body: payload,
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
       });
+
+      console.log('Checkout response:', { data, error });
 
       if (error) {
         console.error('Checkout error:', error);
         throw error;
       }
 
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
+      if (!data?.url) {
         throw new Error('No checkout URL received');
       }
+
+      window.location.href = data.url;
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
