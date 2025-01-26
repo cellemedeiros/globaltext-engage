@@ -218,6 +218,8 @@ export type Database = {
           plan_name: string
           started_at: string | null
           status: string
+          stripe_customer_id: string | null
+          stripe_session_id: string | null
           user_id: string
           words_remaining: number | null
         }
@@ -228,6 +230,8 @@ export type Database = {
           plan_name: string
           started_at?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
           user_id: string
           words_remaining?: number | null
         }
@@ -238,6 +242,8 @@ export type Database = {
           plan_name?: string
           started_at?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
           user_id?: string
           words_remaining?: number | null
         }

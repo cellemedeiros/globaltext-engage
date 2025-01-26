@@ -43,46 +43,66 @@ serve(async (req) => {
     console.log(`Processing webhook event: ${event.type}`);
 
     switch (event.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object;
-        const metadata = subscription.metadata || {};
-        const userId = metadata.user_id || subscription.customer.metadata?.user_id;
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const customerId = session.customer;
+        const customerEmail = session.customer_details?.email;
         
-        if (!userId) {
-          throw new Error('No user ID found in metadata');
+        console.log('Processing completed checkout session:', {
+          sessionId: session.id,
+          customerId,
+          customerEmail
+        });
+
+        // Get user ID from Supabase based on email
+        const { data: userData, error: userError } = await supabaseAdmin
+          .from('auth.users')
+          .select('id')
+          .eq('email', customerEmail)
+          .single();
+
+        if (userError) {
+          console.error('Error fetching user:', userError);
+          throw userError;
         }
+
+        const userId = userData.id;
 
         // Calculate words based on plan
         let wordsAllowed = 0;
-        const planName = metadata.plan;
+        const planName = session.metadata?.plan || 'Standard';
         if (planName === 'Standard') {
-          wordsAllowed = 10000;
+          wordsAllowed = 5000;
         } else if (planName === 'Premium') {
           wordsAllowed = 15000;
         } else if (planName === 'Business') {
           wordsAllowed = 50000;
         }
 
+        // Set expiration date to 30 days from now
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
         console.log('Updating subscription in database:', {
           userId,
           planName,
-          status: subscription.status,
-          wordsAllowed
+          wordsAllowed,
+          expiresAt
         });
 
         // Update subscription in database
         const { error: subscriptionError } = await supabaseAdmin
           .from('subscriptions')
           .upsert({
-            id: subscription.id,
             user_id: userId,
             plan_name: planName,
-            status: subscription.status,
+            status: 'active',
             words_remaining: wordsAllowed,
-            started_at: new Date(subscription.current_period_start * 1000).toISOString(),
-            expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-            amount_paid: subscription.plan.amount / 100,
+            started_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString(),
+            amount_paid: session.amount_total ? session.amount_total / 100 : 0,
+            stripe_session_id: session.id,
+            stripe_customer_id: customerId
           });
 
         if (subscriptionError) {
@@ -90,31 +110,21 @@ serve(async (req) => {
           throw subscriptionError;
         }
 
-        console.log('Successfully updated subscription in database');
-        break;
-      }
+        // Create notification for user
+        const { error: notificationError } = await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: userId,
+            title: 'Subscription Activated',
+            message: `Your ${planName} plan subscription has been activated successfully.`
+          });
 
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
-        const userId = subscription.metadata.user_id || subscription.customer.metadata?.user_id;
-
-        if (!userId) {
-          throw new Error('No user ID found in metadata');
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+          // Don't throw here, as the subscription was already created
         }
 
-        console.log('Cancelling subscription in database:', { userId });
-
-        const { error: subscriptionError } = await supabaseAdmin
-          .from('subscriptions')
-          .update({ status: 'cancelled' })
-          .eq('id', subscription.id);
-
-        if (subscriptionError) {
-          console.error('Error updating subscription:', subscriptionError);
-          throw subscriptionError;
-        }
-
-        console.log('Successfully cancelled subscription in database');
+        console.log('Successfully updated subscription and created notification');
         break;
       }
 
