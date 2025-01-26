@@ -52,10 +52,16 @@ serve(async (req) => {
           sessionId: session.id,
           customerId,
           customerEmail,
-          metadata: session.metadata
+          metadata: session.metadata,
+          clientReferenceId: session.client_reference_id
         });
 
-        // Get user ID from Supabase based on email
+        if (!session.client_reference_id) {
+          console.error('No client_reference_id found in session');
+          throw new Error('No client reference ID found');
+        }
+
+        // Get user ID from Supabase based on client_reference_id
         const { data: users, error: userError } = await supabaseAdmin
           .from('profiles')
           .select('id')
@@ -68,6 +74,7 @@ serve(async (req) => {
         }
 
         const userId = users[0].id;
+        console.log('Found user ID:', userId);
 
         // Calculate words based on plan
         let wordsAllowed = 0;
@@ -89,7 +96,8 @@ serve(async (req) => {
           planName,
           wordsAllowed,
           expiresAt,
-          sessionId: session.id
+          sessionId: session.id,
+          amount: session.amount_total
         });
 
         // Update subscription in database
@@ -112,6 +120,8 @@ serve(async (req) => {
           throw subscriptionError;
         }
 
+        console.log('Successfully updated subscription');
+
         // Create notification for user
         const { error: notificationError } = await supabaseAdmin
           .from('notifications')
@@ -126,7 +136,7 @@ serve(async (req) => {
           // Don't throw here, as the subscription was already created
         }
 
-        console.log('Successfully updated subscription and created notification');
+        console.log('Successfully created notification');
         break;
       }
 
