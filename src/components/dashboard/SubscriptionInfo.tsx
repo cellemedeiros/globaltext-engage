@@ -113,6 +113,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const handleUpgrade = () => {
     if (!activeSubscription) {
       console.log('No subscription, redirecting to pricing');
+      // Always include type=subscription in the URL to indicate monthly payment
       navigate('/#pricing');
       return;
     }
@@ -120,9 +121,8 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
     console.log('Current subscription plan:', activeSubscription.plan_name);
     if (activeSubscription.plan_name === 'Business') {
       navigate('/#contact');
-    } else if (activeSubscription.plan_name === 'Standard' || activeSubscription.plan_name === 'Premium') {
-      navigate('/#contact');
     } else {
+      // For upgrades, also ensure we're handling it as a subscription
       navigate('/#pricing');
     }
   };
@@ -190,7 +190,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            {activeSubscription.plan_name === 'Business' ? 'Contact Support' : 'Contact Us for Business Plan'}
+            {activeSubscription.plan_name === 'Business' ? 'Contact Support' : 'Upgrade Plan'}
           </Button>
         </div>
       ) : (
