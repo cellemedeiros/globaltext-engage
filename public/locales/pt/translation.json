@@ -83,7 +83,23 @@
     "password": "Senha",
     "forgotPassword": "Esqueceu a senha?",
     "noAccount": "Não tem uma conta?",
-    "hasAccount": "Já tem uma conta?"
+    "hasAccount": "Já tem uma conta?",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "country": "País",
+    "phone": "Telefone",
+    "submit": "Enviar",
+    "changeRole": "Mudar função",
+    "welcome": "Bem-vindo ao GlobalText",
+    "chooseRole": "Escolha como você quer usar o GlobalText",
+    "client": {
+      "title": "Cliente",
+      "description": "Obter traduções para seu conteúdo"
+    },
+    "translator": {
+      "title": "Tradutor",
+      "description": "Trabalhar como tradutor"
+    }
   },
   "dashboard": {
     "welcome": "Bem-vindo",
@@ -99,6 +115,16 @@
       "or": "ou",
       "browse": "Procurar arquivo",
       "formats": "Formatos suportados: PDF, DOCX, TXT"
+    },
+    "translations": {
+      "title": "Traduções Recentes",
+      "empty": "Nenhuma tradução encontrada",
+      "status": {
+        "pending": "Pendente",
+        "inProgress": "Em Andamento",
+        "completed": "Concluída",
+        "review": "Em Revisão"
+      }
     }
   },
   "translator": {
@@ -112,6 +138,30 @@
     "application": {
       "title": "Aplicar como Tradutor",
       "submit": "Enviar Aplicação"
+    },
+    "translation": {
+      "accept": "Aceitar Tradução",
+      "decline": "Recusar",
+      "submit": "Enviar Tradução",
+      "download": {
+        "original": "Baixar Original",
+        "translation": "Baixar Tradução"
+      }
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Painel Administrativo",
+      "translators": "Tradutores",
+      "clients": "Clientes",
+      "revenue": "Receita",
+      "metrics": "Métricas"
+    },
+    "review": {
+      "title": "Revisão",
+      "approve": "Aprovar",
+      "reject": "Rejeitar",
+      "notes": "Notas de Revisão"
     }
   },
   "common": {
@@ -123,6 +173,34 @@
     "edit": "Editar",
     "delete": "Excluir",
     "confirm": "Confirmar",
-    "back": "Voltar"
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "noResults": "Nenhum resultado encontrado",
+    "actions": "Ações",
+    "status": "Status",
+    "date": "Data",
+    "details": "Detalhes",
+    "view": "Visualizar",
+    "download": "Baixar",
+    "upload": "Enviar",
+    "close": "Fechar"
+  },
+  "errors": {
+    "required": "Campo obrigatório",
+    "invalidEmail": "E-mail inválido",
+    "passwordLength": "A senha deve ter pelo menos 6 caracteres",
+    "passwordMatch": "As senhas não conferem",
+    "fileSize": "Arquivo muito grande",
+    "fileType": "Tipo de arquivo não suportado",
+    "generic": "Algo deu errado. Tente novamente."
+  },
+  "notifications": {
+    "title": "Notificações",
+    "empty": "Nenhuma notificação",
+    "markRead": "Marcar como lida",
+    "markAllRead": "Marcar todas como lidas"
   }
 }
