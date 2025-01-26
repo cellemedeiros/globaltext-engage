@@ -51,22 +51,23 @@ serve(async (req) => {
         console.log('Processing completed checkout session:', {
           sessionId: session.id,
           customerId,
-          customerEmail
+          customerEmail,
+          metadata: session.metadata
         });
 
         // Get user ID from Supabase based on email
-        const { data: userData, error: userError } = await supabaseAdmin
-          .from('auth.users')
+        const { data: users, error: userError } = await supabaseAdmin
+          .from('profiles')
           .select('id')
-          .eq('email', customerEmail)
-          .single();
+          .eq('id', session.client_reference_id)
+          .limit(1);
 
-        if (userError) {
+        if (userError || !users || users.length === 0) {
           console.error('Error fetching user:', userError);
-          throw userError;
+          throw new Error('User not found');
         }
 
-        const userId = userData.id;
+        const userId = users[0].id;
 
         // Calculate words based on plan
         let wordsAllowed = 0;
@@ -87,7 +88,8 @@ serve(async (req) => {
           userId,
           planName,
           wordsAllowed,
-          expiresAt
+          expiresAt,
+          sessionId: session.id
         });
 
         // Update subscription in database
