@@ -80,10 +80,22 @@ serve(async (req) => {
         mode: type === 'subscription' ? 'subscription' : 'payment',
         success_url: `${req.headers.get('origin')}/payment?payment=success`,
         cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
-        metadata: {
+        subscription_data: type === 'subscription' ? {
+          metadata: {
+            user_id,
+            plan,
+            type: 'subscription'
+          }
+        } : undefined,
+        metadata: type === 'subscription' ? {
           user_id,
-          type,
-          ...(type === 'subscription' ? { plan } : { documentName, filePath }),
+          plan,
+          type: 'subscription'
+        } : {
+          user_id,
+          type: 'payment',
+          documentName,
+          filePath
         },
       });
 
