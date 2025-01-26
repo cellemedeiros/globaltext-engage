@@ -28,6 +28,11 @@ interface MRRData {
   }>;
 }
 
+interface PlanMetrics {
+  subscription_count: number;
+  plan_revenue: number;
+}
+
 const MRRMetrics = () => {
   const { data: mrrData, isLoading, error } = useQuery({
     queryKey: ["mrr-metrics"],
@@ -41,7 +46,7 @@ const MRRMetrics = () => {
         throw error;
       }
       
-      console.log('MRR metrics data:', data); // Debug log
+      console.log('MRR metrics data:', data);
       return data as MRRData[];
     },
   });
@@ -106,21 +111,20 @@ const MRRMetrics = () => {
 
   const mrrGrowth = getMRRGrowth();
 
-  const getSubscriptionsByPlan = (planName: string) => {
-    if (!currentMonth?.subscription_breakdown) return null;
+  const getSubscriptionsByPlan = (planName: string): PlanMetrics => {
+    if (!currentMonth?.subscription_breakdown) {
+      return { subscription_count: 0, plan_revenue: 0 };
+    }
     
-    // Aggregate subscriptions by plan name
-    const planSubscriptions = currentMonth.subscription_breakdown.reduce((acc, sub) => {
+    return currentMonth.subscription_breakdown.reduce((acc: PlanMetrics, sub) => {
       if (sub.plan_name.toLowerCase() === planName.toLowerCase()) {
         return {
-          subscription_count: (acc.subscription_count || 0) + (sub.subscription_count || 1),
-          plan_revenue: (acc.plan_revenue || 0) + (sub.plan_revenue || 0),
+          subscription_count: acc.subscription_count + (sub.subscription_count || 1),
+          plan_revenue: acc.plan_revenue + (sub.plan_revenue || 0),
         };
       }
       return acc;
     }, { subscription_count: 0, plan_revenue: 0 });
-    
-    return planSubscriptions;
   };
 
   const standardPlan = getSubscriptionsByPlan('standard');
@@ -191,10 +195,10 @@ const MRRMetrics = () => {
             <div>
               <h3 className="font-semibold">Standard Plan</h3>
               <p className="text-sm text-muted-foreground">
-                {standardPlan?.subscription_count || 0} active subscriptions
+                {standardPlan.subscription_count} active subscriptions
               </p>
               <p className="mt-2 text-2xl font-bold">
-                {formatCurrency(standardPlan?.plan_revenue || 0)}
+                {formatCurrency(standardPlan.plan_revenue)}
               </p>
             </div>
           </div>
@@ -206,10 +210,10 @@ const MRRMetrics = () => {
             <div>
               <h3 className="font-semibold">Premium Plan</h3>
               <p className="text-sm text-muted-foreground">
-                {premiumPlan?.subscription_count || 0} active subscriptions
+                {premiumPlan.subscription_count} active subscriptions
               </p>
               <p className="mt-2 text-2xl font-bold">
-                {formatCurrency(premiumPlan?.plan_revenue || 0)}
+                {formatCurrency(premiumPlan.plan_revenue)}
               </p>
             </div>
           </div>
@@ -221,10 +225,10 @@ const MRRMetrics = () => {
             <div>
               <h3 className="font-semibold">Business Plan</h3>
               <p className="text-sm text-muted-foreground">
-                {businessPlan?.subscription_count || 0} active subscriptions
+                {businessPlan.subscription_count} active subscriptions
               </p>
               <p className="mt-2 text-2xl font-bold">
-                {formatCurrency(businessPlan?.plan_revenue || 0)}
+                {formatCurrency(businessPlan.plan_revenue)}
               </p>
             </div>
           </div>
