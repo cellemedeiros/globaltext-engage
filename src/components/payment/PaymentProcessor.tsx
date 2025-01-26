@@ -56,7 +56,12 @@ const PaymentProcessor = ({
         throw new Error('No active session');
       }
 
-      console.log('Creating checkout session...');
+      console.log('Creating checkout session...', {
+        amount,
+        words,
+        plan,
+        type: plan ? 'subscription' : 'translation'
+      });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
@@ -75,7 +80,10 @@ const PaymentProcessor = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Checkout error:', error);
+        throw error;
+      }
 
       if (data?.url) {
         window.location.href = data.url;
@@ -107,7 +115,7 @@ const PaymentProcessor = ({
             Processing...
           </div>
         ) : (
-          `Proceed to Payment - R$${amount}`
+          `Proceed to Payment - ${plan ? plan : `$${amount}`}`
         )}
       </Button>
     </div>

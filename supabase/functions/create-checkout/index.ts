@@ -42,11 +42,11 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
+    const { amount, words, plan, documentName, filePath, sourceLanguage, targetLanguage, content, type } = await req.json();
     
-    if (!amount) {
-      console.error('Amount is required');
-      throw new Error('Amount is required');
+    if (!amount && !plan) {
+      console.error('Amount or plan is required');
+      throw new Error('Amount or plan is required');
     }
 
     console.log('Creating Stripe instance...');
@@ -68,25 +68,40 @@ serve(async (req) => {
       console.log('No existing customer found, will create new');
     }
 
-    // Create metadata object with truncated values
+    // Get the appropriate price ID based on the plan
+    let priceId;
+    if (type === 'subscription') {
+      switch (plan) {
+        case 'Standard':
+          priceId = Deno.env.get('STANDARD_PLAN_PRICE');
+          break;
+        case 'Premium':
+          priceId = Deno.env.get('PREMIUM_PLAN_PRICE');
+          break;
+        default:
+          throw new Error('Invalid plan selected');
+      }
+    }
+
     const metadata = {
-      type: 'translation',
+      type,
       userId: user.id,
       words: words?.toString().slice(0, 100),
       documentName: documentName?.slice(0, 100),
       filePath: filePath?.slice(0, 100),
       sourceLanguage: sourceLanguage?.slice(0, 50),
       targetLanguage: targetLanguage?.slice(0, 50),
-      // Only store a preview of the content if needed
+      plan: plan || undefined,
       contentPreview: content ? `${content.slice(0, 100)}...` : undefined
     };
 
     const sessionConfig = {
-      mode: 'payment',
+      mode: type === 'subscription' ? 'subscription' : 'payment',
       line_items: [
         {
-          price_data: {
-            currency: 'brl',
+          price: type === 'subscription' ? priceId : undefined,
+          price_data: type === 'subscription' ? undefined : {
+            currency: 'usd',
             product_data: {
               name: `Translation Service${words ? ` - ${words} words` : ''}`,
               description: documentName ? `Document: ${documentName}` : undefined,
@@ -99,7 +114,7 @@ serve(async (req) => {
       metadata,
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
-      success_url: `${req.headers.get('origin')}/payment?payment=success`,
+      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
       cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
     };
 
