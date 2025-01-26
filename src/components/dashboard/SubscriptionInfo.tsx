@@ -21,7 +21,12 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
     const setupSubscription = async () => {
       const { data: authData } = await supabase.auth.getSession();
-      if (!authData.session?.user) return;
+      if (!authData.session?.user) {
+        console.log('No auth session found in SubscriptionInfo');
+        return;
+      }
+
+      console.log('Setting up subscription channel for user:', authData.session.user.id);
 
       channel = supabase
         .channel('subscription-changes')
@@ -39,12 +44,11 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
               title: "Assinatura atualizada",
               description: "O status da sua assinatura foi atualizado.",
             });
-            // Force a page refresh to get the latest subscription data
             window.location.reload();
           }
         )
         .subscribe((status) => {
-          console.log('Subscription status:', status);
+          console.log('Subscription channel status:', status);
         });
     };
 
@@ -52,6 +56,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
     return () => {
       if (channel) {
+        console.log('Cleaning up subscription channel');
         supabase.removeChannel(channel);
       }
     };
@@ -59,10 +64,12 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
   const handleUpgrade = () => {
     if (!subscription) {
+      console.log('No subscription, redirecting to pricing');
       navigate('/#pricing');
       return;
     }
     
+    console.log('Current subscription plan:', subscription.plan_name);
     if (subscription.plan_name === 'Standard' || subscription.plan_name === 'Premium') {
       navigate('/payment?plan=Business&amount=2500');
     } else {
@@ -70,7 +77,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
     }
   };
 
-  console.log('Current subscription:', subscription);
+  console.log('Rendering SubscriptionInfo with subscription:', subscription);
 
   return (
     <Card className="p-6">
