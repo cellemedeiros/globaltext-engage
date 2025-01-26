@@ -16,36 +16,40 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const { toast } = useToast();
 
   useEffect(() => {
-    const { data: authData } = await supabase.auth.getSession();
-    if (!authData.session?.user) return;
+    const setupSubscription = async () => {
+      const { data: authData } = await supabase.auth.getSession();
+      if (!authData.session?.user) return;
 
-    const channel = supabase
-      .channel('subscription-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'subscriptions',
-          filter: `user_id=eq.${authData.session.user.id}`,
-        },
-        (payload) => {
-          console.log('Subscription update received:', payload);
-          toast({
-            title: "Assinatura atualizada",
-            description: "O status da sua assinatura foi atualizado.",
-          });
-          // Force a page refresh to get the latest subscription data
-          window.location.reload();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+      const channel = supabase
+        .channel('subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'subscriptions',
+            filter: `user_id=eq.${authData.session.user.id}`,
+          },
+          (payload) => {
+            console.log('Subscription update received:', payload);
+            toast({
+              title: "Assinatura atualizada",
+              description: "O status da sua assinatura foi atualizado.",
+            });
+            // Force a page refresh to get the latest subscription data
+            window.location.reload();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+        });
 
-    return () => {
-      supabase.removeChannel(channel);
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
+
+    setupSubscription();
   }, [toast]);
 
   const handleUpgrade = () => {
