@@ -9,6 +9,7 @@ interface Subscription {
   plan_name: string;
   words_remaining: number;
   expires_at: string;
+  status: string;
 }
 
 const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null }) => {
@@ -69,6 +70,8 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
     }
   };
 
+  console.log('Current subscription:', subscription);
+
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Status da Assinatura</h2>
@@ -78,6 +81,11 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           <div>
             <p className="text-sm text-muted-foreground">Plano Atual</p>
             <p className="font-medium">{subscription.plan_name}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground">Status</p>
+            <p className="font-medium">{subscription.status}</p>
           </div>
           
           <div>

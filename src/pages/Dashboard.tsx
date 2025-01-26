@@ -9,9 +9,11 @@ import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslationStatsChart from "@/components/dashboard/stats/TranslationStatsChart";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const { data: translations = [], isLoading: translationsLoading } = useQuery({
     queryKey: ['translations'],
@@ -25,7 +27,10 @@ const Dashboard = () => {
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching translations:', error);
+        throw error;
+      }
       return data;
     },
   });
@@ -43,16 +48,27 @@ const Dashboard = () => {
         .select('*')
         .eq('user_id', session.user.id)
         .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {
         console.error('Error fetching subscription:', error);
+        toast({
+          title: "Error fetching subscription",
+          description: "There was a problem loading your subscription details.",
+          variant: "destructive"
+        });
         throw error;
       }
 
       console.log('Fetched subscription:', data);
       return data;
     },
+    retry: 1,
+    onError: (error) => {
+      console.error('Subscription query error:', error);
+    }
   });
 
   return (
