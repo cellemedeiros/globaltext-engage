@@ -1,9 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Users, Package, FileText, Calendar } from "lucide-react";
+import { Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-interface MRRMetric {
+interface MRRData {
   month_date: string;
   total_mrr: number;
   new_mrr: number;
@@ -11,172 +20,151 @@ interface MRRMetric {
   churned_mrr: number;
   total_customers: number;
   active_subscriptions: number;
-  subscription_breakdown: {
+  subscription_breakdown: Array<{
     plan_name: string;
     subscription_count: number;
     plan_revenue: number;
-  }[];
+  }>;
 }
 
 const MRRMetrics = () => {
-  const { data: mrrMetrics } = useQuery({
-    queryKey: ['mrr-metrics'],
+  const { data: mrrData, isLoading } = useQuery({
+    queryKey: ["mrr-metrics"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .rpc('get_mrr_metrics');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
 
-      if (error) {
-        console.error('Error fetching MRR metrics:', error);
-        throw error;
-      }
+      const { data, error } = await supabase.rpc('get_mrr_metrics');
+      if (error) throw error;
 
-      return data as MRRMetric[];
+      return data as MRRData[];
     },
   });
 
-  const { data: monthlyTranslations } = useQuery({
-    queryKey: ['monthly-translations'],
-    queryFn: async () => {
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-[400px] animate-pulse bg-muted rounded-lg" />
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 animate-pulse bg-muted rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-      const { data, error } = await supabase
-        .from('translations')
-        .select('amount_paid, subscription_id')
-        .gte('created_at', startOfMonth.toISOString())
-        .is('subscription_id', null);
+  const sortedData = [...(mrrData || [])].sort(
+    (a, b) => new Date(b.month_date).getTime() - new Date(a.month_date).getTime()
+  );
 
-      if (error) {
-        console.error('Error fetching monthly translations:', error);
-        throw error;
-      }
+  const currentMonth = sortedData[0] || {
+    total_mrr: 0,
+    new_mrr: 0,
+    expansion_mrr: 0,
+    churned_mrr: 0,
+    total_customers: 0,
+    active_subscriptions: 0,
+    subscription_breakdown: [],
+  };
 
-      return data;
-    },
-  });
-
-  const { data: singleTranslationsCount } = useQuery({
-    queryKey: ['single-translations'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('translations')
-        .select('*', { count: 'exact', head: true })
-        .is('subscription_id', null);
-
-      if (error) {
-        console.error('Error fetching single translations:', error);
-        throw error;
-      }
-
-      return count || 0;
-    },
-  });
-
-  const currentMonth = mrrMetrics?.[0];
-  const previousMonth = mrrMetrics?.[1];
+  const lastMonth = sortedData[1] || currentMonth;
 
   const getMRRGrowth = () => {
-    if (!currentMonth || !previousMonth) return 0;
-    return ((currentMonth.total_mrr - previousMonth.total_mrr) / previousMonth.total_mrr) * 100;
+    if (!lastMonth.total_mrr) return 0;
+    return ((currentMonth.total_mrr - lastMonth.total_mrr) / lastMonth.total_mrr) * 100;
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount || 0);
   };
 
   const mrrGrowth = getMRRGrowth();
 
   const getSubscriptionsByPlan = (planName: string) => {
     if (!currentMonth?.subscription_breakdown) return null;
-    return currentMonth.subscription_breakdown.find(
+    const plan = currentMonth.subscription_breakdown.find(
       plan => plan.plan_name.toLowerCase() === planName.toLowerCase()
     );
+    return plan || { subscription_count: 0, plan_revenue: 0 };
   };
 
   const standardPlan = getSubscriptionsByPlan('standard');
   const premiumPlan = getSubscriptionsByPlan('premium');
   const businessPlan = getSubscriptionsByPlan('business');
 
-  const monthlyTranslationRevenue = monthlyTranslations?.reduce((sum, t) => sum + (t.amount_paid || 0), 0) || 0;
-  const totalMonthlyRevenue = (currentMonth?.total_mrr || 0) + monthlyTranslationRevenue;
+  const chartData = sortedData.map((item) => ({
+    name: new Date(item.month_date).toLocaleDateString('en-US', { month: 'short' }),
+    MRR: item.total_mrr || 0,
+    "New Business": item.new_mrr || 0,
+    Expansion: item.expansion_mrr || 0,
+    Churn: Math.abs(item.churned_mrr || 0),
+  })).reverse();
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">MRR Analytics</h2>
-      
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <Calendar className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Monthly Revenue</p>
-              <p className="text-2xl font-bold">
-                R${totalMonthlyRevenue.toFixed(2)}
-              </p>
-              <div className="mt-1">
-                <p className="text-xs text-muted-foreground">
-                  Subscriptions: R${currentMonth?.total_mrr.toFixed(2) || '0.00'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Single Translations: R${monthlyTranslationRevenue.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
+    <div className="space-y-8">
+      <Card className="p-6">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Monthly Recurring Revenue</h3>
+          <p className="text-sm text-muted-foreground">
+            Current MRR: {formatCurrency(currentMonth.total_mrr)}
+            <span className={`ml-2 ${mrrGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              ({mrrGrowth >= 0 ? '+' : ''}{mrrGrowth.toFixed(1)}%)
+            </span>
+          </p>
+        </div>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            {mrrGrowth >= 0 ? (
-              <TrendingUp className="w-8 h-8 text-green-500" />
-            ) : (
-              <TrendingDown className="w-8 h-8 text-red-500" />
-            )}
-            <div>
-              <p className="text-sm text-muted-foreground">MRR Growth</p>
-              <p className="text-2xl font-bold">
-                {mrrGrowth.toFixed(1)}%
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <Users className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Total Customers</p>
-              <p className="text-2xl font-bold">
-                {currentMonth?.total_customers || 0}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <FileText className="w-8 h-8 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Single Translations</p>
-              <p className="text-2xl font-bold">
-                {singleTranslationsCount || 0}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
+        <div className="h-[400px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="MRR"
+                stroke="#2563eb"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="New Business"
+                stroke="#16a34a"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="Expansion"
+                stroke="#9333ea"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="Churn"
+                stroke="#dc2626"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <Package className="w-8 h-8 text-primary" />
-            <div className="space-y-2">
-              <p className="text-lg font-semibold">Standard Plan</p>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Active Subscriptions: <span className="font-medium">{standardPlan?.subscription_count || 0}</span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Monthly Revenue: <span className="font-medium">R${standardPlan?.plan_revenue.toFixed(2) || '0.00'}</span>
-                </p>
-              </div>
+            <div>
+              <h3 className="font-semibold">Standard Plan</h3>
+              <p className="text-sm text-muted-foreground">
+                {standardPlan?.subscription_count || 0} active subscriptions
+              </p>
+              <p className="mt-2 text-2xl font-bold">
+                {formatCurrency(standardPlan?.plan_revenue || 0)}
+              </p>
             </div>
           </div>
         </Card>
@@ -184,16 +172,14 @@ const MRRMetrics = () => {
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <Package className="w-8 h-8 text-primary" />
-            <div className="space-y-2">
-              <p className="text-lg font-semibold">Premium Plan</p>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Active Subscriptions: <span className="font-medium">{premiumPlan?.subscription_count || 0}</span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Monthly Revenue: <span className="font-medium">R${premiumPlan?.plan_revenue.toFixed(2) || '0.00'}</span>
-                </p>
-              </div>
+            <div>
+              <h3 className="font-semibold">Premium Plan</h3>
+              <p className="text-sm text-muted-foreground">
+                {premiumPlan?.subscription_count || 0} active subscriptions
+              </p>
+              <p className="mt-2 text-2xl font-bold">
+                {formatCurrency(premiumPlan?.plan_revenue || 0)}
+              </p>
             </div>
           </div>
         </Card>
@@ -201,16 +187,14 @@ const MRRMetrics = () => {
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <Package className="w-8 h-8 text-primary" />
-            <div className="space-y-2">
-              <p className="text-lg font-semibold">Business Plan</p>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Active Subscriptions: <span className="font-medium">{businessPlan?.subscription_count || 0}</span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Monthly Revenue: <span className="font-medium">R${businessPlan?.plan_revenue.toFixed(2) || '0.00'}</span>
-                </p>
-              </div>
+            <div>
+              <h3 className="font-semibold">Business Plan</h3>
+              <p className="text-sm text-muted-foreground">
+                {businessPlan?.subscription_count || 0} active subscriptions
+              </p>
+              <p className="mt-2 text-2xl font-bold">
+                {formatCurrency(businessPlan?.plan_revenue || 0)}
+              </p>
             </div>
           </div>
         </Card>
