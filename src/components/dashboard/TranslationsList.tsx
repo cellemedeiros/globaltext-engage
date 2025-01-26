@@ -18,7 +18,7 @@ interface TranslationsListProps {
 const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsListProps) => {
   const title = role === 'translator' ? 'Translations' : 'Recent Translations';
   const { toast } = useToast();
-  const { data: translations, isLoading: translationsLoading, refetch } = useTranslations(role);
+  const { data: translations = [], isLoading: translationsLoading, refetch } = useTranslations(role);
 
   useEffect(() => {
     console.log('TranslationsList mounted with role:', role);
@@ -115,7 +115,10 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
     );
   }
 
-  if (!translations?.length) {
+  // Ensure translations is always an array
+  const translationsList = translations || [];
+
+  if (!translationsList.length) {
     return (
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
@@ -139,7 +142,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
           </h2>
         </div>
         <TranslatorTabs 
-          translations={translations}
+          translations={translationsList}
           role={role}
           onUpdate={() => {
             toast({
@@ -163,7 +166,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
       </div>
       <ScrollArea className="h-[600px]">
         <div className="space-y-4">
-          {translations.map((translation) => (
+          {translationsList.map((translation) => (
             <div key={translation.id} className="space-y-4">
               <TranslationItem 
                 key={translation.id}
