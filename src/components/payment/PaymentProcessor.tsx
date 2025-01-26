@@ -81,7 +81,7 @@ const PaymentProcessor = ({
           sourceLanguage,
           targetLanguage,
           content,
-          type: 'subscription'
+          type: plan ? 'subscription' : 'payment'
         },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`

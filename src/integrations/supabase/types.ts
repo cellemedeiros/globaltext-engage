@@ -210,6 +210,36 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_payment_events: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          metadata: Json | null
+          payment_intent_id: string | null
+          type: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_intent_id?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_intent_id?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount_paid: number
