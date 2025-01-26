@@ -93,7 +93,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetch, role, toast, translations]);
+  }, [refetch, role, toast]);
 
   if (isLoading || translationsLoading) {
     return (
@@ -116,7 +116,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
   }
 
   // Ensure translations is always an array
-  const translationsList = translations || [];
+  const translationsList = Array.isArray(translations) ? translations : [];
 
   if (!translationsList.length) {
     return (
