@@ -53,45 +53,53 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
   useEffect(() => {
     let mounted = true;
-    let channel: ReturnType<typeof supabase.channel>;
 
     const setupSubscription = async () => {
-      const { data: authData } = await supabase.auth.getSession();
-      if (!authData.session?.user) {
-        console.log('No auth session found in SubscriptionInfo');
-        return;
-      }
+      try {
+        const { data: authData } = await supabase.auth.getSession();
+        if (!authData.session?.user) {
+          console.log('No auth session found in SubscriptionInfo');
+          return null;
+        }
 
-      console.log('Setting up subscription channel for user:', authData.session.user.id);
+        console.log('Setting up subscription channel for user:', authData.session.user.id);
 
-      channel = supabase
-        .channel('subscription-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'subscriptions',
-            filter: `user_id=eq.${authData.session.user.id}`,
-          },
-          (payload) => {
-            if (mounted) {
-              console.log('Subscription update received:', payload);
-              toast({
-                title: "Subscription Updated",
-                description: "Your subscription status has been updated.",
-              });
-              // Force a page reload to reflect the new subscription status
-              window.location.reload();
+        const channel = supabase
+          .channel('subscription-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'subscriptions',
+              filter: `user_id=eq.${authData.session.user.id}`,
+            },
+            (payload) => {
+              if (mounted) {
+                console.log('Subscription update received:', payload);
+                toast({
+                  title: "Subscription Updated",
+                  description: "Your subscription status has been updated.",
+                });
+                // Force a page reload to reflect the new subscription status
+                window.location.reload();
+              }
             }
-          }
-        )
-        .subscribe((status) => {
-          console.log('Subscription channel status:', status);
-        });
+          )
+          .subscribe();
+
+        return channel;
+      } catch (error) {
+        console.error('Error setting up subscription channel:', error);
+        return null;
+      }
     };
 
-    setupSubscription();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    setupSubscription().then(ch => {
+      channel = ch;
+    });
 
     return () => {
       mounted = false;
