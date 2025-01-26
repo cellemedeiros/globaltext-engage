@@ -144,7 +144,7 @@ const PlanCard = ({
                 Contact Sales
               </>
             ) : (
-              "Subscribe"
+              "Get Started"
             )}
           </Button>
         </CardContent>
