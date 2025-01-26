@@ -18,41 +18,56 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
+    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, content, type } = await req.json();
 
-    console.log('Creating checkout session with params:', { amount, plan, email, documentName });
+    console.log('Creating checkout session with params:', { amount, plan, email, documentName, type });
 
-    // Create product for this subscription
+    // Create product based on payment type
     let product;
     try {
-      product = await stripe.products.create({
-        name: `${plan || 'Translation'} Plan`,
-        description: `Translation service subscription - ${plan || 'Standard'} plan`,
-      });
+      if (type === 'subscription') {
+        product = await stripe.products.create({
+          name: `${plan} Translation Plan`,
+          description: `Monthly translation service subscription - ${plan} plan`,
+        });
+      } else {
+        product = await stripe.products.create({
+          name: 'Document Translation',
+          description: `Translation service for ${documentName}`,
+        });
+      }
       console.log('Created product:', product.id);
     } catch (error) {
       console.error('Error creating product:', error);
       throw error;
     }
 
-    // Create price for the subscription
+    // Create price based on payment type
     let price;
     try {
-      price = await stripe.prices.create({
-        product: product.id,
-        unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
-        currency: 'brl',
-        recurring: {
-          interval: 'month',
-        },
-      });
+      if (type === 'subscription') {
+        price = await stripe.prices.create({
+          product: product.id,
+          unit_amount: Math.round(parseFloat(amount) * 100),
+          currency: 'brl',
+          recurring: {
+            interval: 'month',
+          },
+        });
+      } else {
+        price = await stripe.prices.create({
+          product: product.id,
+          unit_amount: Math.round(parseFloat(amount) * 100),
+          currency: 'brl',
+        });
+      }
       console.log('Created price:', price.id);
     } catch (error) {
       console.error('Error creating price:', error);
       throw error;
     }
 
-    // Create checkout session with a new customer
+    // Create checkout session with appropriate mode and metadata
     try {
       const session = await stripe.checkout.sessions.create({
         customer_email: email,
@@ -62,18 +77,13 @@ serve(async (req) => {
             quantity: 1,
           },
         ],
-        mode: 'subscription',
+        mode: type === 'subscription' ? 'subscription' : 'payment',
         success_url: `${req.headers.get('origin')}/payment?payment=success`,
         cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
         metadata: {
           user_id,
-          type: 'subscription',
-          plan,
-          documentName,
-          filePath,
-          sourceLanguage,
-          targetLanguage,
-          content,
+          type,
+          ...(type === 'subscription' ? { plan } : { documentName, filePath }),
         },
       });
 
