@@ -56,6 +56,7 @@ const PaymentProcessor = ({
         throw new Error('No active session');
       }
 
+      const isSubscription = Boolean(plan);
       console.log('Creating checkout session...', {
         amount,
         words,
@@ -66,7 +67,8 @@ const PaymentProcessor = ({
         filePath,
         sourceLanguage,
         targetLanguage,
-        content
+        content,
+        type: isSubscription ? 'subscription' : 'payment'
       });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -81,7 +83,7 @@ const PaymentProcessor = ({
           sourceLanguage,
           targetLanguage,
           content,
-          type: plan ? 'subscription' : 'payment'
+          type: isSubscription ? 'subscription' : 'payment'
         },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
