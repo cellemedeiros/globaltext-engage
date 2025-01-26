@@ -7,7 +7,6 @@ import DashboardStats from "@/components/dashboard/DashboardStats";
 import DocumentUploadCard from "@/components/dashboard/DocumentUploadCard";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
-import ProfileSection from "@/components/sections/ProfileSection";
 import TranslationStatsChart from "@/components/dashboard/stats/TranslationStatsChart";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -111,8 +110,6 @@ const Dashboard = () => {
         </div>
 
         <TranslationsList isLoading={translationsLoading} />
-        
-        <ProfileSection />
       </div>
     </div>
   );
