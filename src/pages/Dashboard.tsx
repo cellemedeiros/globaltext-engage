@@ -39,31 +39,44 @@ const Dashboard = () => {
     queryKey: ['active-subscription'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
+      if (!session) {
+        console.log('No session found');
+        return null;
+      }
 
       console.log('Fetching subscription for user:', session.user.id);
       
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('status', 'active')
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .eq('status', 'active')
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching subscription:', error);
+        if (error) {
+          console.error('Subscription fetch error:', error);
+          toast({
+            title: "Error fetching subscription",
+            description: "There was a problem loading your subscription details. Please try again.",
+            variant: "destructive",
+          });
+          throw error;
+        }
+
+        console.log('Fetched subscription:', data);
+        return data;
+      } catch (error) {
+        console.error('Subscription query error:', error);
         toast({
           title: "Error fetching subscription",
-          description: "There was a problem loading your subscription details.",
-          variant: "destructive"
+          description: "There was a problem loading your subscription details. Please try again.",
+          variant: "destructive",
         });
         throw error;
       }
-
-      console.log('Fetched subscription:', data);
-      return data;
     },
     retry: 1,
     meta: {
