@@ -24,43 +24,48 @@ serve(async (req) => {
 
     // Create product based on payment type
     let product;
+    let priceData;
+
     try {
       if (type === 'subscription') {
+        // For subscriptions, create a recurring price
         product = await stripe.products.create({
           name: `${plan} Translation Plan`,
           description: `Monthly translation service subscription - ${plan} plan`,
         });
+
+        priceData = {
+          product: product.id,
+          currency: 'brl',
+          unit_amount: Math.round(parseFloat(amount) * 100),
+          recurring: {
+            interval: 'month',
+          },
+        };
       } else {
+        // For one-time payments
         product = await stripe.products.create({
           name: 'Document Translation',
           description: `Translation service for ${documentName}`,
         });
+
+        priceData = {
+          product: product.id,
+          currency: 'brl',
+          unit_amount: Math.round(parseFloat(amount) * 100),
+        };
       }
+
       console.log('Created product:', product.id);
     } catch (error) {
       console.error('Error creating product:', error);
       throw error;
     }
 
-    // Create price based on payment type
+    // Create price
     let price;
     try {
-      if (type === 'subscription') {
-        price = await stripe.prices.create({
-          product: product.id,
-          unit_amount: Math.round(parseFloat(amount) * 100),
-          currency: 'brl',
-          recurring: {
-            interval: 'month',
-          },
-        });
-      } else {
-        price = await stripe.prices.create({
-          product: product.id,
-          unit_amount: Math.round(parseFloat(amount) * 100),
-          currency: 'brl',
-        });
-      }
+      price = await stripe.prices.create(priceData);
       console.log('Created price:', price.id);
     } catch (error) {
       console.error('Error creating price:', error);
@@ -69,7 +74,7 @@ serve(async (req) => {
 
     // Create checkout session with appropriate mode and metadata
     try {
-      const session = await stripe.checkout.sessions.create({
+      const sessionConfig = {
         customer_email: email,
         line_items: [
           {
@@ -80,13 +85,6 @@ serve(async (req) => {
         mode: type === 'subscription' ? 'subscription' : 'payment',
         success_url: `${req.headers.get('origin')}/payment?payment=success`,
         cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
-        subscription_data: type === 'subscription' ? {
-          metadata: {
-            user_id,
-            plan,
-            type: 'subscription'
-          }
-        } : undefined,
         metadata: type === 'subscription' ? {
           user_id,
           plan,
@@ -95,10 +93,24 @@ serve(async (req) => {
           user_id,
           type: 'payment',
           documentName,
-          filePath
+          filePath,
+          sourceLanguage,
+          targetLanguage,
+          content
         },
-      });
+      };
 
+      if (type === 'subscription') {
+        sessionConfig.subscription_data = {
+          metadata: {
+            user_id,
+            plan,
+            type: 'subscription'
+          }
+        };
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
       console.log('Created checkout session:', session.id);
 
       return new Response(
