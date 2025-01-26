@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface Subscription {
   plan_name: string;
@@ -15,6 +16,34 @@ interface Subscription {
 const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Add subscription data fetching
+  const { data: activeSubscription, isLoading } = useQuery({
+    queryKey: ['active-subscription'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load subscription details",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      return data;
+    },
+  });
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
@@ -64,23 +93,21 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   }, [toast]);
 
   const handleUpgrade = () => {
-    if (!subscription) {
+    if (!activeSubscription) {
       console.log('No subscription, redirecting to pricing');
       navigate('/#pricing');
       return;
     }
     
-    console.log('Current subscription plan:', subscription.plan_name);
-    if (subscription.plan_name === 'Business') {
-      navigate('/#contact'); // Redirect to contact section for Business plan
-    } else if (subscription.plan_name === 'Standard' || subscription.plan_name === 'Premium') {
-      navigate('/#contact'); // Redirect to contact section for Business plan upgrade
+    console.log('Current subscription plan:', activeSubscription.plan_name);
+    if (activeSubscription.plan_name === 'Business') {
+      navigate('/#contact');
+    } else if (activeSubscription.plan_name === 'Standard' || activeSubscription.plan_name === 'Premium') {
+      navigate('/#contact');
     } else {
       navigate('/#pricing');
     }
   };
-
-  console.log('Rendering SubscriptionInfo with subscription:', subscription);
 
   const getInitialWordCount = (planName: string) => {
     switch (planName) {
@@ -89,41 +116,55 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
       case 'Premium':
         return 15000;
       case 'Business':
-        return Number.POSITIVE_INFINITY; // Represents unlimited words
+        return Number.POSITIVE_INFINITY;
       default:
         return 0;
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="space-y-2">
+            <div className="h-3 bg-gray-200 rounded"></div>
+            <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Subscription Status</h2>
       
-      {subscription ? (
+      {activeSubscription ? (
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Current Plan</p>
-            <p className="font-medium">{subscription.plan_name}</p>
+            <p className="font-medium">{activeSubscription.plan_name}</p>
           </div>
           
           <div>
             <p className="text-sm text-muted-foreground">Status</p>
-            <p className="font-medium capitalize">{subscription.status}</p>
+            <p className="font-medium capitalize">{activeSubscription.status}</p>
           </div>
           
           <div>
             <p className="text-sm text-muted-foreground">Words Remaining</p>
             <p className="font-medium">
-              {subscription.plan_name === 'Business' 
+              {activeSubscription.plan_name === 'Business' 
                 ? 'Unlimited' 
-                : subscription.words_remaining ?? getInitialWordCount(subscription.plan_name)}
+                : activeSubscription.words_remaining ?? getInitialWordCount(activeSubscription.plan_name)}
             </p>
           </div>
           
           <div>
             <p className="text-sm text-muted-foreground">Expires On</p>
             <p className="font-medium">
-              {new Date(subscription.expires_at).toLocaleDateString('en-US')}
+              {new Date(activeSubscription.expires_at).toLocaleDateString('en-US')}
             </p>
           </div>
 
@@ -131,7 +172,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            {subscription.plan_name === 'Business' ? 'Contact Support' : 'Contact Us for Business Plan'}
+            {activeSubscription.plan_name === 'Business' ? 'Contact Support' : 'Contact Us for Business Plan'}
           </Button>
         </div>
       ) : (
