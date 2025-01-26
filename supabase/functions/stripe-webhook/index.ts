@@ -53,7 +53,9 @@ serve(async (req) => {
           customerId,
           customerEmail,
           metadata: session.metadata,
-          clientReferenceId: session.client_reference_id
+          clientReferenceId: session.client_reference_id,
+          subscriptionId: session.subscription,
+          invoiceId: session.invoice
         });
 
         if (!session.client_reference_id) {
@@ -97,7 +99,8 @@ serve(async (req) => {
           wordsAllowed,
           expiresAt,
           sessionId: session.id,
-          amount: session.amount_total
+          amount: session.amount_total,
+          subscriptionId: session.subscription
         });
 
         // Update subscription in database
