@@ -116,7 +116,7 @@ const MRRMetrics = () => {
       return { subscription_count: 0, plan_revenue: 0 };
     }
     
-    return currentMonth.subscription_breakdown.reduce((acc: PlanMetrics, sub) => {
+    return currentMonth.subscription_breakdown.reduce((acc, sub) => {
       if (sub.plan_name.toLowerCase() === planName.toLowerCase()) {
         return {
           subscription_count: acc.subscription_count + (sub.subscription_count || 1),
