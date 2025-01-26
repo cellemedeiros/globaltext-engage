@@ -1,6 +1,11 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@14.21.0';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
+
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,113 +17,71 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  );
-
   try {
-    const { amount, words, plan, documentName, filePath, sourceLanguage, targetLanguage, content, type } = await req.json();
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const { amount, plan, user_id, email } = await req.json();
 
-    if (userError || !user?.email) {
-      throw new Error('Authentication required');
-    }
-
-    console.log('Creating checkout session for:', { email: user.email, plan, type });
-
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-      apiVersion: '2023-10-16',
-    });
-
-    // Check if customer already exists
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
-
-    let customer_id = undefined;
+    // Create or get customer
+    let customer;
+    const customers = await stripe.customers.list({ email });
+    
     if (customers.data.length > 0) {
-      customer_id = customers.data[0].id;
-      
-      // For subscriptions, check if already subscribed
-      if (type === 'subscription' && plan) {
-        const priceId = plan === 'Standard' 
-          ? Deno.env.get('STANDARD_PLAN_PRICE')
-          : Deno.env.get('PREMIUM_PLAN_PRICE');
-
-        const subscriptions = await stripe.subscriptions.list({
-          customer: customer_id,
-          status: 'active',
-          price: priceId,
-          limit: 1,
-        });
-
-        if (subscriptions.data.length > 0) {
-          throw new Error('Already subscribed to this plan');
-        }
-      }
+      customer = customers.data[0];
+    } else {
+      customer = await stripe.customers.create({
+        email,
+        metadata: { user_id }
+      });
     }
 
-    // Set up the checkout session configuration
-    const sessionConfig: any = {
-      customer: customer_id,
-      customer_email: customer_id ? undefined : user.email,
-      line_items: [{
-        quantity: 1,
-        price_data: type === 'subscription' && plan
-          ? undefined
-          : {
-              currency: 'usd',
-              product_data: {
-                name: `Translation Service${words ? ` - ${words} words` : ''}`,
-                description: documentName ? `Document: ${documentName}` : undefined,
-              },
-              unit_amount: Math.round(parseFloat(amount) * 100),
-            },
-        price: type === 'subscription' && plan
-          ? (plan === 'Standard' 
-              ? Deno.env.get('STANDARD_PLAN_PRICE') 
-              : Deno.env.get('PREMIUM_PLAN_PRICE'))
-          : undefined,
-      }],
-      mode: type === 'subscription' ? 'subscription' : 'payment',
+    // Create product and price for the subscription
+    const product = await stripe.products.create({
+      name: `${plan} Plan`,
+      description: `${plan} Translation Service Subscription`,
+    });
+
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: amount * 100, // Convert to cents
+      currency: 'usd',
+      recurring: {
+        interval: 'month',
+      },
+    });
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      line_items: [
+        {
+          price: price.id,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
       success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
       cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
       metadata: {
-        user_id: user.id,
-        type,
-        plan: plan || undefined,
-        words: words?.toString().slice(0, 100),
-        documentName: documentName?.slice(0, 100),
-        filePath: filePath?.slice(0, 100),
-        sourceLanguage: sourceLanguage?.slice(0, 50),
-        targetLanguage: targetLanguage?.slice(0, 50),
-        contentPreview: content ? `${content.slice(0, 100)}...` : undefined,
+        user_id,
+        type: 'subscription',
+        plan,
       },
-    };
+    });
 
-    console.log('Creating checkout session with config:', sessionConfig);
-    const session = await stripe.checkout.sessions.create(sessionConfig);
-
-    console.log('Checkout session created:', session.id);
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+        status: 400,
+      },
     );
   }
 });

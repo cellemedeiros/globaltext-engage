@@ -9,7 +9,6 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
@@ -44,84 +43,39 @@ serve(async (req) => {
     console.log(`Processing webhook event: ${event.type}`);
 
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        const metadata = session.metadata || {};
-        
-        if (metadata.type === 'subscription') {
-          console.log(`Processing successful subscription payment`);
-          
-          const planName = metadata.plan;
-          const userId = metadata.user_id;
-          const subscriptionId = session.subscription;
-          
-          if (!planName || !userId) {
-            throw new Error('Missing plan name or user ID in metadata');
-          }
-
-          // Get subscription details from Stripe
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
-          
-          // Calculate words based on plan
-          let wordsAllowed = 0;
-          if (planName === 'Standard') {
-            wordsAllowed = 10000;
-          } else if (planName === 'Premium') {
-            wordsAllowed = 25000;
-          }
-
-          // Create or update subscription in database
-          const { error: subscriptionError } = await supabaseAdmin
-            .from('subscriptions')
-            .upsert({
-              user_id: userId,
-              plan_name: planName,
-              status: 'active',
-              words_remaining: wordsAllowed,
-              started_at: new Date().toISOString(),
-              expires_at: currentPeriodEnd.toISOString(),
-              amount_paid: session.amount_total / 100,
-            });
-
-          if (subscriptionError) {
-            console.error('Error updating subscription:', subscriptionError);
-            throw subscriptionError;
-          }
-        }
-        break;
-      }
-
+      case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
-        const customerId = subscription.customer;
+        const metadata = subscription.metadata || {};
+        const userId = metadata.user_id || subscription.customer.metadata?.user_id;
         
-        // Get customer email from Stripe
-        const customer = await stripe.customers.retrieve(customerId);
-        if (!customer.email) {
-          throw new Error('Customer email not found');
+        if (!userId) {
+          throw new Error('No user ID found in metadata');
         }
 
-        // Get user from Supabase
-        const { data: userData, error: userError } = await supabaseAdmin
-          .from('profiles')
-          .select('id')
-          .eq('id', customer.metadata.user_id)
-          .single();
-
-        if (userError) {
-          console.error('Error finding user:', userError);
-          throw userError;
+        // Calculate words based on plan
+        let wordsAllowed = 0;
+        const planName = metadata.plan;
+        if (planName === 'Standard') {
+          wordsAllowed = 10000;
+        } else if (planName === 'Premium') {
+          wordsAllowed = 25000;
+        } else if (planName === 'Business') {
+          wordsAllowed = 50000;
         }
 
-        // Update subscription status
+        // Update subscription in database
         const { error: subscriptionError } = await supabaseAdmin
           .from('subscriptions')
-          .update({
+          .upsert({
+            user_id: userId,
+            plan_name: planName,
             status: subscription.status,
+            words_remaining: wordsAllowed,
+            started_at: new Date(subscription.current_period_start * 1000).toISOString(),
             expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-          })
-          .eq('user_id', userData.id);
+            amount_paid: subscription.plan.amount / 100,
+          });
 
         if (subscriptionError) {
           console.error('Error updating subscription:', subscriptionError);
@@ -132,33 +86,16 @@ serve(async (req) => {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-        const customerId = subscription.customer;
-        
-        // Get customer email from Stripe
-        const customer = await stripe.customers.retrieve(customerId);
-        if (!customer.email) {
-          throw new Error('Customer email not found');
+        const userId = subscription.metadata.user_id || subscription.customer.metadata?.user_id;
+
+        if (!userId) {
+          throw new Error('No user ID found in metadata');
         }
 
-        // Get user from Supabase
-        const { data: userData, error: userError } = await supabaseAdmin
-          .from('profiles')
-          .select('id')
-          .eq('id', customer.metadata.user_id)
-          .single();
-
-        if (userError) {
-          console.error('Error finding user:', userError);
-          throw userError;
-        }
-
-        // Update subscription status to cancelled
         const { error: subscriptionError } = await supabaseAdmin
           .from('subscriptions')
-          .update({
-            status: 'cancelled',
-          })
-          .eq('user_id', userData.id);
+          .update({ status: 'cancelled' })
+          .eq('user_id', userId);
 
         if (subscriptionError) {
           console.error('Error updating subscription:', subscriptionError);
