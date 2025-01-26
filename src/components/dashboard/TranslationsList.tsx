@@ -35,40 +35,30 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
         },
         async (payload: any) => {
           console.log('Translation update received:', payload);
-          console.log('Payload new data:', payload.new);
-          console.log('Current user role:', role);
           
           const { data: { user } } = await supabase.auth.getUser();
-          console.log('Current user:', user);
-          
           if (!user) {
             console.log('No authenticated user found');
             return;
           }
 
           // For clients, only refetch if the translation belongs to them
-          if (role === 'client') {
-            console.log('Comparing user.id:', user.id, 'with payload.new.user_id:', payload.new?.user_id);
+          if (role === 'client' && payload.new?.user_id === user.id) {
+            await refetch();
             
-            if (payload.new && payload.new.user_id === user.id) {
-              console.log('Translation belongs to current user, refetching...');
-              await refetch();
-              
-              if (payload.eventType === 'INSERT') {
-                toast({
-                  title: "Translation Created",
-                  description: "Your translation request has been submitted successfully",
-                });
-              } else if (payload.eventType === 'UPDATE' && payload.new.translated_file_path && !payload.old.translated_file_path) {
-                toast({
-                  title: "Translation Ready",
-                  description: "Your translated document is now available for download",
-                });
-              }
+            if (payload.eventType === 'INSERT') {
+              toast({
+                title: "Translation Created",
+                description: "Your translation request has been submitted successfully",
+              });
+            } else if (payload.eventType === 'UPDATE' && payload.new.translated_file_path && !payload.old.translated_file_path) {
+              toast({
+                title: "Translation Ready",
+                description: "Your translated document is now available for download",
+              });
             }
-          } else {
+          } else if (role !== 'client') {
             // For translators and admins, always refetch
-            console.log('Non-client role, always refetching...');
             await refetch();
             
             if (payload.eventType === 'INSERT' && role === 'translator') {
@@ -76,19 +66,11 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
                 title: "New Translation Available",
                 description: "A new document is available for translation",
               });
-            } else if (payload.eventType === 'UPDATE' && role === 'translator' && payload.new.translator_id && !payload.old.translator_id) {
-              toast({
-                title: "Translation Claimed",
-                description: "You have successfully claimed this translation",
-              });
             }
           }
         }
       )
       .subscribe();
-
-    // Initial fetch on mount
-    refetch();
 
     return () => {
       supabase.removeChannel(channel);
@@ -169,7 +151,6 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
           {translationsList.map((translation) => (
             <div key={translation.id} className="space-y-4">
               <TranslationItem 
-                key={translation.id}
                 translation={translation}
                 role={role}
                 onUpdate={() => {

@@ -44,9 +44,9 @@ const AuthDialog = ({ isOpen, onOpenChange, message }: AuthDialogProps) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, !!session);
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+    } = supabase.auth.onAuthStateChange(async (event) => {
+      console.log('Auth state change:', event);
+      if (event === 'SIGNED_OUT') {
         setSelectedRole(null);
       }
     });
