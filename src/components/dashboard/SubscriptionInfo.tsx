@@ -17,7 +17,6 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Add subscription data fetching
   const { data: activeSubscription, isLoading } = useQuery({
     queryKey: ['active-subscription'],
     queryFn: async () => {
@@ -53,8 +52,6 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   });
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>;
-
     const setupSubscription = async () => {
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session?.user) {
@@ -64,7 +61,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
       console.log('Setting up subscription channel for user:', authData.session.user.id);
 
-      channel = supabase
+      const channel = supabase
         .channel('subscription-changes')
         .on(
           'postgres_changes',
@@ -87,15 +84,16 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
         .subscribe((status) => {
           console.log('Subscription channel status:', status);
         });
+
+      return () => {
+        console.log('Cleaning up subscription channel');
+        channel.unsubscribe();
+      };
     };
 
-    setupSubscription();
-
+    const cleanup = setupSubscription();
     return () => {
-      if (channel) {
-        console.log('Cleaning up subscription channel');
-        supabase.removeChannel(channel);
-      }
+      cleanup.then(cleanupFn => cleanupFn?.());
     };
   }, [toast]);
 
