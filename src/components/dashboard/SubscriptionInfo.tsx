@@ -52,6 +52,9 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   });
 
   useEffect(() => {
+    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel>;
+
     const setupSubscription = async () => {
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session?.user) {
@@ -61,7 +64,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
       console.log('Setting up subscription channel for user:', authData.session.user.id);
 
-      const channel = supabase
+      channel = supabase
         .channel('subscription-changes')
         .on(
           'postgres_changes',
@@ -72,28 +75,30 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             filter: `user_id=eq.${authData.session.user.id}`,
           },
           (payload) => {
-            console.log('Subscription update received:', payload);
-            toast({
-              title: "Subscription Updated",
-              description: "Your subscription status has been updated.",
-            });
-            // Force a page reload to reflect the new subscription status
-            window.location.reload();
+            if (mounted) {
+              console.log('Subscription update received:', payload);
+              toast({
+                title: "Subscription Updated",
+                description: "Your subscription status has been updated.",
+              });
+              // Force a page reload to reflect the new subscription status
+              window.location.reload();
+            }
           }
         )
         .subscribe((status) => {
           console.log('Subscription channel status:', status);
         });
-
-      return () => {
-        console.log('Cleaning up subscription channel');
-        channel.unsubscribe();
-      };
     };
 
-    const cleanup = setupSubscription();
+    setupSubscription();
+
     return () => {
-      cleanup.then(cleanupFn => cleanupFn?.());
+      mounted = false;
+      if (channel) {
+        console.log('Cleaning up subscription channel');
+        channel.unsubscribe();
+      }
     };
   }, [toast]);
 
