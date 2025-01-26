@@ -13,6 +13,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -20,7 +21,11 @@ serve(async (req) => {
   try {
     const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
 
-    console.log('Creating checkout session with params:', { amount, plan, email, documentName });
+    console.log('Received checkout request:', { amount, plan, email, documentName });
+
+    if (!amount || !email || !user_id) {
+      throw new Error('Missing required fields: amount, email, or user_id');
+    }
 
     // Create product for this subscription
     let product;
@@ -29,9 +34,9 @@ serve(async (req) => {
         name: `${plan || 'Translation'} Plan`,
         description: `Translation service subscription - ${plan || 'Standard'} plan`,
       });
-      console.log('Created product:', product.id);
+      console.log('Created Stripe product:', product.id);
     } catch (error) {
-      console.error('Error creating product:', error);
+      console.error('Error creating Stripe product:', error);
       throw error;
     }
 
@@ -46,13 +51,13 @@ serve(async (req) => {
           interval: 'month',
         },
       });
-      console.log('Created price:', price.id);
+      console.log('Created Stripe price:', price.id);
     } catch (error) {
-      console.error('Error creating price:', error);
+      console.error('Error creating Stripe price:', error);
       throw error;
     }
 
-    // Create checkout session with a new customer
+    // Create checkout session
     try {
       const session = await stripe.checkout.sessions.create({
         customer_email: email,
@@ -90,7 +95,7 @@ serve(async (req) => {
       console.error('Error creating checkout session:', error);
       throw error;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error processing request:', error);
     return new Response(
       JSON.stringify({ 

@@ -43,6 +43,15 @@ const PaymentProcessor = ({
       return;
     }
 
+    if (!amount) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please provide a valid payment amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     try {
       if (onSubmit) {
