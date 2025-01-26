@@ -86,7 +86,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
       case 'Premium':
         return 15000;
       case 'Business':
-        return 50000;
+        return Number.POSITIVE_INFINITY; // Represents unlimited words
       default:
         return 0;
     }
@@ -111,7 +111,9 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           <div>
             <p className="text-sm text-muted-foreground">Words Remaining</p>
             <p className="font-medium">
-              {subscription.words_remaining ?? getInitialWordCount(subscription.plan_name)}
+              {subscription.plan_name === 'Business' 
+                ? 'Unlimited' 
+                : subscription.words_remaining ?? getInitialWordCount(subscription.plan_name)}
             </p>
           </div>
           
