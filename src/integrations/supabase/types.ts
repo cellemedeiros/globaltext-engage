@@ -210,52 +210,14 @@ export type Database = {
         }
         Relationships: []
       }
-      stripe_payment_events: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          customer_id: string | null
-          id: string
-          metadata: Json | null
-          payment_intent_id: string | null
-          type: string
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_intent_id?: string | null
-          type: string
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_intent_id?: string | null
-          type?: string
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           amount_paid: number
           expires_at: string
           id: string
-          last_payment_date: string | null
-          next_payment_date: string | null
-          payment_status: string | null
           plan_name: string
           started_at: string | null
           status: string
-          stripe_customer_id: string | null
-          stripe_session_id: string | null
-          stripe_subscription_id: string | null
-          subscription_period_end: string | null
-          subscription_period_start: string | null
           user_id: string
           words_remaining: number | null
         }
@@ -263,17 +225,9 @@ export type Database = {
           amount_paid: number
           expires_at: string
           id?: string
-          last_payment_date?: string | null
-          next_payment_date?: string | null
-          payment_status?: string | null
           plan_name: string
           started_at?: string | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_session_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_period_end?: string | null
-          subscription_period_start?: string | null
           user_id: string
           words_remaining?: number | null
         }
@@ -281,17 +235,9 @@ export type Database = {
           amount_paid?: number
           expires_at?: string
           id?: string
-          last_payment_date?: string | null
-          next_payment_date?: string | null
-          payment_status?: string | null
           plan_name?: string
           started_at?: string | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_session_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_period_end?: string | null
-          subscription_period_start?: string | null
           user_id?: string
           words_remaining?: number | null
         }

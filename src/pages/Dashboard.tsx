@@ -9,11 +9,9 @@ import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
 import ProfileSection from "@/components/sections/ProfileSection";
 import TranslationStatsChart from "@/components/dashboard/stats/TranslationStatsChart";
-import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   const { data: translations = [], isLoading: translationsLoading } = useQuery({
     queryKey: ['translations'],
@@ -27,10 +25,7 @@ const Dashboard = () => {
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching translations:', error);
-        throw error;
-      }
+      if (error) throw error;
       return data;
     },
   });
@@ -39,46 +34,25 @@ const Dashboard = () => {
     queryKey: ['active-subscription'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found');
-        return null;
-      }
+      if (!session) return null;
 
       console.log('Fetching subscription for user:', session.user.id);
       
-      try {
-        const { data, error } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .eq('status', 'active')
-          .order('started_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
 
-        if (error) {
-          console.error('Subscription fetch error:', error);
-          toast({
-            title: "Error fetching subscription",
-            description: "There was a problem loading your subscription details. Please try again.",
-            variant: "destructive",
-          });
-          throw error;
-        }
-
-        console.log('Fetched subscription:', data);
-        return data;
-      } catch (error) {
-        console.error('Subscription query error:', error);
-        toast({
-          title: "Error fetching subscription",
-          description: "There was a problem loading your subscription details. Please try again.",
-          variant: "destructive",
-        });
+      if (error) {
+        console.error('Error fetching subscription:', error);
         throw error;
       }
+
+      console.log('Fetched subscription:', data);
+      return data;
     },
-    retry: 1,
   });
 
   return (

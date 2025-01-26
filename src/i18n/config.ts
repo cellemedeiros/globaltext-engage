@@ -11,7 +11,7 @@ i18n
     supportedLngs: ['en', 'es', 'fr', 'it', 'de', 'pt'],
     ns: ['translation'],
     defaultNS: 'translation',
-    debug: true,
+    debug: true, // Enable debug mode to see what's happening
     interpolation: {
       escapeValue: false,
     },

@@ -56,44 +56,26 @@ const PaymentProcessor = ({
         throw new Error('No active session');
       }
 
-      const isSubscription = Boolean(plan);
-      console.log('Creating checkout session...', {
-        amount,
-        words,
-        plan,
-        email: session.user.email,
-        user_id: session.user.id,
-        documentName,
-        filePath,
-        sourceLanguage,
-        targetLanguage,
-        content,
-        type: isSubscription ? 'subscription' : 'payment'
-      });
+      console.log('Creating checkout session...');
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           amount, 
           words, 
           plan,
-          email: session.user.email,
-          user_id: session.user.id,
           documentName,
           filePath,
           sourceLanguage,
           targetLanguage,
           content,
-          type: isSubscription ? 'subscription' : 'payment'
+          type: plan ? 'subscription' : 'translation'
         },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
       });
 
-      if (error) {
-        console.error('Checkout error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (data?.url) {
         window.location.href = data.url;
@@ -103,7 +85,7 @@ const PaymentProcessor = ({
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
-        title: "Payment Error",
+        title: "Error",
         description: error.message || "Failed to process payment. Please try again.",
         variant: "destructive",
       });
@@ -125,7 +107,7 @@ const PaymentProcessor = ({
             Processing...
           </div>
         ) : (
-          `Pay R$${amount || ""}`
+          `Proceed to Payment - R$${amount}`
         )}
       </Button>
     </div>

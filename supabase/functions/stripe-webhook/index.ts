@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
@@ -9,6 +9,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
@@ -43,83 +44,87 @@ serve(async (req) => {
     console.log(`Processing webhook event: ${event.type}`);
 
     switch (event.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object;
-        const metadata = subscription.metadata || {};
-        const userId = metadata.user_id || subscription.customer.metadata?.user_id;
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const metadata = session.metadata || {};
         
-        if (!userId) {
-          throw new Error('No user ID found in metadata');
+        if (metadata.type === 'translation') {
+          console.log(`Processing successful payment for translation`);
+          
+          // Create the translation record
+          const { error: translationError } = await supabaseAdmin
+            .from('translations')
+            .insert({
+              user_id: metadata.userId,
+              document_name: metadata.documentName,
+              word_count: parseInt(metadata.words),
+              status: 'pending',
+              payment_status: 'completed',
+              stripe_payment_intent_id: session.payment_intent,
+              stripe_customer_id: session.customer,
+              amount_paid: session.amount_total / 100,
+              price_offered: session.amount_total / 100,
+              source_language: metadata.sourceLanguage,
+              target_language: metadata.targetLanguage,
+              file_path: metadata.filePath,
+              content: metadata.contentPreview
+            });
+
+          if (translationError) {
+            console.error('Error creating translation:', translationError);
+            throw translationError;
+          }
+
+          // Notify translators about the new available translation
+          const { data: translators, error: translatorError } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('is_approved_translator', true);
+
+          if (translatorError) {
+            console.error('Error fetching translators:', translatorError);
+          } else if (translators && translators.length > 0) {
+            const notifications = translators.map(translator => ({
+              title: 'New Translation Available',
+              message: `A new translation project is available${metadata.documentName ? `: ${metadata.documentName}` : ''}`,
+              user_id: translator.id,
+            }));
+
+            const { error: notificationError } = await supabaseAdmin
+              .from('notifications')
+              .insert(notifications);
+
+            if (notificationError) {
+              console.error('Error creating notifications:', notificationError);
+            } else {
+              console.log(`Created notifications for ${notifications.length} translators`);
+            }
+          }
         }
-
-        // Calculate words based on plan
-        let wordsAllowed = 0;
-        const planName = metadata.plan;
-        if (planName === 'Standard') {
-          wordsAllowed = 10000;
-        } else if (planName === 'Premium') {
-          wordsAllowed = 25000;
-        } else if (planName === 'Business') {
-          wordsAllowed = 50000;
-        }
-
-        console.log('Updating subscription in database:', {
-          userId,
-          planName,
-          status: subscription.status,
-          wordsAllowed
-        });
-
-        // Update subscription in database
-        const { error: subscriptionError } = await supabaseAdmin
-          .from('subscriptions')
-          .upsert({
-            id: subscription.id,
-            user_id: userId,
-            plan_name: planName,
-            status: subscription.status,
-            words_remaining: wordsAllowed,
-            started_at: new Date(subscription.current_period_start * 1000).toISOString(),
-            expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-            amount_paid: subscription.plan.amount / 100,
-          });
-
-        if (subscriptionError) {
-          console.error('Error updating subscription:', subscriptionError);
-          throw subscriptionError;
-        }
-
-        console.log('Successfully updated subscription in database');
         break;
       }
 
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
-        const userId = subscription.metadata.user_id || subscription.customer.metadata?.user_id;
+      case 'checkout.session.expired': {
+        const session = event.data.object;
+        const metadata = session.metadata || {};
+        
+        if (metadata.type === 'translation') {
+          console.log(`Processing expired payment for translation`);
+          
+          const { error } = await supabaseAdmin
+            .from('translations')
+            .update({
+              payment_status: 'expired'
+            })
+            .eq('stripe_payment_intent_id', session.payment_intent);
 
-        if (!userId) {
-          throw new Error('No user ID found in metadata');
+          if (error) {
+            console.error('Error updating translation payment status:', error);
+            throw error;
+          }
         }
-
-        console.log('Cancelling subscription in database:', { userId });
-
-        const { error: subscriptionError } = await supabaseAdmin
-          .from('subscriptions')
-          .update({ status: 'cancelled' })
-          .eq('id', subscription.id);
-
-        if (subscriptionError) {
-          console.error('Error updating subscription:', subscriptionError);
-          throw subscriptionError;
-        }
-
-        console.log('Successfully cancelled subscription in database');
         break;
       }
-
-      default:
-        console.log('Unhandled event type:', event.type);
     }
 
     return new Response(JSON.stringify({ received: true }), {
