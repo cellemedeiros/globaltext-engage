@@ -20,7 +20,7 @@ serve(async (req) => {
   try {
     const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
 
-    console.log('Creating checkout session with params:', { amount, plan, email });
+    console.log('Creating checkout session with params:', { amount, plan, email, documentName });
 
     // Get or create customer
     let customer;
@@ -83,7 +83,7 @@ serve(async (req) => {
           },
         ],
         mode: 'subscription',
-        success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
+        success_url: `${req.headers.get('origin')}/payment?payment=success`,
         cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
         metadata: {
           user_id,
@@ -113,7 +113,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

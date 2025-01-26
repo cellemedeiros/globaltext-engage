@@ -61,7 +61,12 @@ const PaymentProcessor = ({
         words,
         plan,
         email: session.user.email,
-        user_id: session.user.id
+        user_id: session.user.id,
+        documentName,
+        filePath,
+        sourceLanguage,
+        targetLanguage,
+        content
       });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -96,7 +101,7 @@ const PaymentProcessor = ({
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
-        title: "Error",
+        title: "Payment Error",
         description: error.message || "Failed to process payment. Please try again.",
         variant: "destructive",
       });
@@ -118,7 +123,7 @@ const PaymentProcessor = ({
             Processing...
           </div>
         ) : (
-          "Subscribe"
+          `Pay R$${amount || ""}`
         )}
       </Button>
     </div>
