@@ -59,7 +59,7 @@ serve(async (req) => {
         if (planName === 'Standard') {
           wordsAllowed = 10000;
         } else if (planName === 'Premium') {
-          wordsAllowed = 25000;
+          wordsAllowed = 15000;
         } else if (planName === 'Business') {
           wordsAllowed = 50000;
         }

@@ -52,7 +52,7 @@ export const createTranslationRecord = async ({
   // Get active subscription and update words remaining
   const { data: subscription, error: subscriptionError } = await supabase
     .from('subscriptions')
-    .select('id, words_remaining')
+    .select('id, words_remaining, plan_name')
     .eq('user_id', session.user.id)
     .eq('status', 'active')
     .single();
@@ -60,6 +60,11 @@ export const createTranslationRecord = async ({
   if (subscriptionError) throw subscriptionError;
 
   if (!isAdmin) {
+    // Check if user has enough words remaining
+    if (subscription.words_remaining < wordCount) {
+      throw new Error('Insufficient words remaining in subscription');
+    }
+
     // Update words remaining in subscription
     const { error: updateError } = await supabase
       .from('subscriptions')
