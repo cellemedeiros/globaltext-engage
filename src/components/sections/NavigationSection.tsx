@@ -32,39 +32,22 @@ const NavigationSection = () => {
 
   const handleLogout = async () => {
     try {
-      // First check if we have a session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { error } = await supabase.auth.signOut();
       
-      if (!session) {
-        // If no session exists, just update the UI and redirect
+      // Handle session_not_found error specifically
+      if (error?.message?.includes('session_not_found')) {
+        // If session is not found, we can consider the user already logged out
         setIsAuthenticated(false);
         navigate("/");
         toast({
-          title: "Already Signed Out",
-          description: "You were already signed out of your account.",
+          title: "Signed out",
+          description: "You have been signed out successfully.",
         });
         return;
       }
 
-      // If we have a session, try to sign out
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-        // Handle session_not_found error specifically
-        if (error.message?.includes('session_not_found')) {
-          setIsAuthenticated(false);
-          navigate("/");
-          toast({
-            title: "Signed Out",
-            description: "You have been signed out successfully.",
-          });
-          return;
-        }
-        // Handle other errors
-        throw error;
-      }
+      if (error) throw error;
 
-      // Successful logout
       navigate("/");
       toast({
         title: "Success",

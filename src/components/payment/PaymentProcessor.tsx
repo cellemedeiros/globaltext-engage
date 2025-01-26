@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
@@ -9,7 +9,7 @@ interface PaymentProcessorProps {
   amount: string | null;
   words?: string | null;
   plan?: string | null;
-  session: any;
+  session: Session | null;
   documentName?: string | null;
   filePath?: string | null;
   sourceLanguage?: string | null;
@@ -43,15 +43,6 @@ const PaymentProcessor = ({
       return;
     }
 
-    if (!amount) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please provide a valid payment amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsProcessing(true);
     try {
       if (onSubmit) {
@@ -65,30 +56,9 @@ const PaymentProcessor = ({
         throw new Error('No active session');
       }
 
-      // Store content in translations table first if it exists
-      if (content && filePath) {
-        const { error: contentError } = await supabase
-          .from('translations')
-          .insert({
-            user_id: session.user.id,
-            document_name: documentName,
-            content: content,
-            file_path: filePath,
-            source_language: sourceLanguage,
-            target_language: targetLanguage,
-            status: 'pending_payment',
-            word_count: parseInt(words || '0'),
-            amount_paid: parseFloat(amount)
-          });
-
-        if (contentError) {
-          throw contentError;
-        }
-      }
-
-      const payload = {
-        amount, 
-        words, 
+      console.log('Creating checkout session...', {
+        amount,
+        words,
         plan,
         email: session.user.email,
         user_id: session.user.id,
@@ -96,31 +66,38 @@ const PaymentProcessor = ({
         filePath,
         sourceLanguage,
         targetLanguage,
-        // Determine payment type based on presence of plan
-        type: plan ? 'subscription' : 'payment'
-      };
-
-      console.log('Creating checkout session with payload:', payload);
+        content
+      });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: payload,
+        body: { 
+          amount, 
+          words, 
+          plan,
+          email: session.user.email,
+          user_id: session.user.id,
+          documentName,
+          filePath,
+          sourceLanguage,
+          targetLanguage,
+          content,
+          type: 'subscription'
+        },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
       });
-
-      console.log('Checkout response:', { data, error });
 
       if (error) {
         console.error('Checkout error:', error);
         throw error;
       }
 
-      if (!data?.url) {
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
         throw new Error('No checkout URL received');
       }
-
-      window.location.href = data.url;
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({

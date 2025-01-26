@@ -3,8 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Subscription {
   plan_name: string;
@@ -17,172 +16,94 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data: activeSubscription, isLoading } = useQuery({
-    queryKey: ['active-subscription'],
-    queryFn: async () => {
-      console.log('Fetching subscription data...');
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found');
-        return null;
-      }
-
-      console.log('Session found, user ID:', session.user.id);
-      
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching subscription:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load subscription details",
-          variant: "destructive",
-        });
-        return null;
-      }
-
-      console.log('Fetched subscription data:', data);
-      return data;
-    },
-  });
-
   useEffect(() => {
-    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel>;
 
     const setupSubscription = async () => {
-      try {
-        const { data: authData } = await supabase.auth.getSession();
-        if (!authData.session?.user) {
-          console.log('No auth session found in SubscriptionInfo');
-          return null;
-        }
-
-        console.log('Setting up subscription channel for user:', authData.session.user.id);
-
-        const channel = supabase
-          .channel('subscription-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'subscriptions',
-              filter: `user_id=eq.${authData.session.user.id}`,
-            },
-            (payload) => {
-              if (mounted) {
-                console.log('Subscription update received:', payload);
-                toast({
-                  title: "Subscription Updated",
-                  description: "Your subscription status has been updated.",
-                });
-                // Force a page reload to reflect the new subscription status
-                window.location.reload();
-              }
-            }
-          )
-          .subscribe();
-
-        return channel;
-      } catch (error) {
-        console.error('Error setting up subscription channel:', error);
-        return null;
+      const { data: authData } = await supabase.auth.getSession();
+      if (!authData.session?.user) {
+        console.log('No auth session found in SubscriptionInfo');
+        return;
       }
+
+      console.log('Setting up subscription channel for user:', authData.session.user.id);
+
+      channel = supabase
+        .channel('subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'subscriptions',
+            filter: `user_id=eq.${authData.session.user.id}`,
+          },
+          (payload) => {
+            console.log('Subscription update received:', payload);
+            toast({
+              title: "Subscription Updated",
+              description: "Your subscription status has been updated.",
+            });
+            window.location.reload();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Subscription channel status:', status);
+        });
     };
 
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    
-    setupSubscription().then(ch => {
-      channel = ch;
-    });
+    setupSubscription();
 
     return () => {
-      mounted = false;
       if (channel) {
         console.log('Cleaning up subscription channel');
-        channel.unsubscribe();
+        supabase.removeChannel(channel);
       }
     };
   }, [toast]);
 
   const handleUpgrade = () => {
-    if (!activeSubscription) {
+    if (!subscription) {
       console.log('No subscription, redirecting to pricing');
-      // Always include type=subscription in the URL to indicate monthly payment
       navigate('/#pricing');
       return;
     }
     
-    console.log('Current subscription plan:', activeSubscription.plan_name);
-    if (activeSubscription.plan_name === 'Business') {
-      navigate('/#contact');
+    console.log('Current subscription plan:', subscription.plan_name);
+    if (subscription.plan_name === 'Standard' || subscription.plan_name === 'Premium') {
+      navigate('/payment?plan=Business&amount=2500');
     } else {
-      // For upgrades, also ensure we're handling it as a subscription
       navigate('/#pricing');
     }
   };
 
-  const getInitialWordCount = (planName: string) => {
-    switch (planName) {
-      case 'Standard':
-        return 5000;
-      case 'Premium':
-        return 15000;
-      case 'Business':
-        return Number.POSITIVE_INFINITY;
-      default:
-        return 0;
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <Card className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="space-y-2">
-            <div className="h-3 bg-gray-200 rounded"></div>
-            <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-          </div>
-        </div>
-      </Card>
-    );
-  }
+  console.log('Rendering SubscriptionInfo with subscription:', subscription);
 
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">Subscription Status</h2>
       
-      {activeSubscription ? (
+      {subscription ? (
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Current Plan</p>
-            <p className="font-medium">{activeSubscription.plan_name}</p>
+            <p className="font-medium">{subscription.plan_name}</p>
           </div>
           
           <div>
             <p className="text-sm text-muted-foreground">Status</p>
-            <p className="font-medium capitalize">{activeSubscription.status}</p>
+            <p className="font-medium">{subscription.status}</p>
           </div>
           
           <div>
             <p className="text-sm text-muted-foreground">Words Remaining</p>
-            <p className="font-medium">
-              {activeSubscription.plan_name === 'Business' 
-                ? 'Unlimited' 
-                : activeSubscription.words_remaining ?? getInitialWordCount(activeSubscription.plan_name)}
-            </p>
+            <p className="font-medium">{subscription.words_remaining}</p>
           </div>
           
           <div>
             <p className="text-sm text-muted-foreground">Expires On</p>
             <p className="font-medium">
-              {new Date(activeSubscription.expires_at).toLocaleDateString('en-US')}
+              {new Date(subscription.expires_at).toLocaleDateString('en-US')}
             </p>
           </div>
 
@@ -190,7 +111,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            {activeSubscription.plan_name === 'Business' ? 'Contact Support' : 'Upgrade Plan'}
+            {subscription.plan_name === 'Business' ? 'Manage Subscription' : 'Upgrade to Business'}
           </Button>
         </div>
       ) : (

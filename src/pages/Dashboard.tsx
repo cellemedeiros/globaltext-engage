@@ -7,6 +7,7 @@ import DashboardStats from "@/components/dashboard/DashboardStats";
 import DocumentUploadCard from "@/components/dashboard/DocumentUploadCard";
 import TranslationsList from "@/components/dashboard/TranslationsList";
 import SubscriptionInfo from "@/components/dashboard/SubscriptionInfo";
+import ProfileSection from "@/components/sections/ProfileSection";
 import TranslationStatsChart from "@/components/dashboard/stats/TranslationStatsChart";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -17,14 +18,9 @@ const Dashboard = () => {
   const { data: translations = [], isLoading: translationsLoading } = useQuery({
     queryKey: ['translations'],
     queryFn: async () => {
-      console.log('Fetching translations...');
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found, returning empty array');
-        return [];
-      }
+      if (!session) return [];
 
-      console.log('Session found, fetching translations for user:', session.user.id);
       const { data, error } = await supabase
         .from('translations')
         .select('*')
@@ -33,15 +29,8 @@ const Dashboard = () => {
 
       if (error) {
         console.error('Error fetching translations:', error);
-        toast({
-          title: "Error fetching translations",
-          description: "There was a problem loading your translations. Please try again.",
-          variant: "destructive",
-        });
         throw error;
       }
-      
-      console.log('Successfully fetched translations:', data);
       return data;
     },
   });
@@ -49,7 +38,6 @@ const Dashboard = () => {
   const { data: subscription, isLoading: subscriptionLoading } = useQuery({
     queryKey: ['active-subscription'],
     queryFn: async () => {
-      console.log('Fetching subscription...');
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.log('No session found');
@@ -123,6 +111,8 @@ const Dashboard = () => {
         </div>
 
         <TranslationsList isLoading={translationsLoading} />
+        
+        <ProfileSection />
       </div>
     </div>
   );

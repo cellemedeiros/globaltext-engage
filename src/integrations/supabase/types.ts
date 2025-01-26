@@ -215,17 +215,9 @@ export type Database = {
           amount_paid: number
           expires_at: string
           id: string
-          last_payment_date: string | null
-          next_payment_date: string | null
-          payment_status: string | null
           plan_name: string
           started_at: string | null
           status: string
-          stripe_customer_id: string | null
-          stripe_session_id: string | null
-          stripe_subscription_id: string | null
-          subscription_period_end: string | null
-          subscription_period_start: string | null
           user_id: string
           words_remaining: number | null
         }
@@ -233,17 +225,9 @@ export type Database = {
           amount_paid: number
           expires_at: string
           id?: string
-          last_payment_date?: string | null
-          next_payment_date?: string | null
-          payment_status?: string | null
           plan_name: string
           started_at?: string | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_session_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_period_end?: string | null
-          subscription_period_start?: string | null
           user_id: string
           words_remaining?: number | null
         }
@@ -251,17 +235,9 @@ export type Database = {
           amount_paid?: number
           expires_at?: string
           id?: string
-          last_payment_date?: string | null
-          next_payment_date?: string | null
-          payment_status?: string | null
           plan_name?: string
           started_at?: string | null
           status?: string
-          stripe_customer_id?: string | null
-          stripe_session_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_period_end?: string | null
-          subscription_period_start?: string | null
           user_id?: string
           words_remaining?: number | null
         }

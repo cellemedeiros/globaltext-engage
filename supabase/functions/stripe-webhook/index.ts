@@ -17,21 +17,17 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
+  try {
     const signature = req.headers.get('stripe-signature');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 
     if (!signature || !webhookSecret) {
       console.error('Missing signature or webhook secret');
-      return new Response(
-        JSON.stringify({ error: 'Missing signature or webhook secret' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response('Missing signature or webhook secret', { status: 400 });
     }
 
     const body = await req.text();
@@ -41,119 +37,89 @@ serve(async (req) => {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error(`Webhook signature verification failed:`, err.message);
-      return new Response(
-        JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
     }
 
-    console.log(`Processing webhook event: ${event.type}`, event.data.object);
+    console.log(`Processing webhook event: ${event.type}`);
 
     switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
-        console.log('Processing payment intent:', {
-          paymentIntentId: paymentIntent.id,
-          amount: paymentIntent.amount,
-          status: paymentIntent.status,
-          metadata: paymentIntent.metadata
-        });
-
-        if (paymentIntent.metadata?.translationId) {
-          const { error: updateError } = await supabaseAdmin
-            .from('translations')
-            .update({
-              payment_status: 'succeeded',
-              stripe_payment_intent_id: paymentIntent.id,
-              stripe_customer_id: paymentIntent.customer,
-            })
-            .eq('id', paymentIntent.metadata.translationId);
-
-          if (updateError) {
-            console.error('Error updating translation payment status:', updateError);
-            throw updateError;
-          }
-        }
-        break;
-      }
-
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        console.log('Processing completed checkout session:', {
-          sessionId: session.id,
-          customerId: session.customer,
-          metadata: session.metadata,
-          userId: session.metadata?.user_id,
-        });
-
-        if (!session.metadata?.user_id) {
-          throw new Error('No user ID found in session metadata');
-        }
-
-        const subscriptionId = session.subscription;
-        if (!subscriptionId) {
-          throw new Error('No subscription ID found in session');
-        }
-
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        console.log('Retrieved subscription details:', subscription);
-
-        let wordsAllowed = 0;
-        const amountPaid = session.amount_total / 100;
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const metadata = subscription.metadata || {};
+        const userId = metadata.user_id || subscription.customer.metadata?.user_id;
         
-        if (amountPaid === 1200) {
-          wordsAllowed = 15000;
-        } else if (amountPaid === 400) {
-          wordsAllowed = 5000;
-        } else {
-          wordsAllowed = 5000; // Default to minimum
+        if (!userId) {
+          throw new Error('No user ID found in metadata');
         }
 
-        const subscriptionData = {
-          user_id: session.metadata.user_id,
-          plan_name: amountPaid === 1200 ? 'Premium' : 'Standard',
-          status: 'active',
-          words_remaining: wordsAllowed,
-          started_at: new Date().toISOString(),
-          expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-          amount_paid: amountPaid,
-          stripe_session_id: session.id,
-          stripe_customer_id: session.customer,
-          stripe_subscription_id: subscriptionId,
-          subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          payment_status: 'succeeded',
-          last_payment_date: new Date().toISOString(),
-          next_payment_date: new Date(subscription.current_period_end * 1000).toISOString()
-        };
+        // Calculate words based on plan
+        let wordsAllowed = 0;
+        const planName = metadata.plan;
+        if (planName === 'Standard') {
+          wordsAllowed = 10000;
+        } else if (planName === 'Premium') {
+          wordsAllowed = 25000;
+        } else if (planName === 'Business') {
+          wordsAllowed = 50000;
+        }
 
-        console.log('Creating subscription record:', subscriptionData);
+        console.log('Updating subscription in database:', {
+          userId,
+          planName,
+          status: subscription.status,
+          wordsAllowed
+        });
 
+        // Update subscription in database
         const { error: subscriptionError } = await supabaseAdmin
           .from('subscriptions')
-          .upsert(subscriptionData);
+          .upsert({
+            id: subscription.id,
+            user_id: userId,
+            plan_name: planName,
+            status: subscription.status,
+            words_remaining: wordsAllowed,
+            started_at: new Date(subscription.current_period_start * 1000).toISOString(),
+            expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+            amount_paid: subscription.plan.amount / 100,
+          });
 
         if (subscriptionError) {
-          console.error('Error creating subscription:', subscriptionError);
+          console.error('Error updating subscription:', subscriptionError);
           throw subscriptionError;
         }
 
-        const { error: notificationError } = await supabaseAdmin
-          .from('notifications')
-          .insert({
-            user_id: session.metadata.user_id,
-            title: 'Subscription Activated',
-            message: `Your ${subscriptionData.plan_name} plan subscription has been activated successfully.`
-          });
+        console.log('Successfully updated subscription in database');
+        break;
+      }
 
-        if (notificationError) {
-          console.error('Error creating notification:', notificationError);
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        const userId = subscription.metadata.user_id || subscription.customer.metadata?.user_id;
+
+        if (!userId) {
+          throw new Error('No user ID found in metadata');
         }
+
+        console.log('Cancelling subscription in database:', { userId });
+
+        const { error: subscriptionError } = await supabaseAdmin
+          .from('subscriptions')
+          .update({ status: 'cancelled' })
+          .eq('id', subscription.id);
+
+        if (subscriptionError) {
+          console.error('Error updating subscription:', subscriptionError);
+          throw subscriptionError;
+        }
+
+        console.log('Successfully cancelled subscription in database');
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log('Unhandled event type:', event.type);
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -162,12 +128,9 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error('Error processing webhook:', err);
-    return new Response(
-      JSON.stringify({ error: err.message }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
-    );
+    return new Response(JSON.stringify({ error: err.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    });
   }
 });

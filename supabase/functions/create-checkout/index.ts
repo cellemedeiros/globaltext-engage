@@ -13,65 +13,48 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, type } = await req.json();
+    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
 
-    console.log('Received checkout request:', { amount, plan, email, documentName, type });
+    console.log('Creating checkout session with params:', { amount, plan, email, documentName });
 
-    if (!amount || !email || !user_id) {
-      throw new Error('Missing required fields: amount, email, or user_id');
-    }
-
-    // Create product for this payment
+    // Create product for this subscription
     let product;
     try {
       product = await stripe.products.create({
-        name: type === 'subscription' 
-          ? `${plan || 'Translation'} Plan` 
-          : `Translation: ${documentName || 'Document'}`,
-        description: type === 'subscription'
-          ? `Translation service subscription - ${plan || 'Standard'} plan`
-          : `One-time translation payment for ${documentName}`,
+        name: `${plan || 'Translation'} Plan`,
+        description: `Translation service subscription - ${plan || 'Standard'} plan`,
       });
-      console.log('Created Stripe product:', product.id);
+      console.log('Created product:', product.id);
     } catch (error) {
-      console.error('Error creating Stripe product:', error);
+      console.error('Error creating product:', error);
       throw error;
     }
 
-    // Create price
+    // Create price for the subscription
     let price;
     try {
-      const priceData = {
+      price = await stripe.prices.create({
         product: product.id,
         unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
         currency: 'brl',
-      };
-
-      // Add recurring property only for subscriptions
-      if (type === 'subscription') {
-        Object.assign(priceData, {
-          recurring: {
-            interval: 'month',
-          },
-        });
-      }
-
-      price = await stripe.prices.create(priceData);
-      console.log('Created Stripe price:', price.id);
+        recurring: {
+          interval: 'month',
+        },
+      });
+      console.log('Created price:', price.id);
     } catch (error) {
-      console.error('Error creating Stripe price:', error);
+      console.error('Error creating price:', error);
       throw error;
     }
 
-    // Create checkout session
+    // Create checkout session with a new customer
     try {
-      const sessionData = {
+      const session = await stripe.checkout.sessions.create({
         customer_email: email,
         line_items: [
           {
@@ -79,21 +62,21 @@ serve(async (req) => {
             quantity: 1,
           },
         ],
-        mode: type === 'subscription' ? 'subscription' : 'payment',
+        mode: 'subscription',
         success_url: `${req.headers.get('origin')}/payment?payment=success`,
         cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
         metadata: {
           user_id,
-          type,
+          type: 'subscription',
           plan,
           documentName,
           filePath,
           sourceLanguage,
           targetLanguage,
+          content,
         },
-      };
+      });
 
-      const session = await stripe.checkout.sessions.create(sessionData);
       console.log('Created checkout session:', session.id);
 
       return new Response(
@@ -107,7 +90,7 @@ serve(async (req) => {
       console.error('Error creating checkout session:', error);
       throw error;
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
       JSON.stringify({ 
