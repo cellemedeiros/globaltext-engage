@@ -48,80 +48,121 @@ serve(async (req) => {
         const session = event.data.object;
         const metadata = session.metadata || {};
         
-        if (metadata.type === 'translation') {
-          console.log(`Processing successful payment for translation`);
+        if (metadata.type === 'subscription') {
+          console.log(`Processing successful subscription payment`);
           
-          // Create the translation record
-          const { error: translationError } = await supabaseAdmin
-            .from('translations')
-            .insert({
-              user_id: metadata.userId,
-              document_name: metadata.documentName,
-              word_count: parseInt(metadata.words),
-              status: 'pending',
-              payment_status: 'completed',
-              stripe_payment_intent_id: session.payment_intent,
-              stripe_customer_id: session.customer,
-              amount_paid: session.amount_total / 100,
-              price_offered: session.amount_total / 100,
-              source_language: metadata.sourceLanguage,
-              target_language: metadata.targetLanguage,
-              file_path: metadata.filePath,
-              content: metadata.contentPreview
-            });
-
-          if (translationError) {
-            console.error('Error creating translation:', translationError);
-            throw translationError;
+          const planName = metadata.plan;
+          const userId = metadata.user_id;
+          const subscriptionId = session.subscription;
+          
+          if (!planName || !userId) {
+            throw new Error('Missing plan name or user ID in metadata');
           }
 
-          // Notify translators about the new available translation
-          const { data: translators, error: translatorError } = await supabaseAdmin
-            .from('profiles')
-            .select('id')
-            .eq('is_approved_translator', true);
+          // Get subscription details from Stripe
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+          
+          // Calculate words based on plan
+          let wordsAllowed = 0;
+          if (planName === 'Standard') {
+            wordsAllowed = 10000;
+          } else if (planName === 'Premium') {
+            wordsAllowed = 25000;
+          }
 
-          if (translatorError) {
-            console.error('Error fetching translators:', translatorError);
-          } else if (translators && translators.length > 0) {
-            const notifications = translators.map(translator => ({
-              title: 'New Translation Available',
-              message: `A new translation project is available${metadata.documentName ? `: ${metadata.documentName}` : ''}`,
-              user_id: translator.id,
-            }));
+          // Create or update subscription in database
+          const { error: subscriptionError } = await supabaseAdmin
+            .from('subscriptions')
+            .upsert({
+              user_id: userId,
+              plan_name: planName,
+              status: 'active',
+              words_remaining: wordsAllowed,
+              started_at: new Date().toISOString(),
+              expires_at: currentPeriodEnd.toISOString(),
+              amount_paid: session.amount_total / 100,
+            });
 
-            const { error: notificationError } = await supabaseAdmin
-              .from('notifications')
-              .insert(notifications);
-
-            if (notificationError) {
-              console.error('Error creating notifications:', notificationError);
-            } else {
-              console.log(`Created notifications for ${notifications.length} translators`);
-            }
+          if (subscriptionError) {
+            console.error('Error updating subscription:', subscriptionError);
+            throw subscriptionError;
           }
         }
         break;
       }
 
-      case 'checkout.session.expired': {
-        const session = event.data.object;
-        const metadata = session.metadata || {};
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
         
-        if (metadata.type === 'translation') {
-          console.log(`Processing expired payment for translation`);
-          
-          const { error } = await supabaseAdmin
-            .from('translations')
-            .update({
-              payment_status: 'expired'
-            })
-            .eq('stripe_payment_intent_id', session.payment_intent);
+        // Get customer email from Stripe
+        const customer = await stripe.customers.retrieve(customerId);
+        if (!customer.email) {
+          throw new Error('Customer email not found');
+        }
 
-          if (error) {
-            console.error('Error updating translation payment status:', error);
-            throw error;
-          }
+        // Get user from Supabase
+        const { data: userData, error: userError } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('id', customer.metadata.user_id)
+          .single();
+
+        if (userError) {
+          console.error('Error finding user:', userError);
+          throw userError;
+        }
+
+        // Update subscription status
+        const { error: subscriptionError } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            status: subscription.status,
+            expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+          })
+          .eq('user_id', userData.id);
+
+        if (subscriptionError) {
+          console.error('Error updating subscription:', subscriptionError);
+          throw subscriptionError;
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        // Get customer email from Stripe
+        const customer = await stripe.customers.retrieve(customerId);
+        if (!customer.email) {
+          throw new Error('Customer email not found');
+        }
+
+        // Get user from Supabase
+        const { data: userData, error: userError } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('id', customer.metadata.user_id)
+          .single();
+
+        if (userError) {
+          console.error('Error finding user:', userError);
+          throw userError;
+        }
+
+        // Update subscription status to cancelled
+        const { error: subscriptionError } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            status: 'cancelled',
+          })
+          .eq('user_id', userData.id);
+
+        if (subscriptionError) {
+          console.error('Error updating subscription:', subscriptionError);
+          throw subscriptionError;
         }
         break;
       }
