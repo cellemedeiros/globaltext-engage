@@ -47,6 +47,7 @@ serve(async (req) => {
         const session = event.data.object;
         const customerId = session.customer;
         const customerEmail = session.customer_details?.email;
+        const subscriptionId = session.subscription;
         
         console.log('Processing completed checkout session:', {
           sessionId: session.id,
@@ -54,13 +55,28 @@ serve(async (req) => {
           customerEmail,
           metadata: session.metadata,
           clientReferenceId: session.client_reference_id,
-          subscriptionId: session.subscription,
+          subscriptionId,
           invoiceId: session.invoice
         });
 
         if (!session.client_reference_id) {
           console.error('No client_reference_id found in session');
           throw new Error('No client reference ID found');
+        }
+
+        // Get subscription details from Stripe
+        const subscription = subscriptionId ? 
+          await stripe.subscriptions.retrieve(subscriptionId) : null;
+
+        // Calculate words based on plan
+        let wordsAllowed = 0;
+        const planName = session.metadata?.plan || 'Standard';
+        if (planName === 'Standard') {
+          wordsAllowed = 5000;
+        } else if (planName === 'Premium') {
+          wordsAllowed = 15000;
+        } else if (planName === 'Business') {
+          wordsAllowed = 50000;
         }
 
         // Get user ID from Supabase based on client_reference_id
@@ -78,45 +94,36 @@ serve(async (req) => {
         const userId = users[0].id;
         console.log('Found user ID:', userId);
 
-        // Calculate words based on plan
-        let wordsAllowed = 0;
-        const planName = session.metadata?.plan || 'Standard';
-        if (planName === 'Standard') {
-          wordsAllowed = 5000;
-        } else if (planName === 'Premium') {
-          wordsAllowed = 15000;
-        } else if (planName === 'Business') {
-          wordsAllowed = 50000;
-        }
-
-        // Set expiration date to 30 days from now
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-
-        console.log('Updating subscription in database:', {
-          userId,
-          planName,
-          wordsAllowed,
-          expiresAt,
-          sessionId: session.id,
-          amount: session.amount_total,
-          subscriptionId: session.subscription
-        });
-
         // Update subscription in database
+        const subscriptionData = {
+          user_id: userId,
+          plan_name: planName,
+          status: 'active',
+          words_remaining: wordsAllowed,
+          started_at: new Date().toISOString(),
+          expires_at: subscription ? 
+            new Date(subscription.current_period_end * 1000).toISOString() :
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          amount_paid: session.amount_total ? session.amount_total / 100 : 0,
+          stripe_session_id: session.id,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          subscription_period_start: subscription ? 
+            new Date(subscription.current_period_start * 1000).toISOString() : 
+            new Date().toISOString(),
+          subscription_period_end: subscription ? 
+            new Date(subscription.current_period_end * 1000).toISOString() : 
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          payment_status: 'succeeded',
+          last_payment_date: new Date().toISOString(),
+          next_payment_date: subscription ? 
+            new Date(subscription.current_period_end * 1000).toISOString() : 
+            null
+        };
+
         const { error: subscriptionError } = await supabaseAdmin
           .from('subscriptions')
-          .upsert({
-            user_id: userId,
-            plan_name: planName,
-            status: 'active',
-            words_remaining: wordsAllowed,
-            started_at: new Date().toISOString(),
-            expires_at: expiresAt.toISOString(),
-            amount_paid: session.amount_total ? session.amount_total / 100 : 0,
-            stripe_session_id: session.id,
-            stripe_customer_id: customerId
-          });
+          .upsert(subscriptionData);
 
         if (subscriptionError) {
           console.error('Error updating subscription:', subscriptionError);
@@ -136,10 +143,101 @@ serve(async (req) => {
 
         if (notificationError) {
           console.error('Error creating notification:', notificationError);
-          // Don't throw here, as the subscription was already created
         }
 
         console.log('Successfully created notification');
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+
+        console.log('Processing subscription update:', {
+          subscriptionId: subscription.id,
+          customerId,
+          status: subscription.status
+        });
+
+        // Find the subscription in our database
+        const { data: subscriptions, error: fetchError } = await supabaseAdmin
+          .from('subscriptions')
+          .select('id, user_id')
+          .eq('stripe_subscription_id', subscription.id)
+          .limit(1);
+
+        if (fetchError || !subscriptions || subscriptions.length === 0) {
+          console.error('Error fetching subscription:', fetchError);
+          throw new Error('Subscription not found');
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            status: subscription.status === 'active' ? 'active' : 'inactive',
+            subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            next_payment_date: new Date(subscription.current_period_end * 1000).toISOString()
+          })
+          .eq('stripe_subscription_id', subscription.id);
+
+        if (updateError) {
+          console.error('Error updating subscription:', updateError);
+          throw updateError;
+        }
+
+        console.log('Successfully updated subscription status');
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object;
+        const subscriptionId = invoice.subscription;
+
+        if (!subscriptionId) {
+          console.log('No subscription ID found in invoice');
+          break;
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            payment_status: 'succeeded',
+            last_payment_date: new Date().toISOString()
+          })
+          .eq('stripe_subscription_id', subscriptionId);
+
+        if (updateError) {
+          console.error('Error updating payment status:', updateError);
+          throw updateError;
+        }
+
+        console.log('Successfully updated payment status');
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const subscriptionId = invoice.subscription;
+
+        if (!subscriptionId) {
+          console.log('No subscription ID found in invoice');
+          break;
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            payment_status: 'failed',
+          })
+          .eq('stripe_subscription_id', subscriptionId);
+
+        if (updateError) {
+          console.error('Error updating payment status:', updateError);
+          throw updateError;
+        }
+
+        console.log('Successfully updated payment status to failed');
         break;
       }
 
