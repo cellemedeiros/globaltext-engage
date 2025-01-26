@@ -45,7 +45,7 @@ supabase.auth.getSession().catch(error => {
 
 // Listen for auth state changes
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+  if (event === 'SIGNED_OUT') {
     // Clear any stored auth data
     for (const key of Object.keys(localStorage)) {
       if (key.startsWith('sb-')) {
