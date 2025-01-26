@@ -16,6 +16,7 @@ import MRRMetrics from "@/components/dashboard/MRRMetrics";
 import AdminTranslationsOverview from "@/components/dashboard/admin/AdminTranslationsOverview";
 import TranslatorApprovals from "@/components/dashboard/TranslatorApprovals";
 import WithdrawalRequestsTable from "@/components/dashboard/admin/WithdrawalRequestsTable";
+import ClientManagementSection from "@/components/dashboard/admin/ClientManagementSection";
 import { Database } from "@/integrations/supabase/types";
 import { Link } from "react-router-dom";
 
@@ -29,6 +30,7 @@ const TranslatorDashboard = () => {
   const [isManageTranslationsOpen, setIsManageTranslationsOpen] = useState(false);
   const [isManageTranslatorsOpen, setIsManageTranslatorsOpen] = useState(false);
   const [isWithdrawalsOpen, setIsWithdrawalsOpen] = useState(false);
+  const [isClientManagementOpen, setIsClientManagementOpen] = useState(false);
   
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -103,6 +105,22 @@ const TranslatorDashboard = () => {
                   </div>
                   <CollapsibleContent className="space-y-2">
                     <AdminTranslationsOverview />
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible 
+                  open={isClientManagementOpen}
+                  onOpenChange={setIsClientManagementOpen}
+                  className="w-full border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full flex justify-between items-center">
+                      <span>Manage Clients</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isClientManagementOpen ? 'transform rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <ClientManagementSection />
                   </CollapsibleContent>
                 </Collapsible>
 
