@@ -84,7 +84,10 @@ const MRRMetrics = () => {
   const mrrGrowth = getMRRGrowth();
 
   const getSubscriptionsByPlan = (planName: string) => {
-    return currentMonth?.subscription_breakdown.find(plan => plan.plan_name.toLowerCase() === planName.toLowerCase());
+    if (!currentMonth?.subscription_breakdown) return null;
+    return currentMonth.subscription_breakdown.find(
+      plan => plan.plan_name.toLowerCase() === planName.toLowerCase()
+    );
   };
 
   const standardPlan = getSubscriptionsByPlan('standard');
@@ -161,7 +164,6 @@ const MRRMetrics = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Standard Plan Card */}
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <Package className="w-8 h-8 text-primary" />
@@ -179,7 +181,6 @@ const MRRMetrics = () => {
           </div>
         </Card>
 
-        {/* Premium Plan Card */}
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <Package className="w-8 h-8 text-primary" />
@@ -197,7 +198,6 @@ const MRRMetrics = () => {
           </div>
         </Card>
 
-        {/* Business Plan Card */}
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <Package className="w-8 h-8 text-primary" />
