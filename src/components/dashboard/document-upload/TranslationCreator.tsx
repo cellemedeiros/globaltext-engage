@@ -49,13 +49,29 @@ export const createTranslationRecord = async ({
     }
   }
 
-  const { data: subscription } = await supabase
+  // Get active subscription and update words remaining
+  const { data: subscription, error: subscriptionError } = await supabase
     .from('subscriptions')
-    .select('id')
+    .select('id, words_remaining')
     .eq('user_id', session.user.id)
     .eq('status', 'active')
     .single();
 
+  if (subscriptionError) throw subscriptionError;
+
+  if (!isAdmin) {
+    // Update words remaining in subscription
+    const { error: updateError } = await supabase
+      .from('subscriptions')
+      .update({ 
+        words_remaining: subscription.words_remaining - wordCount 
+      })
+      .eq('id', subscription.id);
+
+    if (updateError) throw updateError;
+  }
+
+  // Create translation record
   const { error } = await supabase
     .from('translations')
     .insert({
