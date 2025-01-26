@@ -43,9 +43,9 @@ const PlanCard = ({
       });
     } else {
       if (name === "Business") {
-        // Handle business plan contact logic
+        navigate('/contact');
       } else {
-        // For subscription plans, only pass the plan name and price
+        // Always process as a subscription
         const cleanPrice = price.replace("R$", "");
         navigate(`/payment?plan=${name}&amount=${cleanPrice}&type=subscription`);
       }
@@ -105,7 +105,7 @@ const PlanCard = ({
                 Contact Sales
               </>
             ) : (
-              "Get Started"
+              "Subscribe Now"
             )}
           </Button>
         </CardContent>
@@ -114,7 +114,7 @@ const PlanCard = ({
       <AuthDialog 
         isOpen={showAuthDialog} 
         onOpenChange={setShowAuthDialog}
-        message={`Sign in or create an account to get started with the ${name} plan.`}
+        message={`Sign in or create an account to subscribe to the ${name} plan.`}
       />
     </>
   );
