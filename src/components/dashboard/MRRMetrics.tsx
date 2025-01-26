@@ -124,7 +124,7 @@ const MRRMetrics = () => {
         };
       }
       return acc;
-    }, { subscription_count: 0, plan_revenue: 0 });
+    }, { subscription_count: 0, plan_revenue: 0 } as PlanMetrics);
   };
 
   const standardPlan = getSubscriptionsByPlan('standard');
