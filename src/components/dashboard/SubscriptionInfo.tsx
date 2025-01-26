@@ -16,11 +16,13 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
   const { toast } = useToast();
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>;
+
     const setupSubscription = async () => {
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session?.user) return;
 
-      const channel = supabase
+      channel = supabase
         .channel('subscription-changes')
         .on(
           'postgres_changes',
@@ -43,13 +45,15 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
         .subscribe((status) => {
           console.log('Subscription status:', status);
         });
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     };
 
     setupSubscription();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [toast]);
 
   const handleUpgrade = () => {
