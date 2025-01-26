@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
+    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage } = await req.json();
 
     console.log('Received checkout request:', { amount, plan, email, documentName });
 
@@ -78,7 +78,6 @@ serve(async (req) => {
           filePath,
           sourceLanguage,
           targetLanguage,
-          content,
         },
       });
 

@@ -65,6 +65,27 @@ const PaymentProcessor = ({
         throw new Error('No active session');
       }
 
+      // Store content in translations table first if it exists
+      if (content && filePath) {
+        const { error: contentError } = await supabase
+          .from('translations')
+          .insert({
+            user_id: session.user.id,
+            document_name: documentName,
+            content: content,
+            file_path: filePath,
+            source_language: sourceLanguage,
+            target_language: targetLanguage,
+            status: 'pending_payment',
+            word_count: parseInt(words || '0'),
+            amount_paid: parseFloat(amount)
+          });
+
+        if (contentError) {
+          throw contentError;
+        }
+      }
+
       const payload = {
         amount, 
         words, 
@@ -74,9 +95,7 @@ const PaymentProcessor = ({
         documentName,
         filePath,
         sourceLanguage,
-        targetLanguage,
-        content,
-        type: 'subscription'
+        targetLanguage
       };
 
       console.log('Creating checkout session with payload:', payload);
