@@ -70,8 +70,10 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
     }
     
     console.log('Current subscription plan:', subscription.plan_name);
-    if (subscription.plan_name === 'Standard' || subscription.plan_name === 'Premium') {
-      navigate('/payment?plan=Business&amount=2500');
+    if (subscription.plan_name === 'Business') {
+      navigate('/#contact'); // Redirect to contact section for Business plan
+    } else if (subscription.plan_name === 'Standard' || subscription.plan_name === 'Premium') {
+      navigate('/#contact'); // Redirect to contact section for Business plan upgrade
     } else {
       navigate('/#pricing');
     }
@@ -128,7 +130,7 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            {subscription.plan_name === 'Business' ? 'Manage Subscription' : 'Upgrade to Business'}
+            {subscription.plan_name === 'Business' ? 'Contact Support' : 'Contact Us for Business Plan'}
           </Button>
         </div>
       ) : (
