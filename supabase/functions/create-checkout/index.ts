@@ -45,7 +45,7 @@ serve(async (req) => {
     const price = await stripe.prices.create({
       product: product.id,
       unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
-      currency: 'usd',
+      currency: 'brl', // Changed to BRL
       recurring: {
         interval: 'month',
       },

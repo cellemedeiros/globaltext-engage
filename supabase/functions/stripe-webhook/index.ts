@@ -64,10 +64,18 @@ serve(async (req) => {
           wordsAllowed = 50000;
         }
 
+        console.log('Updating subscription in database:', {
+          userId,
+          planName,
+          status: subscription.status,
+          wordsAllowed
+        });
+
         // Update subscription in database
         const { error: subscriptionError } = await supabaseAdmin
           .from('subscriptions')
           .upsert({
+            id: subscription.id, // Use Stripe subscription ID
             user_id: userId,
             plan_name: planName,
             status: subscription.status,
@@ -81,6 +89,8 @@ serve(async (req) => {
           console.error('Error updating subscription:', subscriptionError);
           throw subscriptionError;
         }
+
+        console.log('Successfully updated subscription in database');
         break;
       }
 
@@ -92,17 +102,24 @@ serve(async (req) => {
           throw new Error('No user ID found in metadata');
         }
 
+        console.log('Cancelling subscription in database:', { userId });
+
         const { error: subscriptionError } = await supabaseAdmin
           .from('subscriptions')
           .update({ status: 'cancelled' })
-          .eq('user_id', userId);
+          .eq('id', subscription.id);
 
         if (subscriptionError) {
           console.error('Error updating subscription:', subscriptionError);
           throw subscriptionError;
         }
+
+        console.log('Successfully cancelled subscription in database');
         break;
       }
+
+      default:
+        console.log('Unhandled event type:', event.type);
     }
 
     return new Response(JSON.stringify({ received: true }), {
