@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
@@ -18,11 +18,13 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, plan, user_id, email } = await req.json();
+    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
 
-    // Create or get customer
+    console.log('Creating checkout session with params:', { amount, plan, email });
+
+    // Get or create customer
     let customer;
-    const customers = await stripe.customers.list({ email });
+    const customers = await stripe.customers.list({ email, limit: 1 });
     
     if (customers.data.length > 0) {
       customer = customers.data[0];
@@ -33,20 +35,23 @@ serve(async (req) => {
       });
     }
 
-    // Create product and price for the subscription
+    // Create product for this subscription
     const product = await stripe.products.create({
-      name: `${plan} Plan`,
-      description: `${plan} Translation Service Subscription`,
+      name: `${plan || 'Translation'} Plan`,
+      description: `Translation service subscription - ${plan || 'Standard'} plan`,
     });
 
+    // Create price for the subscription
     const price = await stripe.prices.create({
       product: product.id,
-      unit_amount: amount * 100, // Convert to cents
+      unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
       currency: 'usd',
       recurring: {
         interval: 'month',
       },
     });
+
+    console.log('Created price:', price.id);
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -64,8 +69,15 @@ serve(async (req) => {
         user_id,
         type: 'subscription',
         plan,
+        documentName,
+        filePath,
+        sourceLanguage,
+        targetLanguage,
+        content,
       },
     });
+
+    console.log('Created checkout session:', session.id);
 
     return new Response(
       JSON.stringify({ url: session.url }),
@@ -75,7 +87,7 @@ serve(async (req) => {
       },
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error creating checkout session:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

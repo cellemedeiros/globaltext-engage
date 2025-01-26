@@ -60,7 +60,8 @@ const PaymentProcessor = ({
         amount,
         words,
         plan,
-        type: 'subscription'
+        email: session.user.email,
+        user_id: session.user.id
       });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -68,6 +69,8 @@ const PaymentProcessor = ({
           amount, 
           words, 
           plan,
+          email: session.user.email,
+          user_id: session.user.id,
           documentName,
           filePath,
           sourceLanguage,
