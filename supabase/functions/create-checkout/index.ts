@@ -22,26 +22,6 @@ serve(async (req) => {
 
     console.log('Creating checkout session with params:', { amount, plan, email, documentName });
 
-    // Get or create customer
-    let customer;
-    try {
-      const customers = await stripe.customers.list({ email, limit: 1 });
-      
-      if (customers.data.length > 0) {
-        customer = customers.data[0];
-        console.log('Found existing customer:', customer.id);
-      } else {
-        customer = await stripe.customers.create({
-          email,
-          metadata: { user_id }
-        });
-        console.log('Created new customer:', customer.id);
-      }
-    } catch (error) {
-      console.error('Error handling customer:', error);
-      throw error;
-    }
-
     // Create product for this subscription
     let product;
     try {
@@ -72,10 +52,10 @@ serve(async (req) => {
       throw error;
     }
 
-    // Create checkout session
+    // Create checkout session with a new customer
     try {
       const session = await stripe.checkout.sessions.create({
-        customer: customer.id,
+        customer_email: email,
         line_items: [
           {
             price: price.id,
