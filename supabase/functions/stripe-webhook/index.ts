@@ -101,16 +101,16 @@ serve(async (req) => {
         const amountPaid = session.amount_total / 100;
         
         if (amountPaid === 1200) {
-          wordsAllowed = 50000;
-        } else if (amountPaid === 600) {
           wordsAllowed = 15000;
-        } else {
+        } else if (amountPaid === 400) {
           wordsAllowed = 5000;
+        } else {
+          wordsAllowed = 5000; // Default to minimum
         }
 
         const subscriptionData = {
           user_id: session.metadata.user_id,
-          plan_name: amountPaid === 1200 ? 'Business' : amountPaid === 600 ? 'Premium' : 'Standard',
+          plan_name: amountPaid === 1200 ? 'Premium' : 'Standard',
           status: 'active',
           words_remaining: wordsAllowed,
           started_at: new Date().toISOString(),
