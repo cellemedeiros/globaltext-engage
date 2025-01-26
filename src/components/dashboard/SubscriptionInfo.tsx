@@ -41,8 +41,8 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           (payload) => {
             console.log('Subscription update received:', payload);
             toast({
-              title: "Assinatura atualizada",
-              description: "O status da sua assinatura foi atualizado.",
+              title: "Subscription Updated",
+              description: "Your subscription status has been updated.",
             });
             window.location.reload();
           }
@@ -81,12 +81,12 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
 
   return (
     <Card className="p-6">
-      <h2 className="text-xl font-semibold mb-6">Status da Assinatura</h2>
+      <h2 className="text-xl font-semibold mb-6">Subscription Status</h2>
       
       {subscription ? (
         <div className="space-y-4">
           <div>
-            <p className="text-sm text-muted-foreground">Plano Atual</p>
+            <p className="text-sm text-muted-foreground">Current Plan</p>
             <p className="font-medium">{subscription.plan_name}</p>
           </div>
           
@@ -96,14 +96,14 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
           </div>
           
           <div>
-            <p className="text-sm text-muted-foreground">Palavras Restantes</p>
+            <p className="text-sm text-muted-foreground">Words Remaining</p>
             <p className="font-medium">{subscription.words_remaining}</p>
           </div>
           
           <div>
-            <p className="text-sm text-muted-foreground">Expira em</p>
+            <p className="text-sm text-muted-foreground">Expires On</p>
             <p className="font-medium">
-              {new Date(subscription.expires_at).toLocaleDateString('pt-BR')}
+              {new Date(subscription.expires_at).toLocaleDateString('en-US')}
             </p>
           </div>
 
@@ -111,17 +111,17 @@ const SubscriptionInfo = ({ subscription }: { subscription: Subscription | null 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            {subscription.plan_name === 'Business' ? 'Gerenciar Assinatura' : 'Upgrade para Business'}
+            {subscription.plan_name === 'Business' ? 'Manage Subscription' : 'Upgrade to Business'}
           </Button>
         </div>
       ) : (
         <div className="text-center space-y-4">
-          <p className="text-muted-foreground">Nenhuma assinatura ativa</p>
+          <p className="text-muted-foreground">No active subscription</p>
           <Button 
             className="w-full" 
             onClick={handleUpgrade}
           >
-            Assinar Agora
+            Subscribe Now
           </Button>
         </div>
       )}
