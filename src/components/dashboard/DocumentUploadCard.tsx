@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import FileUploadForm from "./document-upload/FileUploadForm";
 import { createTranslationRecord } from "./document-upload/TranslationCreator";
+import { calculatePrice } from "@/utils/documentUtils";
 
 interface DocumentUploadCardProps {
   hasActiveSubscription: boolean;
