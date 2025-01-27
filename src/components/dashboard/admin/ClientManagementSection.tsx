@@ -26,23 +26,27 @@ const ClientManagementSection = () => {
   const { data: clients, isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
-      // Get profiles with their subscriptions
+      // Get profiles with their latest active subscription
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select(`
           *,
-          subscription:subscriptions(
+          subscription:subscriptions!inner(
             plan_name,
             status,
             expires_at
           )
         `)
         .eq('role', 'client')
+        .eq('subscriptions.status', 'active')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profiles:', error);
+        throw error;
+      }
 
-      // For each profile, get their email from auth.users using a custom function
+      // For each profile, get their email from auth.users using the custom function
       const { data: emailsData, error: emailsError } = await supabase
         .functions.invoke('get-user-emails', {
           body: { userIds: profiles?.map(profile => profile.id) || [] }
@@ -53,7 +57,8 @@ const ClientManagementSection = () => {
         return profiles;
       }
 
-      const emailMap = new Map(emailsData?.emails || []);
+      // Create a Map of user IDs to emails
+      const emailMap = new Map(emailsData?.emails?.map((entry: string[]) => [entry[0], entry[1]]));
 
       return profiles?.map(profile => ({
         ...profile,
