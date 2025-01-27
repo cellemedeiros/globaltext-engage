@@ -295,7 +295,15 @@ export type Database = {
           user_id?: string
           words_remaining?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       translation_memories: {
         Row: {

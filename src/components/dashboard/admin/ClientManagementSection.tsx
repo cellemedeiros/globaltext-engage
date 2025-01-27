@@ -17,7 +17,6 @@ import { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   subscription?: Database['public']['Tables']['subscriptions']['Row'] | null;
-  email?: string;
 };
 
 const ClientManagementSection = () => {
@@ -26,9 +25,6 @@ const ClientManagementSection = () => {
   const { data: clients, isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error("No user found");
-
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select(`
@@ -43,22 +39,13 @@ const ClientManagementSection = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // Get emails from auth.users for these profiles
-      const { data: authUsers } = await supabase.auth.admin.listUsers();
-      const emailMap = new Map(authUsers?.users.map(user => [user.id, user.email]));
-      
-      return (profiles as Profile[]).map(profile => ({
-        ...profile,
-        email: emailMap.get(profile.id) || ''
-      }));
+      return profiles as Profile[];
     },
   });
 
   const filteredClients = clients?.filter(client => 
     client.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    client.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
