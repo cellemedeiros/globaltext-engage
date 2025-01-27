@@ -12,8 +12,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('Starting checkout session creation...');
-
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -74,6 +72,7 @@ serve(async (req) => {
       content
     };
 
+    console.log('Setting up session config with type:', type);
     const sessionConfig = type === 'subscription' ? {
       mode: 'subscription' as const,
       line_items: [
@@ -120,7 +119,7 @@ serve(async (req) => {
         status: 200,
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating payment session:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
