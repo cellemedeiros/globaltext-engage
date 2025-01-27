@@ -33,6 +33,17 @@ const PaymentProcessor = ({
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const getPriceId = (planName: string) => {
+    switch (planName) {
+      case 'Standard':
+        return 'price_1QWrX8IwUre76FfZUmSp88zv';
+      case 'Premium':
+        return 'price_1QWrXqIwUre76FfZ2jxLkBWX';
+      default:
+        return null;
+    }
+  };
+
   const handlePayment = async () => {
     if (!session) {
       toast({
@@ -58,11 +69,14 @@ const PaymentProcessor = ({
 
       console.log('Creating checkout session...');
       
+      const priceId = plan ? getPriceId(plan) : null;
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           amount, 
           words, 
           plan,
+          priceId,
           documentName,
           filePath,
           sourceLanguage,

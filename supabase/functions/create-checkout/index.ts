@@ -42,13 +42,8 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, plan, type } = await req.json();
+    const { amount, priceId, plan, type, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
     
-    if (!amount) {
-      console.error('Amount is required');
-      throw new Error('Amount is required');
-    }
-
     console.log('Creating Stripe instance...');
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -71,23 +66,38 @@ serve(async (req) => {
     const metadata = {
       userId: user.id,
       type: type || 'subscription',
-      plan: plan
+      plan: plan,
+      documentName,
+      filePath,
+      sourceLanguage,
+      targetLanguage,
+      content
     };
 
-    const sessionConfig = {
-      mode: type === 'translation' ? 'payment' : 'subscription',
+    const sessionConfig = type === 'subscription' ? {
+      mode: 'subscription' as const,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      metadata,
+      customer: customer_id,
+      customer_email: customer_id ? undefined : user.email,
+      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
+      cancel_url: `${req.headers.get('origin')}/dashboard?error=cancelled`,
+    } : {
+      mode: 'payment' as const,
       line_items: [
         {
           price_data: {
             currency: 'brl',
             product_data: {
-              name: plan ? `${plan} Plan` : 'Translation Service',
-              description: `Monthly subscription for ${plan} plan`,
+              name: 'Translation Service',
+              description: `Translation service for ${documentName || 'document'}`,
             },
             unit_amount: Math.round(parseFloat(amount) * 100),
-            recurring: type === 'translation' ? undefined : {
-              interval: 'month'
-            }
           },
           quantity: 1,
         },
@@ -95,8 +105,8 @@ serve(async (req) => {
       metadata,
       customer: customer_id,
       customer_email: customer_id ? undefined : user.email,
-      success_url: `${req.headers.get('origin')}/payment?payment=success`,
-      cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
+      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
+      cancel_url: `${req.headers.get('origin')}/dashboard?error=cancelled`,
     };
 
     console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
