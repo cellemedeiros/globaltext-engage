@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { AdminUserList } from "@supabase/auth-helpers-shared";
 
 interface ClientProfile {
   id: string;
@@ -43,16 +44,18 @@ const ClientManagementSection = () => {
       }
 
       // Get emails for these users
-      const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+      const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
       if (usersError) {
         console.error('Error fetching user emails:', usersError);
         throw usersError;
       }
 
+      const users = (usersData?.users || []) as AdminUserList['users'];
+
       // Map emails to profiles
       return profiles.map(profile => ({
         ...profile,
-        email: users.users.find(u => u.id === profile.id)?.email,
+        email: users.find(u => u.id === profile.id)?.email,
         subscription: profile.subscription?.[0] // Get the first subscription if exists
       }));
     },
