@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Users, Search } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
-import { User } from "@supabase/supabase-js";
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   subscription?: Database['public']['Tables']['subscriptions']['Row'] | null;
@@ -27,6 +26,7 @@ const ClientManagementSection = () => {
   const { data: clients, isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
+      // Get profiles with their subscriptions
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select(`
@@ -42,11 +42,18 @@ const ClientManagementSection = () => {
 
       if (error) throw error;
 
-      // Get emails from auth.users table
-      const { data: users } = await supabase.auth.admin.listUsers();
-      const emailMap = new Map(
-        users?.users.map((user: User) => [user.id, user.email]) || []
-      );
+      // For each profile, get their email from auth.users using a custom function
+      const { data: emailsData, error: emailsError } = await supabase
+        .functions.invoke('get-user-emails', {
+          body: { userIds: profiles?.map(profile => profile.id) || [] }
+        });
+
+      if (emailsError) {
+        console.error('Error fetching emails:', emailsError);
+        return profiles;
+      }
+
+      const emailMap = new Map(emailsData?.emails || []);
 
       return profiles?.map(profile => ({
         ...profile,
