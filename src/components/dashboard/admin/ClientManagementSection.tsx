@@ -17,6 +17,7 @@ import { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   subscription?: Database['public']['Tables']['subscriptions']['Row'] | null;
+  email?: string;
 };
 
 const ClientManagementSection = () => {
@@ -39,13 +40,22 @@ const ClientManagementSection = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return profiles as Profile[];
+
+      // Get emails from auth.users table
+      const { data: users } = await supabase.auth.admin.listUsers();
+      const emailMap = new Map(users?.users.map(user => [user.id, user.email]));
+
+      return profiles?.map(profile => ({
+        ...profile,
+        email: emailMap.get(profile.id)
+      })) as Profile[];
     },
   });
 
   const filteredClients = clients?.filter(client => 
     client.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    client.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -71,6 +81,7 @@ const ClientManagementSection = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Country</TableHead>
               <TableHead>Current Plan</TableHead>
               <TableHead>Plan Status</TableHead>
@@ -81,13 +92,13 @@ const ClientManagementSection = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   Loading clients...
                 </TableCell>
               </TableRow>
             ) : filteredClients?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   No clients found
                 </TableCell>
               </TableRow>
@@ -97,6 +108,7 @@ const ClientManagementSection = () => {
                   <TableCell>
                     {client.first_name} {client.last_name}
                   </TableCell>
+                  <TableCell>{client.email}</TableCell>
                   <TableCell>{client.country || 'Not specified'}</TableCell>
                   <TableCell>{client.subscription?.plan_name || 'No plan'}</TableCell>
                   <TableCell>
