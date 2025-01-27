@@ -5,7 +5,6 @@ import { Loader2 } from "lucide-react";
 
 interface ClientProfile {
   id: string;
-  email?: string;
   first_name?: string;
   last_name?: string;
   role: string;
@@ -31,7 +30,6 @@ const ClientManagementSection = () => {
           first_name,
           last_name,
           role,
-          email,
           subscription:subscriptions(
             plan_name,
             status,
@@ -72,7 +70,6 @@ const ClientManagementSection = () => {
                 <p className="font-medium">
                   {client.first_name} {client.last_name}
                 </p>
-                <p className="text-sm text-muted-foreground">{client.email}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">
