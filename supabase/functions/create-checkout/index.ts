@@ -42,7 +42,7 @@ serve(async (req) => {
 
     console.log('User authenticated successfully');
 
-    const { amount, words, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
+    const { amount, plan, type } = await req.json();
     
     if (!amount) {
       console.error('Amount is required');
@@ -68,30 +68,26 @@ serve(async (req) => {
       console.log('No existing customer found, will create new');
     }
 
-    // Create metadata object with truncated values
     const metadata = {
-      type: 'translation',
       userId: user.id,
-      words: words?.toString().slice(0, 100),
-      documentName: documentName?.slice(0, 100),
-      filePath: filePath?.slice(0, 100),
-      sourceLanguage: sourceLanguage?.slice(0, 50),
-      targetLanguage: targetLanguage?.slice(0, 50),
-      // Only store a preview of the content if needed
-      contentPreview: content ? `${content.slice(0, 100)}...` : undefined
+      type: type || 'subscription',
+      plan: plan
     };
 
     const sessionConfig = {
-      mode: 'payment',
+      mode: type === 'translation' ? 'payment' : 'subscription',
       line_items: [
         {
           price_data: {
             currency: 'brl',
             product_data: {
-              name: `Translation Service${words ? ` - ${words} words` : ''}`,
-              description: documentName ? `Document: ${documentName}` : undefined,
+              name: plan ? `${plan} Plan` : 'Translation Service',
+              description: `Monthly subscription for ${plan} plan`,
             },
             unit_amount: Math.round(parseFloat(amount) * 100),
+            recurring: type === 'translation' ? undefined : {
+              interval: 'month'
+            }
           },
           quantity: 1,
         },
