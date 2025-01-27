@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Users, Search } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
+import { User } from "@supabase/supabase-js";
 
 type Profile = Database['public']['Tables']['profiles']['Row'] & {
   subscription?: Database['public']['Tables']['subscriptions']['Row'] | null;
@@ -43,7 +44,9 @@ const ClientManagementSection = () => {
 
       // Get emails from auth.users table
       const { data: users } = await supabase.auth.admin.listUsers();
-      const emailMap = new Map(users?.users.map(user => [user.id, user.email]));
+      const emailMap = new Map(
+        users?.users.map((user: User) => [user.id, user.email]) || []
+      );
 
       return profiles?.map(profile => ({
         ...profile,
