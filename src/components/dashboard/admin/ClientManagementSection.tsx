@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { AdminUserList } from "@supabase/auth-helpers-shared";
 
 interface ClientProfile {
   id: string;
@@ -24,11 +23,15 @@ const ClientManagementSection = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
 
-      // First get all client profiles
+      // Get all client profiles with their subscriptions in a single query
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select(`
-          *,
+          id,
+          first_name,
+          last_name,
+          role,
+          email,
           subscription:subscriptions(
             plan_name,
             status,
@@ -43,19 +46,8 @@ const ClientManagementSection = () => {
         throw error;
       }
 
-      // Get emails for these users
-      const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
-      if (usersError) {
-        console.error('Error fetching user emails:', usersError);
-        throw usersError;
-      }
-
-      const users = (usersData?.users || []) as AdminUserList['users'];
-
-      // Map emails to profiles
       return profiles.map(profile => ({
         ...profile,
-        email: users.find(u => u.id === profile.id)?.email,
         subscription: profile.subscription?.[0] // Get the first subscription if exists
       }));
     },
