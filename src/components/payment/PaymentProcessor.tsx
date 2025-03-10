@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
@@ -9,7 +9,7 @@ interface PaymentProcessorProps {
   amount: string | null;
   words?: string | null;
   plan?: string | null;
-  session: Session | null;
+  session: any;
   documentName?: string | null;
   filePath?: string | null;
   sourceLanguage?: string | null;
@@ -33,22 +33,20 @@ const PaymentProcessor = ({
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const getPriceId = (planName: string) => {
-    switch (planName) {
-      case 'Standard':
-        return 'price_1QWrX8IwUre76FfZUmSp88zv';
-      case 'Premium':
-        return 'price_1QWrXqIwUre76FfZ2jxLkBWX';
-      default:
-        return null;
-    }
-  };
-
   const handlePayment = async () => {
     if (!session) {
       toast({
         title: "Authentication Required",
         description: "Please log in to continue with the payment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!amount) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please provide a valid payment amount.",
         variant: "destructive",
       });
       return;
@@ -67,39 +65,66 @@ const PaymentProcessor = ({
         throw new Error('No active session');
       }
 
-      console.log('Creating checkout session...');
-      
-      const priceId = plan ? getPriceId(plan) : null;
+      // Store content in translations table first if it exists
+      if (content && filePath) {
+        const { error: contentError } = await supabase
+          .from('translations')
+          .insert({
+            user_id: session.user.id,
+            document_name: documentName,
+            content: content,
+            file_path: filePath,
+            source_language: sourceLanguage,
+            target_language: targetLanguage,
+            status: 'pending_payment',
+            word_count: parseInt(words || '0'),
+            amount_paid: parseFloat(amount)
+          });
+
+        if (contentError) {
+          throw contentError;
+        }
+      }
+
+      const payload = {
+        amount, 
+        words, 
+        plan,
+        email: session.user.email,
+        user_id: session.user.id,
+        documentName,
+        filePath,
+        sourceLanguage,
+        targetLanguage,
+        // Determine payment type based on presence of plan
+        type: plan ? 'subscription' : 'payment'
+      };
+
+      console.log('Creating checkout session with payload:', payload);
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          amount, 
-          words, 
-          plan,
-          priceId,
-          documentName,
-          filePath,
-          sourceLanguage,
-          targetLanguage,
-          content,
-          type: plan ? 'subscription' : 'translation'
-        },
+        body: payload,
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
       });
 
-      if (error) throw error;
+      console.log('Checkout response:', { data, error });
 
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
+      if (error) {
+        console.error('Checkout error:', error);
+        throw error;
+      }
+
+      if (!data?.url) {
         throw new Error('No checkout URL received');
       }
+
+      window.location.href = data.url;
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
-        title: "Error",
+        title: "Payment Error",
         description: error.message || "Failed to process payment. Please try again.",
         variant: "destructive",
       });
@@ -121,7 +146,7 @@ const PaymentProcessor = ({
             Processing...
           </div>
         ) : (
-          `Proceed to Payment - R$${amount}`
+          `Pay R$${amount || ""}`
         )}
       </Button>
     </div>

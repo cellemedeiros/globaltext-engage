@@ -18,7 +18,7 @@ interface TranslationsListProps {
 const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsListProps) => {
   const title = role === 'translator' ? 'Translations' : 'Recent Translations';
   const { toast } = useToast();
-  const { data: translations = [], isLoading: translationsLoading, refetch } = useTranslations(role);
+  const { data: translations, isLoading: translationsLoading, refetch } = useTranslations(role);
 
   useEffect(() => {
     console.log('TranslationsList mounted with role:', role);
@@ -35,30 +35,40 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
         },
         async (payload: any) => {
           console.log('Translation update received:', payload);
+          console.log('Payload new data:', payload.new);
+          console.log('Current user role:', role);
           
           const { data: { user } } = await supabase.auth.getUser();
+          console.log('Current user:', user);
+          
           if (!user) {
             console.log('No authenticated user found');
             return;
           }
 
           // For clients, only refetch if the translation belongs to them
-          if (role === 'client' && payload.new?.user_id === user.id) {
-            await refetch();
+          if (role === 'client') {
+            console.log('Comparing user.id:', user.id, 'with payload.new.user_id:', payload.new?.user_id);
             
-            if (payload.eventType === 'INSERT') {
-              toast({
-                title: "Translation Created",
-                description: "Your translation request has been submitted successfully",
-              });
-            } else if (payload.eventType === 'UPDATE' && payload.new.translated_file_path && !payload.old.translated_file_path) {
-              toast({
-                title: "Translation Ready",
-                description: "Your translated document is now available for download",
-              });
+            if (payload.new && payload.new.user_id === user.id) {
+              console.log('Translation belongs to current user, refetching...');
+              await refetch();
+              
+              if (payload.eventType === 'INSERT') {
+                toast({
+                  title: "Translation Created",
+                  description: "Your translation request has been submitted successfully",
+                });
+              } else if (payload.eventType === 'UPDATE' && payload.new.translated_file_path && !payload.old.translated_file_path) {
+                toast({
+                  title: "Translation Ready",
+                  description: "Your translated document is now available for download",
+                });
+              }
             }
-          } else if (role !== 'client') {
+          } else {
             // For translators and admins, always refetch
+            console.log('Non-client role, always refetching...');
             await refetch();
             
             if (payload.eventType === 'INSERT' && role === 'translator') {
@@ -66,16 +76,24 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
                 title: "New Translation Available",
                 description: "A new document is available for translation",
               });
+            } else if (payload.eventType === 'UPDATE' && role === 'translator' && payload.new.translator_id && !payload.old.translator_id) {
+              toast({
+                title: "Translation Claimed",
+                description: "You have successfully claimed this translation",
+              });
             }
           }
         }
       )
       .subscribe();
 
+    // Initial fetch on mount
+    refetch();
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetch, role, toast]);
+  }, [refetch, role, toast, translations]);
 
   if (isLoading || translationsLoading) {
     return (
@@ -97,10 +115,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
     );
   }
 
-  // Ensure translations is always an array
-  const translationsList = Array.isArray(translations) ? translations : [];
-
-  if (!translationsList.length) {
+  if (!translations?.length) {
     return (
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
@@ -124,7 +139,7 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
           </h2>
         </div>
         <TranslatorTabs 
-          translations={translationsList}
+          translations={translations}
           role={role}
           onUpdate={() => {
             toast({
@@ -148,9 +163,10 @@ const TranslationsList = ({ role = 'client', isLoading = false }: TranslationsLi
       </div>
       <ScrollArea className="h-[600px]">
         <div className="space-y-4">
-          {translationsList.map((translation) => (
+          {translations.map((translation) => (
             <div key={translation.id} className="space-y-4">
               <TranslationItem 
+                key={translation.id}
                 translation={translation}
                 role={role}
                 onUpdate={() => {

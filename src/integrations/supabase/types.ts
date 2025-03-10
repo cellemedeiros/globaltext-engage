@@ -9,39 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      api_keys: {
-        Row: {
-          created_at: string | null
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          key: string
-          last_used_at: string | null
-          name: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          key: string
-          last_used_at?: string | null
-          name: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          key?: string
-          last_used_at?: string | null
-          name?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       badges: {
         Row: {
           created_at: string | null
@@ -95,59 +62,6 @@ export type Database = {
           name?: string | null
         }
         Relationships: []
-      }
-      documents: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          error_message: string | null
-          file_path: string
-          id: string
-          mime_type: string
-          original_filename: string
-          project_id: string | null
-          status: Database["public"]["Enums"]["document_status"] | null
-          translated_file_path: string | null
-          updated_at: string | null
-          word_count: number | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          file_path: string
-          id?: string
-          mime_type: string
-          original_filename: string
-          project_id?: string | null
-          status?: Database["public"]["Enums"]["document_status"] | null
-          translated_file_path?: string | null
-          updated_at?: string | null
-          word_count?: number | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          file_path?: string
-          id?: string
-          mime_type?: string
-          original_filename?: string
-          project_id?: string | null
-          status?: Database["public"]["Enums"]["document_status"] | null
-          translated_file_path?: string | null
-          updated_at?: string | null
-          word_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "documents_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "translation_projects"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       freelancer_applications: {
         Row: {
@@ -296,36 +210,6 @@ export type Database = {
         }
         Relationships: []
       }
-      stripe_payment_events: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          customer_id: string | null
-          id: string
-          metadata: Json | null
-          payment_intent_id: string | null
-          type: string
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_intent_id?: string | null
-          type: string
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_intent_id?: string | null
-          type?: string
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           amount_paid: number
@@ -381,15 +265,7 @@ export type Database = {
           user_id?: string
           words_remaining?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       translation_memories: {
         Row: {
@@ -421,54 +297,6 @@ export type Database = {
           target_language?: string
           target_segment?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      translation_projects: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          custom_instructions: string | null
-          description: string | null
-          glossary_enabled: boolean | null
-          id: string
-          name: string
-          source_language: string
-          status: Database["public"]["Enums"]["document_status"] | null
-          target_language: string
-          updated_at: string | null
-          user_id: string | null
-          word_count: number | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          custom_instructions?: string | null
-          description?: string | null
-          glossary_enabled?: boolean | null
-          id?: string
-          name: string
-          source_language: string
-          status?: Database["public"]["Enums"]["document_status"] | null
-          target_language: string
-          updated_at?: string | null
-          user_id?: string | null
-          word_count?: number | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          custom_instructions?: string | null
-          description?: string | null
-          glossary_enabled?: boolean | null
-          id?: string
-          name?: string
-          source_language?: string
-          status?: Database["public"]["Enums"]["document_status"] | null
-          target_language?: string
-          updated_at?: string | null
-          user_id?: string | null
-          word_count?: number | null
         }
         Relationships: []
       }
@@ -610,63 +438,6 @@ export type Database = {
           },
         ]
       }
-      usage_logs: {
-        Row: {
-          api_key_id: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          project_id: string | null
-          request_type: string
-          source_language: string
-          success: boolean | null
-          target_language: string
-          user_id: string | null
-          word_count: number
-        }
-        Insert: {
-          api_key_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          project_id?: string | null
-          request_type: string
-          source_language: string
-          success?: boolean | null
-          target_language: string
-          user_id?: string | null
-          word_count: number
-        }
-        Update: {
-          api_key_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          project_id?: string | null
-          request_type?: string
-          source_language?: string
-          success?: boolean | null
-          target_language?: string
-          user_id?: string | null
-          word_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "usage_logs_api_key_id_fkey"
-            columns: ["api_key_id"]
-            isOneToOne: false
-            referencedRelation: "api_keys"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "usage_logs_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "translation_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       withdrawal_requests: {
         Row: {
           amount: number
@@ -768,7 +539,6 @@ export type Database = {
           churned_mrr: number
           total_customers: number
           active_subscriptions: number
-          subscription_breakdown: Json
         }[]
       }
     }
@@ -779,8 +549,6 @@ export type Database = {
         | "words_milestone"
         | "speed_milestone"
         | "quality_milestone"
-      document_status: "pending" | "processing" | "completed" | "failed"
-      subscription_tier: "pay_as_you_go" | "standard" | "premium" | "enterprise"
       user_role: "client" | "translator"
     }
     CompositeTypes: {

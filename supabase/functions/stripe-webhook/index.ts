@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
@@ -9,7 +9,6 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
@@ -18,17 +17,21 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
     const signature = req.headers.get('stripe-signature');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 
     if (!signature || !webhookSecret) {
       console.error('Missing signature or webhook secret');
-      return new Response('Missing signature or webhook secret', { status: 400 });
+      return new Response(
+        JSON.stringify({ error: 'Missing signature or webhook secret' }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const body = await req.text();
@@ -38,93 +41,119 @@ serve(async (req) => {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error(`Webhook signature verification failed:`, err.message);
-      return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
+      return new Response(
+        JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`Processing webhook event: ${event.type}`);
+    console.log(`Processing webhook event: ${event.type}`, event.data.object);
 
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        const metadata = session.metadata || {};
-        
-        if (metadata.type === 'translation') {
-          console.log(`Processing successful payment for translation`);
-          
-          // Create the translation record
-          const { error: translationError } = await supabaseAdmin
-            .from('translations')
-            .insert({
-              user_id: metadata.userId,
-              document_name: metadata.documentName,
-              word_count: parseInt(metadata.words),
-              status: 'pending',
-              payment_status: 'completed',
-              stripe_payment_intent_id: session.payment_intent,
-              stripe_customer_id: session.customer,
-              amount_paid: session.amount_total / 100,
-              price_offered: session.amount_total / 100,
-              source_language: metadata.sourceLanguage,
-              target_language: metadata.targetLanguage,
-              file_path: metadata.filePath,
-              content: metadata.contentPreview
-            });
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        console.log('Processing payment intent:', {
+          paymentIntentId: paymentIntent.id,
+          amount: paymentIntent.amount,
+          status: paymentIntent.status,
+          metadata: paymentIntent.metadata
+        });
 
-          if (translationError) {
-            console.error('Error creating translation:', translationError);
-            throw translationError;
-          }
-
-          // Notify translators about the new available translation
-          const { data: translators, error: translatorError } = await supabaseAdmin
-            .from('profiles')
-            .select('id')
-            .eq('is_approved_translator', true);
-
-          if (translatorError) {
-            console.error('Error fetching translators:', translatorError);
-          } else if (translators && translators.length > 0) {
-            const notifications = translators.map(translator => ({
-              title: 'New Translation Available',
-              message: `A new translation project is available${metadata.documentName ? `: ${metadata.documentName}` : ''}`,
-              user_id: translator.id,
-            }));
-
-            const { error: notificationError } = await supabaseAdmin
-              .from('notifications')
-              .insert(notifications);
-
-            if (notificationError) {
-              console.error('Error creating notifications:', notificationError);
-            } else {
-              console.log(`Created notifications for ${notifications.length} translators`);
-            }
-          }
-        }
-        break;
-      }
-
-      case 'checkout.session.expired': {
-        const session = event.data.object;
-        const metadata = session.metadata || {};
-        
-        if (metadata.type === 'translation') {
-          console.log(`Processing expired payment for translation`);
-          
-          const { error } = await supabaseAdmin
+        if (paymentIntent.metadata?.translationId) {
+          const { error: updateError } = await supabaseAdmin
             .from('translations')
             .update({
-              payment_status: 'expired'
+              payment_status: 'succeeded',
+              stripe_payment_intent_id: paymentIntent.id,
+              stripe_customer_id: paymentIntent.customer,
             })
-            .eq('stripe_payment_intent_id', session.payment_intent);
+            .eq('id', paymentIntent.metadata.translationId);
 
-          if (error) {
-            console.error('Error updating translation payment status:', error);
-            throw error;
+          if (updateError) {
+            console.error('Error updating translation payment status:', updateError);
+            throw updateError;
           }
         }
         break;
       }
+
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        console.log('Processing completed checkout session:', {
+          sessionId: session.id,
+          customerId: session.customer,
+          metadata: session.metadata,
+          userId: session.metadata?.user_id,
+        });
+
+        if (!session.metadata?.user_id) {
+          throw new Error('No user ID found in session metadata');
+        }
+
+        const subscriptionId = session.subscription;
+        if (!subscriptionId) {
+          throw new Error('No subscription ID found in session');
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        console.log('Retrieved subscription details:', subscription);
+
+        let wordsAllowed = 0;
+        const amountPaid = session.amount_total / 100;
+        
+        if (amountPaid === 1200) {
+          wordsAllowed = 15000;
+        } else if (amountPaid === 400) {
+          wordsAllowed = 5000;
+        } else {
+          wordsAllowed = 5000; // Default to minimum
+        }
+
+        const subscriptionData = {
+          user_id: session.metadata.user_id,
+          plan_name: amountPaid === 1200 ? 'Premium' : 'Standard',
+          status: 'active',
+          words_remaining: wordsAllowed,
+          started_at: new Date().toISOString(),
+          expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+          amount_paid: amountPaid,
+          stripe_session_id: session.id,
+          stripe_customer_id: session.customer,
+          stripe_subscription_id: subscriptionId,
+          subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          payment_status: 'succeeded',
+          last_payment_date: new Date().toISOString(),
+          next_payment_date: new Date(subscription.current_period_end * 1000).toISOString()
+        };
+
+        console.log('Creating subscription record:', subscriptionData);
+
+        const { error: subscriptionError } = await supabaseAdmin
+          .from('subscriptions')
+          .upsert(subscriptionData);
+
+        if (subscriptionError) {
+          console.error('Error creating subscription:', subscriptionError);
+          throw subscriptionError;
+        }
+
+        const { error: notificationError } = await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: session.metadata.user_id,
+            title: 'Subscription Activated',
+            message: `Your ${subscriptionData.plan_name} plan subscription has been activated successfully.`
+          });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+        }
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -133,9 +162,12 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error('Error processing webhook:', err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    });
+    return new Response(
+      JSON.stringify({ error: err.message }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    );
   }
 });

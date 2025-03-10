@@ -38,7 +38,7 @@ export const createTranslationRecord = async ({
         .from('subscriptions')
         .insert({
           user_id: session.user.id,
-          plan_name: 'business',
+          plan_name: 'Business',
           status: 'active',
           words_remaining: 999999999, // Effectively unlimited
           expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
@@ -49,13 +49,37 @@ export const createTranslationRecord = async ({
     }
   }
 
-  const { data: subscription } = await supabase
+  // Get active subscription and check words remaining
+  const { data: subscription, error: subscriptionError } = await supabase
     .from('subscriptions')
-    .select('id')
+    .select('id, words_remaining, plan_name')
     .eq('user_id', session.user.id)
     .eq('status', 'active')
     .single();
 
+  if (subscriptionError) throw subscriptionError;
+
+  if (!isAdmin) {
+    // Check if user has enough words remaining
+    if (!subscription || subscription.words_remaining < wordCount) {
+      throw new Error('Insufficient words remaining in subscription');
+    }
+
+    // Update words remaining in subscription
+    const { error: updateError } = await supabase
+      .from('subscriptions')
+      .update({ 
+        words_remaining: subscription.words_remaining - wordCount 
+      })
+      .eq('id', subscription.id);
+
+    if (updateError) {
+      console.error('Error updating subscription words:', updateError);
+      throw new Error('Failed to update subscription words remaining');
+    }
+  }
+
+  // Create translation record
   const { error } = await supabase
     .from('translations')
     .insert({

@@ -1,6 +1,11 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@14.21.0';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
+
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,125 +13,111 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  );
-
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('No authorization header found');
-      throw new Error('No authorization header');
+    const { amount, plan, user_id, email, documentName, filePath, sourceLanguage, targetLanguage, type } = await req.json();
+
+    console.log('Received checkout request:', { amount, plan, email, documentName, type });
+
+    if (!amount || !email || !user_id) {
+      throw new Error('Missing required fields: amount, email, or user_id');
     }
 
-    console.log('Authorization header found, getting user...');
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error('Authentication failed:', userError);
-      throw new Error('Authentication failed');
+    // Create product for this payment
+    let product;
+    try {
+      product = await stripe.products.create({
+        name: type === 'subscription' 
+          ? `${plan || 'Translation'} Plan` 
+          : `Translation: ${documentName || 'Document'}`,
+        description: type === 'subscription'
+          ? `Translation service subscription - ${plan || 'Standard'} plan`
+          : `One-time translation payment for ${documentName}`,
+      });
+      console.log('Created Stripe product:', product.id);
+    } catch (error) {
+      console.error('Error creating Stripe product:', error);
+      throw error;
     }
 
-    if (!user.email) {
-      console.error('User email not found');
-      throw new Error('User email not found');
-    }
+    // Create price
+    let price;
+    try {
+      const priceData = {
+        product: product.id,
+        unit_amount: Math.round(parseFloat(amount) * 100), // Convert to cents
+        currency: 'brl',
+      };
 
-    console.log('User authenticated successfully');
-
-    const { amount, priceId, plan, type, documentName, filePath, sourceLanguage, targetLanguage, content } = await req.json();
-    
-    console.log('Creating Stripe instance...');
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-      apiVersion: '2023-10-16',
-    });
-
-    console.log('Looking up customer for email:', user.email);
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
-
-    let customer_id = undefined;
-    if (customers.data.length > 0) {
-      customer_id = customers.data[0].id;
-      console.log('Existing customer found:', customer_id);
-    } else {
-      console.log('No existing customer found, will create new');
-    }
-
-    const metadata = {
-      userId: user.id,
-      type: type || 'subscription',
-      plan: plan,
-      documentName,
-      filePath,
-      sourceLanguage,
-      targetLanguage,
-      content
-    };
-
-    console.log('Setting up session config with type:', type);
-    const sessionConfig = type === 'subscription' ? {
-      mode: 'subscription' as const,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      metadata,
-      customer: customer_id,
-      customer_email: customer_id ? undefined : user.email,
-      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
-      cancel_url: `${req.headers.get('origin')}/dashboard?error=cancelled`,
-    } : {
-      mode: 'payment' as const,
-      line_items: [
-        {
-          price_data: {
-            currency: 'brl',
-            product_data: {
-              name: 'Translation Service',
-              description: `Translation service for ${documentName || 'document'}`,
-            },
-            unit_amount: Math.round(parseFloat(amount) * 100),
+      // Add recurring property only for subscriptions
+      if (type === 'subscription') {
+        Object.assign(priceData, {
+          recurring: {
+            interval: 'month',
           },
-          quantity: 1,
+        });
+      }
+
+      price = await stripe.prices.create(priceData);
+      console.log('Created Stripe price:', price.id);
+    } catch (error) {
+      console.error('Error creating Stripe price:', error);
+      throw error;
+    }
+
+    // Create checkout session
+    try {
+      const sessionData = {
+        customer_email: email,
+        line_items: [
+          {
+            price: price.id,
+            quantity: 1,
+          },
+        ],
+        mode: type === 'subscription' ? 'subscription' : 'payment',
+        success_url: `${req.headers.get('origin')}/payment?payment=success`,
+        cancel_url: `${req.headers.get('origin')}/payment?error=cancelled`,
+        metadata: {
+          user_id,
+          type,
+          plan,
+          documentName,
+          filePath,
+          sourceLanguage,
+          targetLanguage,
         },
-      ],
-      metadata,
-      customer: customer_id,
-      customer_email: customer_id ? undefined : user.email,
-      success_url: `${req.headers.get('origin')}/dashboard?payment=success`,
-      cancel_url: `${req.headers.get('origin')}/dashboard?error=cancelled`,
-    };
+      };
 
-    console.log('Creating checkout session with config:', JSON.stringify(sessionConfig, null, 2));
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+      const session = await stripe.checkout.sessions.create(sessionData);
+      console.log('Created checkout session:', session.id);
 
-    console.log('Payment session created:', session.id);
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      throw error;
+    }
   } catch (error: any) {
-    console.error('Error creating payment session:', error);
+    console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+        status: 400,
+      },
     );
   }
 });
